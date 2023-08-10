@@ -25,17 +25,14 @@ import (
 	"bscp.io/pkg/dal/table"
 	"bscp.io/pkg/logs"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	pbhook "bscp.io/pkg/protocol/core/hook"
-	// for unmarshal yaml config file
-	_ "gopkg.in/yaml.v2"
 
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/types"
-	"github.com/TencentBlueKing/bscp-go/watch"
 )
 
 var (
@@ -45,133 +42,74 @@ var (
 		Long:  `watch `,
 		Run:   Watch,
 	}
-	watchConfig = new(WatchConfig)
-	// flag values
-	watchConfigPath string
 )
-
-// WatchConfig config for bscp-go when run as daemon
-type WatchConfig struct {
-	// FeedAddrs bscp feed server addresses
-	FeedAddrs []string `yaml:"feedAddrs"`
-	// BizID bscp biz id
-	BizID uint32 `yaml:"bizID"`
-	// Token bscp sdk token
-	Token string `yaml:"token"`
-	// Apps bscp watched apps
-	Apps []*AppConfig `yaml:"apps"`
-}
-
-// Validate validate the watch config
-func (c *WatchConfig) Validate() error {
-	if len(c.FeedAddrs) == 0 {
-		return fmt.Errorf("feedAddrs is empty")
-	}
-	if c.BizID == 0 {
-		return fmt.Errorf("bizID is empty")
-	}
-	if c.Token == "" {
-		return fmt.Errorf("token is empty")
-	}
-	if len(c.Apps) == 0 {
-		return fmt.Errorf("watched apps is empty")
-	}
-	exists := make(map[string]bool)
-	for _, app := range c.Apps {
-		if exists[app.App] {
-			return fmt.Errorf("watch repeated for app %s: ", app.App)
-		}
-		if err := app.Validate(); err != nil {
-			return err
-		}
-		exists[app.App] = true
-	}
-	return nil
-}
-
-// AppConfig config for watched app
-type AppConfig struct {
-	// App BSCP app name
-	App string `yaml:"app"`
-	// Labels instance labels
-	Labels map[string]string `yaml:"labels"`
-	// UID instance unique uid
-	UID string `yaml:"uid"`
-	// TempDir config files temporary directory
-	TempDir string
-}
-
-// Validate validate the app watch config
-func (c *AppConfig) Validate() error {
-	if c.App == "" {
-		return fmt.Errorf("app is empty")
-	}
-	if len(c.Labels) == 0 {
-		return fmt.Errorf("labels is empty")
-	}
-	return nil
-}
 
 // Watch run as a daemon to watch the config changes.
 func Watch(cmd *cobra.Command, args []string) {
-	if err := validateWatch(); err != nil {
+	if err := validateArgs(); err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
 	var bscp *client.Client
 	var err error
-	if watchConfigPath != "" {
+	if configPath != "" {
 		bscp, err = client.New(
-			client.FeedAddrs(watchConfig.FeedAddrs),
-			client.BizID(watchConfig.BizID),
-			client.LogVerbosity(logVerbosity),
-			client.Token(watchConfig.Token),
+			option.FeedAddrs(conf.FeedAddrs),
+			option.BizID(conf.Biz),
+			option.Token(conf.Token),
+			option.Labels(conf.Labels),
+			option.UID(conf.UID),
+			option.LogVerbosity(logVerbosity),
 		)
 	} else {
 		bscp, err = client.New(
-			client.FeedAddrs(strings.Split(feedAddrs, ",")),
-			client.BizID(bizID),
-			client.LogVerbosity(logVerbosity),
-			client.Token(token),
+			option.FeedAddrs(strings.Split(feedAddrs, ",")),
+			option.BizID(bizID),
+			option.Token(token),
+			option.Labels(labels),
+			option.UID(uid),
+			option.LogVerbosity(logVerbosity),
 		)
 	}
 	if err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
-	if watchConfigPath != "" {
-		for _, subscriber := range watchConfig.Apps {
+	if configPath != "" {
+		for _, subscriber := range conf.Apps {
 			handler := &WatchHandler{
-				BizID:   watchConfig.BizID,
-				App:     subscriber.App,
-				Labels:  subscriber.Labels,
-				UID:     subscriber.UID,
-				TempDir: subscriber.TempDir,
-				Lock:    sync.Mutex{},
+				App:    subscriber.Name,
+				Labels: subscriber.Labels,
+				UID:    subscriber.UID,
+				Lock:   sync.Mutex{},
 			}
-			if handler.TempDir == "" {
-				handler.TempDir = fmt.Sprintf("/data/bscp/%d/%s", handler.BizID, handler.App)
+			if conf.TempDir == "" {
+				handler.TempDir = fmt.Sprintf("/data/bscp/%d/%s", conf.Biz, handler.App)
+			} else {
+				handler.TempDir = path.Join(conf.TempDir, handler.App)
 			}
-			if err := bscp.AddWatcher(handler.watchCallback, handler.getSubscribeOptions()...); err != nil {
+			if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
 				logs.Errorf(err.Error())
 				os.Exit(1)
 			}
 		}
 	} else {
-		handler := &WatchHandler{
-			BizID:   bizID,
-			App:     appName,
-			Labels:  labels,
-			UID:     uid,
-			TempDir: tempDir,
-			Lock:    sync.Mutex{},
-		}
-		if handler.TempDir == "" {
-			handler.TempDir = fmt.Sprintf("/data/bscp/%d/%s", handler.BizID, handler.App)
-		}
-		if err := bscp.AddWatcher(handler.watchCallback, handler.getSubscribeOptions()...); err != nil {
-			logs.Errorf(err.Error())
-			os.Exit(1)
+		for _, app := range strings.Split(appName, ",") {
+			handler := &WatchHandler{
+				App:    app,
+				Labels: labels,
+				UID:    uid,
+				Lock:   sync.Mutex{},
+			}
+			if tempDir == "" {
+				handler.TempDir = fmt.Sprintf("/data/bscp/%d/%s", bizID, handler.App)
+			} else {
+				handler.TempDir = path.Join(tempDir, handler.App)
+			}
+			if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
+				logs.Errorf(err.Error())
+				os.Exit(1)
+			}
 		}
 	}
 	if _, err := bscp.StartWatch(); err != nil {
@@ -183,8 +121,6 @@ func Watch(cmd *cobra.Command, args []string) {
 
 // WatchHandler watch handler
 type WatchHandler struct {
-	// BizID bscp biz id
-	BizID uint32
 	// App BSCP app name
 	App string
 	// Labels instance labels
@@ -214,7 +150,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 
 	// 1. execute pre hook
 	if preHook != nil {
-		if err := util.ExecuteHook(tempDir, preHook, table.PreHook); err != nil {
+		if err := util.ExecuteHook(w.TempDir, preHook, table.PreHook); err != nil {
 			logs.Errorf(err.Error())
 			return err
 		}
@@ -232,7 +168,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 	}
 	// 5. execute post hook
 	if postHook != nil {
-		if err := util.ExecuteHook(tempDir, postHook, table.PostHook); err != nil {
+		if err := util.ExecuteHook(w.TempDir, postHook, table.PostHook); err != nil {
 			logs.Errorf(err.Error())
 			return err
 		}
@@ -249,14 +185,14 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 		return err
 	}
 	// TODO: 6.2 call the callback notify api
+	logs.Infof("watch release change success, current releaseID: %d", releaseID)
 	return nil
 }
 
-func (w *WatchHandler) getSubscribeOptions() []watch.SubscribeOption {
-	options := []watch.SubscribeOption{}
-	options = append(options, watch.WithApp(w.App))
-	options = append(options, watch.WithLabels(w.Labels))
-	options = append(options, watch.WithUID(w.UID))
+func (w *WatchHandler) getSubscribeOptions() []option.AppOption {
+	options := []option.AppOption{}
+	options = append(options, option.WithLabels(w.Labels))
+	options = append(options, option.WithUID(w.UID))
 	return options
 }
 
@@ -291,50 +227,22 @@ func clearOldFiles(dir string, files []*types.ConfigItemFile) error {
 	return err
 }
 
-func validateWatch() error {
-	if watchConfigPath != "" {
-		fmt.Println("use watch config file: ", watchConfigPath)
-		viper.SetConfigType("yaml")
-		viper.SetConfigFile(watchConfigPath)
-		if err := viper.ReadInConfig(); err != nil {
-			return fmt.Errorf("read config file failed, err: %s", err.Error())
-		}
-		if err := viper.Unmarshal(watchConfig); err != nil {
-			return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
-		}
-		if err := watchConfig.Validate(); err != nil {
-			return fmt.Errorf("validate watch config failed, err: %s", err.Error())
-		}
-		return nil
-	}
-
-	fmt.Println("use watch command line args")
-	if err := validateArgs(); err != nil {
-		logs.Errorf(err.Error())
-		os.Exit(1)
-	}
-
-	fmt.Println("args:", strings.Join(validArgs, " "))
-	return nil
-}
-
 func init() {
-	// important: promise of compatibility
+	// !important: promise of compatibility
 	WatchCmd.Flags().SortFlags = false
 
-	WatchCmd.Flags().Uint32VarP(&bizID, "biz", "b", 0, "biz id")
-	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
-	WatchCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	WatchCmd.Flags().StringVarP(&uid, "uid", "u", "", "uid")
 	WatchCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
 		"feed server address, eg: 'bscp.io:8080,bscp.io:8081'")
+	WatchCmd.Flags().Uint32VarP(&bizID, "biz", "b", 0, "biz id")
+	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	WatchCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
-	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
-		"app config file temp dir, default: '/data/bscp/{biz_id}/{app_name}")
-	WatchCmd.Flags().StringVarP(&watchConfigPath, "config", "c", "", "watch config")
+	WatchCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
+	WatchCmd.Flags().StringVarP(&uid, "uid", "u", "", "uid")
+	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "", "config file temp dir, default: '/data/bscp")
+	WatchCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path")
 
-	for env, flag := range commonEnvs {
-		flag := WatchCmd.Flags().Lookup(flag)
+	for env, f := range commonEnvs {
+		flag := WatchCmd.Flags().Lookup(f)
 		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
 		if value := os.Getenv(env); value != "" {
 			flag.Value.Set(value)

@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"os"
 	"path"
+
+	"bscp.io/pkg/logs"
 )
 
 // EventMeta defines release event meta that write to metadata.json
@@ -72,6 +74,7 @@ func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 	if _, err := metaFile.WriteString(compress.String() + "\n"); err != nil {
 		return fmt.Errorf("append metadata to metadata.json failed, err: %s", err.Error())
 	}
+	logs.Infof("append event metadata to metadata.json success, event: %s", compress.String())
 
 	return nil
 }

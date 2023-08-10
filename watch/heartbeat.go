@@ -39,7 +39,7 @@ func (w *Watcher) loopHeartbeat() error {
 	apps := make([]sfs.SideAppMeta, 0, len(w.subscribers))
 	for _, subscriber := range w.subscribers {
 		apps = append(apps, sfs.SideAppMeta{
-			App:              subscriber.Opts.App,
+			App:              subscriber.App,
 			Labels:           subscriber.Opts.Labels,
 			Uid:              subscriber.Opts.UID,
 			CurrentReleaseID: subscriber.CurrentReleaseID,

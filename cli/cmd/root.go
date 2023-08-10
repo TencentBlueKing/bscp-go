@@ -49,8 +49,8 @@ func init() {
 	rootCmd.AddCommand(VersionCmd)
 	rootCmd.PersistentFlags().UintVarP(&logVerbosity, "verbosity", "v", 0, "log verbosity")
 
-	for env, flag := range rootEnvs {
-		flag := rootCmd.PersistentFlags().Lookup(flag)
+	for env, f := range rootEnvs {
+		flag := rootCmd.PersistentFlags().Lookup(f)
 		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
 		if value := os.Getenv(env); value != "" {
 			flag.Value.Set(value)
