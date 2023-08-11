@@ -18,6 +18,8 @@ import (
 
 	// for unmarshal yaml config file
 	_ "gopkg.in/yaml.v2"
+
+	"github.com/TencentBlueKing/bscp-go/cli/constant"
 )
 
 // ClientConfig config for bscp-go when run as daemon
@@ -61,6 +63,9 @@ func (c *ClientConfig) Validate() error {
 			return err
 		}
 		exists[app.Name] = true
+	}
+	if c.TempDir == "" {
+		c.TempDir = constant.DefaultTempDir
 	}
 	return nil
 }

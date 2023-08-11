@@ -18,7 +18,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	"bscp.io/pkg/dal/table"
@@ -26,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/option"
@@ -43,61 +43,36 @@ var (
 
 // Pull executes the pull command.
 func Pull(cmd *cobra.Command, args []string) {
-	if err := validateArgs(); err != nil {
+	if err := initArgs(); err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
 
-	var bscp *client.Client
-	var err error
-	if configPath != "" {
-		bscp, err = client.New(
-			option.FeedAddrs(conf.FeedAddrs),
-			option.BizID(conf.Biz),
-			option.Token(conf.Token),
-			option.Labels(conf.Labels),
-			option.UID(conf.UID),
-			option.LogVerbosity(logVerbosity),
-		)
-	} else {
-		bscp, err = client.New(
-			option.FeedAddrs(strings.Split(feedAddrs, ",")),
-			option.BizID(bizID),
-			option.Token(token),
-			option.Labels(labels),
-			option.UID(uid),
-			option.LogVerbosity(logVerbosity),
-		)
-	}
+	bscp, err := client.New(
+		option.FeedAddrs(conf.FeedAddrs),
+		option.BizID(conf.Biz),
+		option.Token(conf.Token),
+		option.Labels(conf.Labels),
+		option.UID(conf.UID),
+		option.LogVerbosity(logVerbosity),
+	)
 	if err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
 	g, _ := errgroup.WithContext(cmd.Context())
-	if configPath != "" {
-		for _, app := range conf.Apps {
-			a := app
-			opts := []option.AppOption{}
-			opts = append(opts, option.WithKey("**"))
-			opts = append(opts, option.WithLabels(app.Labels))
-			opts = append(opts, option.WithUID(app.UID))
-			var tempDir = conf.TempDir
-			if tempDir == "" {
-				tempDir = "/data/bscp"
-			}
-			g.Go(func() error {
-				return pullAppFiles(bscp, tempDir, conf.Biz, a.Name, opts)
-			})
+	for _, a := range conf.Apps {
+		app := a
+		opts := []option.AppOption{}
+		opts = append(opts, option.WithKey("**"))
+		opts = append(opts, option.WithLabels(app.Labels))
+		opts = append(opts, option.WithUID(app.UID))
+		if conf.TempDir != "" {
+			tempDir = conf.TempDir
 		}
-	} else {
-		for _, app := range strings.Split(appName, ",") {
-			a := app
-			opts := []option.AppOption{}
-			opts = append(opts, option.WithKey("**"))
-			g.Go(func() error {
-				return pullAppFiles(bscp, tempDir, bizID, a, opts)
-			})
-		}
+		g.Go(func() error {
+			return pullAppFiles(bscp, tempDir, conf.Biz, app.Name, opts)
+		})
 	}
 	if err := g.Wait(); err != nil {
 		logs.Errorf(err.Error())
@@ -155,8 +130,9 @@ func init() {
 	PullCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	PullCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
 	PullCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	PullCmd.Flags().StringVarP(&uid, "uid", "u", "", "uid")
-	PullCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "", "config file temp dir, default: '/data/bscp")
+	// TODO: set client UID
+	PullCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
+		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
 	PullCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path")
 
 	for env, f := range commonEnvs {

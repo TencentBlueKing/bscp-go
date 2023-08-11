@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
+	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/spf13/viper"
 )
 
@@ -57,8 +58,9 @@ var (
 	}
 )
 
-// validateArgs validate the common args
-func validateArgs() error {
+// initArgs init the common args
+func initArgs() error {
+
 	if configPath != "" {
 		fmt.Println("use config file: ", configPath)
 		viper.SetConfigFile(configPath)
@@ -104,11 +106,24 @@ func validateArgs() error {
 	validArgs = append(validArgs, fmt.Sprintf("--token=%s", "***"))
 
 	if tempDir == "" {
-		tempDir = "/data/bscp"
+		tempDir = constant.DefaultTempDir
 	}
 	validArgs = append(validArgs, fmt.Sprintf("--temp-dir=%s", tempDir))
 
 	fmt.Println("args:", strings.Join(validArgs, " "))
 
+	// construct config
+	conf.Biz = bizID
+	conf.FeedAddrs = strings.Split(feedAddrs, ",")
+	conf.Token = token
+	conf.Labels = labels
+	conf.UID = uid
+	conf.TempDir = tempDir
+
+	apps := []*config.AppConfig{}
+	for _, app := range strings.Split(appName, ",") {
+		apps = append(conf.Apps, &config.AppConfig{Name: app})
+	}
+	conf.Apps = apps
 	return nil
 }

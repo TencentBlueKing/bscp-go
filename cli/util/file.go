@@ -29,9 +29,15 @@ import (
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
+const (
+	// UpdateFileConcurrentLimit is the limit of concurrent for update file.
+	UpdateFileConcurrentLimit = 5
+)
+
 // UpdateFiles updates the files to the target directory.
 func UpdateFiles(filesDir string, files []*types.ConfigItemFile) error {
 	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(UpdateFileConcurrentLimit)
 	for _, f := range files {
 		file := f
 		g.Go(func() error {

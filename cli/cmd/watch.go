@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -28,6 +29,7 @@ import (
 
 	pbhook "bscp.io/pkg/protocol/core/hook"
 
+	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/option"
@@ -46,70 +48,36 @@ var (
 
 // Watch run as a daemon to watch the config changes.
 func Watch(cmd *cobra.Command, args []string) {
-	if err := validateArgs(); err != nil {
+	if err := initArgs(); err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
-	var bscp *client.Client
-	var err error
-	if configPath != "" {
-		bscp, err = client.New(
-			option.FeedAddrs(conf.FeedAddrs),
-			option.BizID(conf.Biz),
-			option.Token(conf.Token),
-			option.Labels(conf.Labels),
-			option.UID(conf.UID),
-			option.LogVerbosity(logVerbosity),
-		)
-	} else {
-		bscp, err = client.New(
-			option.FeedAddrs(strings.Split(feedAddrs, ",")),
-			option.BizID(bizID),
-			option.Token(token),
-			option.Labels(labels),
-			option.UID(uid),
-			option.LogVerbosity(logVerbosity),
-		)
-	}
+	bscp, err := client.New(
+		option.FeedAddrs(conf.FeedAddrs),
+		option.BizID(conf.Biz),
+		option.Token(conf.Token),
+		option.Labels(conf.Labels),
+		option.UID(conf.UID),
+		option.LogVerbosity(logVerbosity),
+	)
 	if err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
-	if configPath != "" {
-		for _, subscriber := range conf.Apps {
-			handler := &WatchHandler{
-				App:    subscriber.Name,
-				Labels: subscriber.Labels,
-				UID:    subscriber.UID,
-				Lock:   sync.Mutex{},
-			}
-			if conf.TempDir == "" {
-				handler.TempDir = fmt.Sprintf("/data/bscp/%d/%s", conf.Biz, handler.App)
-			} else {
-				handler.TempDir = path.Join(conf.TempDir, handler.App)
-			}
-			if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
-				logs.Errorf(err.Error())
-				os.Exit(1)
-			}
+	for _, subscriber := range conf.Apps {
+		if conf.TempDir != "" {
+			tempDir = conf.TempDir
 		}
-	} else {
-		for _, app := range strings.Split(appName, ",") {
-			handler := &WatchHandler{
-				App:    app,
-				Labels: labels,
-				UID:    uid,
-				Lock:   sync.Mutex{},
-			}
-			if tempDir == "" {
-				handler.TempDir = fmt.Sprintf("/data/bscp/%d/%s", bizID, handler.App)
-			} else {
-				handler.TempDir = path.Join(tempDir, handler.App)
-			}
-			if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
-				logs.Errorf(err.Error())
-				os.Exit(1)
-			}
+		handler := &WatchHandler{
+			App:     subscriber.Name,
+			Labels:  subscriber.Labels,
+			UID:     subscriber.UID,
+			Lock:    sync.Mutex{},
+			TempDir: path.Join(tempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+		}
+		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
+			logs.Errorf(err.Error())
+			os.Exit(1)
 		}
 	}
 	if _, err := bscp.StartWatch(); err != nil {
@@ -237,8 +205,9 @@ func init() {
 	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	WatchCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
 	WatchCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	WatchCmd.Flags().StringVarP(&uid, "uid", "u", "", "uid")
-	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "", "config file temp dir, default: '/data/bscp")
+	// TODO: set client UID
+	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
+		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
 	WatchCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path")
 
 	for env, f := range commonEnvs {
