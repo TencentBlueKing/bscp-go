@@ -36,10 +36,8 @@ import (
 // Client is the bscp client
 type Client struct {
 	pairs       map[string]string
-	cancelFunc  context.CancelFunc
 	opts        option.ClientOptions
 	fingerPrint sfs.FingerPrint
-	repository  *sfs.RepositoryV1
 	watcher     *watch.Watcher
 	upstream    upstream.Upstream
 }
@@ -55,7 +53,9 @@ func New(opts ...option.ClientOption) (*Client, error) {
 	clientOpt.Fingerprint = fp.Encode()
 	clientOpt.UID = clientOpt.Fingerprint
 	for _, opt := range opts {
-		opt(clientOpt)
+		if e := opt(clientOpt); e != nil {
+			return nil, e
+		}
 	}
 	// prepare pairs
 	pairs := make(map[string]string)
@@ -127,9 +127,6 @@ func (c *Client) AddWatcher(callback option.Callback, app string, opts ...option
 	_ = c.watcher.Subscribe(callback, app, opts...)
 	return nil
 }
-
-// void used to make map as set
-type void struct{}
 
 // StartWatch start watch
 func (c *Client) StartWatch() (context.CancelFunc, error) {

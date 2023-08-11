@@ -14,7 +14,6 @@
 package util_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,7 +24,7 @@ import (
 )
 
 func TestExecuteShellHook(t *testing.T) {
-	workspace, err := ioutil.TempDir("", "hook-test")
+	workspace, err := os.MkdirTemp("", "hook-test")
 	if err != nil {
 		t.Fatalf("create workspace error: %s", err.Error())
 	}
@@ -54,7 +53,7 @@ func TestExecuteShellHook(t *testing.T) {
 }
 
 func TestExecutePythonHook(t *testing.T) {
-	workspace, err := ioutil.TempDir("", "hook-test")
+	workspace, err := os.MkdirTemp("", "hook-test")
 	if err != nil {
 		t.Fatalf("create workspace error: %s", err.Error())
 	}

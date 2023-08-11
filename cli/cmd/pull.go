@@ -83,7 +83,7 @@ func Pull(cmd *cobra.Command, args []string) {
 			opts = append(opts, option.WithUID(app.UID))
 			var tempDir = conf.TempDir
 			if tempDir == "" {
-				tempDir = fmt.Sprintf("/data/bscp")
+				tempDir = "/data/bscp"
 			}
 			g.Go(func() error {
 				return pullAppFiles(bscp, tempDir, conf.Biz, a.Name, opts)
@@ -163,7 +163,9 @@ func init() {
 		flag := PullCmd.Flags().Lookup(f)
 		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
 		if value := os.Getenv(env); value != "" {
-			flag.Value.Set(value)
+			if err := flag.Value.Set(value); err != nil {
+				panic(err)
+			}
 		}
 	}
 }

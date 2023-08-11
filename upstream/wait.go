@@ -97,9 +97,7 @@ func (bl *blocker) WaitMS(timeoutMS int64) error {
 	}
 
 	// wait without timeout
-	select {
-	case <-bl.signal:
-	}
+	<-bl.signal
 
 	return nil
 }

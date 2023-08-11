@@ -29,7 +29,7 @@ func init() {
 	if err != nil {
 		msg := fmt.Sprintf("invalid build version, the version(%s) format should be like like v1.0.0 or "+
 			"v1.0.0-alpha1, err: %v", VERSION, err)
-		fmt.Fprintf(os.Stderr, msg)
+		fmt.Fprintln(os.Stderr, msg)
 		panic(msg)
 	}
 }
@@ -64,11 +64,7 @@ var (
 
 // Debug show the version if enable debug.
 func Debug() bool {
-	if DEBUG == "true" {
-		return true
-	}
-
-	return false
+	return DEBUG == "true"
 }
 
 // ShowVersion shows the version info.

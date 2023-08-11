@@ -34,10 +34,8 @@ func (w *Watcher) NotifyReconnect(signal types.ReconnectSignal) {
 func (w *Watcher) waitForReconnectSignal() {
 	for {
 		rid := uuid.UUID()
-		select {
-		case signal := <-w.reconnectChan:
-			logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), rid)
-		}
+		signal := <-w.reconnectChan
+		logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), rid)
 
 		if w.reconnecting.Load() {
 			logs.Warnf("received reconnect signal, but stream is already reconnecting, ignore this signal.")

@@ -104,7 +104,7 @@ func validateArgs() error {
 	validArgs = append(validArgs, fmt.Sprintf("--token=%s", "***"))
 
 	if tempDir == "" {
-		tempDir = fmt.Sprintf("/data/bscp")
+		tempDir = "/data/bscp"
 	}
 	validArgs = append(validArgs, fmt.Sprintf("--temp-dir=%s", tempDir))
 

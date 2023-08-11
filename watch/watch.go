@@ -287,10 +287,7 @@ func (s *Subscriber) CheckConfigItemsChanged(cis []*sfs.ConfigItemMetaV1) bool {
 		checked++
 	}
 	// reverse check for confit items deleted event
-	if checked != len(s.currentConfigItems) {
-		return true
-	}
-	return false
+	return checked != len(s.currentConfigItems)
 }
 
 // ResetConfigItems reset the current config items of the subscriber

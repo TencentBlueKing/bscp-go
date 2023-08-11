@@ -205,7 +205,7 @@ func clearOldFiles(dir string, files []*types.ConfigItemFile) error {
 		if info.IsDir() {
 			for _, file := range files {
 				absFileDir := filepath.Join(dir, file.Path)
-				if filepath.HasPrefix(absFileDir, filePath) {
+				if strings.HasPrefix(absFileDir, filePath) {
 					return nil
 				}
 			}
@@ -245,7 +245,9 @@ func init() {
 		flag := WatchCmd.Flags().Lookup(f)
 		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
 		if value := os.Getenv(env); value != "" {
-			flag.Value.Set(value)
+			if err := flag.Value.Set(value); err != nil {
+				panic(err)
+			}
 		}
 	}
 }

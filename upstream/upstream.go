@@ -24,9 +24,9 @@ import (
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/version"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -70,7 +70,7 @@ func New(opts ...Option) (Upstream, error) {
 	dialOpts = append(dialOpts, grpc.WithBlock())
 	dialOpts = append(dialOpts, grpc.WithUserAgent("bscp-sdk-golang"))
 	// dial without ssl
-	dialOpts = append(dialOpts, grpc.WithInsecure())
+	dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	ver := version.SemanticVersion()
 	uc := &upstreamClient{
@@ -177,16 +177,14 @@ func (uc *upstreamClient) EnableBounce(bounceIntervalHour uint) {
 	if !uc.bounce.state() {
 		go uc.bounce.enableBounce()
 	}
-
-	return
 }
 
 // waitForStateChange use the connection state to determine what to do next.
 func (uc *upstreamClient) waitForStateChange() {
 	for {
+		//nolint:staticcheck
 		if uc.conn.WaitForStateChange(context.TODO(), connectivity.Ready) {
 			// TODO: loop and wait and then determine whether we need to create a new connection
 		}
 	}
-
 }

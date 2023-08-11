@@ -195,7 +195,6 @@ type execDownload struct {
 	header      http.Header
 	downloadUri string
 	fileSize    uint64
-	toFile      string
 }
 
 func (exec *execDownload) do() error {
@@ -254,7 +253,7 @@ func (exec *execDownload) isProviderSupportRangeDownload() (uint64, bool, error)
 		return 0, false, fmt.Errorf("new request failed, err: %s", err.Error())
 	}
 
-	req.WithContext(exec.ctx)
+	req = req.WithContext(exec.ctx)
 	req.Header = exec.header
 	req.Header.Set("Request-Timeout", strconv.Itoa(15))
 
@@ -426,7 +425,7 @@ func (exec *execDownload) doRequest(method string, header http.Header, timeoutSe
 		req.Header.Set("Request-Timeout", strconv.Itoa(timeoutSeconds))
 	}
 
-	req.WithContext(exec.ctx)
+	req = req.WithContext(exec.ctx)
 
 	resp, err := exec.client.Do(req)
 	if err != nil {
@@ -507,13 +506,13 @@ func tlsConfigFromTLSBytes(tlsBytes *sfs.TLSBytes) (*tls.Config, error) {
 	var caPool *x509.CertPool
 	if len(tlsBytes.CaFileBytes) != 0 {
 		caPool = x509.NewCertPool()
-		if ok := caPool.AppendCertsFromPEM([]byte(tlsBytes.CaFileBytes)); ok != true {
+		if !caPool.AppendCertsFromPEM([]byte(tlsBytes.CaFileBytes)) {
 			return nil, fmt.Errorf("append ca cert failed")
 		}
 	}
 
 	var certificate tls.Certificate
-	if len(tlsBytes.CertFileBytes) == 0 && len(tlsBytes.CertFileBytes) == 0 {
+	if len(tlsBytes.CertFileBytes) == 0 && len(tlsBytes.CertFileBytes) == 0 { //nolint:staticcheck
 		return &tls.Config{
 			InsecureSkipVerify: tlsBytes.InsecureSkipVerify,
 			ClientCAs:          caPool,

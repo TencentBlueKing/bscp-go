@@ -53,7 +53,9 @@ func init() {
 		flag := rootCmd.PersistentFlags().Lookup(f)
 		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
 		if value := os.Getenv(env); value != "" {
-			flag.Value.Set(value)
+			if err := flag.Value.Set(value); err != nil {
+				panic(err)
+			}
 		}
 	}
 }
