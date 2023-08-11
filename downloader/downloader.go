@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"sync"
 	"time"
@@ -42,7 +43,7 @@ const (
 	defaultSwapBufferSize              = 2 * 1024 * 1024
 	defaultRangeDownloadByteSize       = 5 * defaultSwapBufferSize
 	requestAwaitResponseTimeoutSeconds = 10
-	defaultDownloadSemaphoreWight      = 5
+	defaultDownloadSemaphoreWight      = 10
 )
 
 type DownloadTo string
@@ -316,14 +317,16 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 		return err
 	}
 
-	logs.V(0).Infof("file[%s], download directly success, cost: %s", exec.downloadUri, time.Since(start).String())
+	logs.V(0).Infof("file[%s], download directly success, cost: %s",
+		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name), time.Since(start).String())
 
 	return nil
 }
 
 func (exec *execDownload) downloadWithRange() error {
 
-	logs.Infof("start download file[%s] with range", exec.downloadUri)
+	logs.Infof("start download file[%s] with range",
+		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name))
 
 	var start, end uint64
 	batchSize := 2 * exec.dl.balanceDownloadByteSize
@@ -363,7 +366,8 @@ func (exec *execDownload) downloadWithRange() error {
 			if err := exec.downloadOneRangedPart(from, to); err != nil {
 				hitError = err
 				logs.Errorf("download file[%s] part %d failed, start: %d, err: %s",
-					exec.downloadUri, pos, from, err.Error())
+					path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name),
+					pos, from, err.Error())
 				return
 			}
 
@@ -380,7 +384,8 @@ func (exec *execDownload) downloadWithRange() error {
 		return hitError
 	}
 
-	logs.V(1).Infof("download full file[%s] success", exec.downloadUri)
+	logs.V(1).Infof("download full file[%s] success",
+		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name))
 
 	return nil
 }

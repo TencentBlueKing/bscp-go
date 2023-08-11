@@ -23,7 +23,6 @@ import (
 	"bscp.io/pkg/dal/table"
 	"bscp.io/pkg/logs"
 	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
@@ -60,9 +59,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
-	g, _ := errgroup.WithContext(cmd.Context())
-	for _, a := range conf.Apps {
-		app := a
+	for _, app := range conf.Apps {
 		opts := []option.AppOption{}
 		opts = append(opts, option.WithKey("**"))
 		opts = append(opts, option.WithLabels(app.Labels))
@@ -70,13 +67,10 @@ func Pull(cmd *cobra.Command, args []string) {
 		if conf.TempDir != "" {
 			tempDir = conf.TempDir
 		}
-		g.Go(func() error {
-			return pullAppFiles(bscp, tempDir, conf.Biz, app.Name, opts)
-		})
-	}
-	if err := g.Wait(); err != nil {
-		logs.Errorf(err.Error())
-		os.Exit(1)
+		if err = pullAppFiles(bscp, tempDir, conf.Biz, app.Name, opts); err != nil {
+			logs.Errorf(err.Error())
+			os.Exit(1)
+		}
 	}
 }
 
