@@ -11,11 +11,10 @@
  *
  */
 
-package watch
+package option
 
 import (
 	pbhook "bscp.io/pkg/protocol/core/hook"
-
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
@@ -27,6 +26,8 @@ type WatchOptions struct {
 	DialTimeoutMS int64
 	// Fingerprint watch fingerprint
 	Fingerprint string
+	// Labels watch labels
+	Labels map[string]string
 	// BizID watch biz id
 	BizID uint32
 }
@@ -34,46 +35,3 @@ type WatchOptions struct {
 // TODO: how to wrapper file, kv, table types in one watch result
 // Callback watch callback
 type Callback func(releaseID uint32, files []*types.ConfigItemFile, pre *pbhook.HookSpec, post *pbhook.HookSpec) error
-
-// SubscribeOptions options for subscribe
-type SubscribeOptions struct {
-	// App BSCP app name
-	App string
-	// Key watch config item key
-	Key string
-	// Labels instance labels
-	Labels map[string]string
-	// UID instance unique uid
-	UID string
-}
-
-// SubscribeOption setter for subscribe options
-type SubscribeOption func(*SubscribeOptions)
-
-// WithApp set watch app name
-func WithApp(app string) SubscribeOption {
-	return func(o *SubscribeOptions) {
-		o.App = app
-	}
-}
-
-// WithKey set watch config item key
-func WithKey(key string) SubscribeOption {
-	return func(o *SubscribeOptions) {
-		o.Key = key
-	}
-}
-
-// WithLabels set watch labels
-func WithLabels(labels map[string]string) SubscribeOption {
-	return func(o *SubscribeOptions) {
-		o.Labels = labels
-	}
-}
-
-// WithUID set watch uid
-func WithUID(uid string) SubscribeOption {
-	return func(o *SubscribeOptions) {
-		o.UID = uid
-	}
-}

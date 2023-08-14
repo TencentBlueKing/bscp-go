@@ -14,6 +14,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -21,42 +22,54 @@ import (
 	"bscp.io/pkg/logs"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/TencentBlueKing/bscp-go/downloader"
 	"github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
+const (
+	// UpdateFileConcurrentLimit is the limit of concurrent for update file.
+	UpdateFileConcurrentLimit = 5
+)
+
 // UpdateFiles updates the files to the target directory.
 func UpdateFiles(filesDir string, files []*types.ConfigItemFile) error {
-	for _, file := range files {
-		// 1. prapare file path
-		fileDir := path.Join(filesDir, file.Path)
-		filePath := path.Join(fileDir, file.Name)
-		err := os.MkdirAll(fileDir, os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("create dir %s failed, err: %s", fileDir, err.Error())
-		}
-		// 2. check and download file
-		exists, err := CheckFileExists(fileDir, file.FileMeta)
-		if err != nil {
-			return fmt.Errorf("check file exists failed, err: %s", err.Error())
-		}
-		if !exists {
-			err := downloader.GetDownloader().Download(file.FileMeta.PbFileMeta(), file.FileMeta.RepositoryPath,
-				file.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, filePath)
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(UpdateFileConcurrentLimit)
+	for _, f := range files {
+		file := f
+		g.Go(func() error {
+			// 1. prapare file path
+			fileDir := path.Join(filesDir, file.Path)
+			filePath := path.Join(fileDir, file.Name)
+			err := os.MkdirAll(fileDir, os.ModePerm)
 			if err != nil {
-				return fmt.Errorf("download file failed, err: %s", err.Error())
+				return fmt.Errorf("create dir %s failed, err: %s", fileDir, err.Error())
 			}
-		} else {
-			logs.Infof("file %s is already exists and has not been modified, skip download", filePath)
-		}
-		// 3. set file permission
-		if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
-			return fmt.Errorf("set file permission for %s failed, err: %s", filePath, err.Error())
-		}
+			// 2. check and download file
+			exists, err := CheckFileExists(fileDir, file.FileMeta)
+			if err != nil {
+				return fmt.Errorf("check file exists failed, err: %s", err.Error())
+			}
+			if !exists {
+				err := downloader.GetDownloader().Download(file.FileMeta.PbFileMeta(), file.FileMeta.RepositoryPath,
+					file.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, filePath)
+				if err != nil {
+					return fmt.Errorf("download file failed, err: %s", err.Error())
+				}
+			} else {
+				logs.Infof("file %s is already exists and has not been modified, skip download", filePath)
+			}
+			// 3. set file permission
+			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
+				return fmt.Errorf("set file permission for %s failed, err: %s", filePath, err.Error())
+			}
+			return nil
+		})
 	}
-	return nil
+	return g.Wait()
 }
 
 // CheckFileExists checks the file exists and the SHA256 is match.

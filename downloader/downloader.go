@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"sync"
 	"time"
@@ -42,7 +43,7 @@ const (
 	defaultSwapBufferSize              = 2 * 1024 * 1024
 	defaultRangeDownloadByteSize       = 5 * defaultSwapBufferSize
 	requestAwaitResponseTimeoutSeconds = 10
-	defaultDownloadSemaphoreWight      = 5
+	defaultDownloadSemaphoreWight      = 10
 )
 
 type DownloadTo string
@@ -195,7 +196,6 @@ type execDownload struct {
 	header      http.Header
 	downloadUri string
 	fileSize    uint64
-	toFile      string
 }
 
 func (exec *execDownload) do() error {
@@ -254,7 +254,7 @@ func (exec *execDownload) isProviderSupportRangeDownload() (uint64, bool, error)
 		return 0, false, fmt.Errorf("new request failed, err: %s", err.Error())
 	}
 
-	req.WithContext(exec.ctx)
+	req = req.WithContext(exec.ctx)
 	req.Header = exec.header
 	req.Header.Set("Request-Timeout", strconv.Itoa(15))
 
@@ -317,14 +317,16 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 		return err
 	}
 
-	logs.V(0).Infof("file[%s], download directly success, cost: %s", exec.downloadUri, time.Since(start).String())
+	logs.V(0).Infof("file[%s], download directly success, cost: %s",
+		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name), time.Since(start).String())
 
 	return nil
 }
 
 func (exec *execDownload) downloadWithRange() error {
 
-	logs.Infof("start download file[%s] with range", exec.downloadUri)
+	logs.Infof("start download file[%s] with range",
+		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name))
 
 	var start, end uint64
 	batchSize := 2 * exec.dl.balanceDownloadByteSize
@@ -364,7 +366,8 @@ func (exec *execDownload) downloadWithRange() error {
 			if err := exec.downloadOneRangedPart(from, to); err != nil {
 				hitError = err
 				logs.Errorf("download file[%s] part %d failed, start: %d, err: %s",
-					exec.downloadUri, pos, from, err.Error())
+					path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name),
+					pos, from, err.Error())
 				return
 			}
 
@@ -381,7 +384,8 @@ func (exec *execDownload) downloadWithRange() error {
 		return hitError
 	}
 
-	logs.V(1).Infof("download full file[%s] success", exec.downloadUri)
+	logs.V(1).Infof("download full file[%s] success",
+		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name))
 
 	return nil
 }
@@ -426,7 +430,7 @@ func (exec *execDownload) doRequest(method string, header http.Header, timeoutSe
 		req.Header.Set("Request-Timeout", strconv.Itoa(timeoutSeconds))
 	}
 
-	req.WithContext(exec.ctx)
+	req = req.WithContext(exec.ctx)
 
 	resp, err := exec.client.Do(req)
 	if err != nil {
@@ -507,13 +511,13 @@ func tlsConfigFromTLSBytes(tlsBytes *sfs.TLSBytes) (*tls.Config, error) {
 	var caPool *x509.CertPool
 	if len(tlsBytes.CaFileBytes) != 0 {
 		caPool = x509.NewCertPool()
-		if ok := caPool.AppendCertsFromPEM([]byte(tlsBytes.CaFileBytes)); ok != true {
+		if !caPool.AppendCertsFromPEM([]byte(tlsBytes.CaFileBytes)) {
 			return nil, fmt.Errorf("append ca cert failed")
 		}
 	}
 
 	var certificate tls.Certificate
-	if len(tlsBytes.CertFileBytes) == 0 && len(tlsBytes.CertFileBytes) == 0 {
+	if len(tlsBytes.CertFileBytes) == 0 && len(tlsBytes.CertFileBytes) == 0 { //nolint:staticcheck
 		return &tls.Config{
 			InsecureSkipVerify: tlsBytes.InsecureSkipVerify,
 			ClientCAs:          caPool,

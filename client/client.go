@@ -27,6 +27,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/downloader"
+	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 	"github.com/TencentBlueKing/bscp-go/upstream"
 	"github.com/TencentBlueKing/bscp-go/watch"
@@ -35,26 +36,26 @@ import (
 // Client is the bscp client
 type Client struct {
 	pairs       map[string]string
-	cancelFunc  context.CancelFunc
-	opts        Options
+	opts        option.ClientOptions
 	fingerPrint sfs.FingerPrint
-	repository  *sfs.RepositoryV1
 	watcher     *watch.Watcher
 	upstream    upstream.Upstream
 }
 
 // New return a bscp client instance
-func New(opts ...Option) (*Client, error) {
-	option := &Options{}
+func New(opts ...option.ClientOption) (*Client, error) {
+	clientOpt := &option.ClientOptions{}
 	fp, err := sfs.GetFingerPrint()
 	if err != nil {
 		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())
 	}
 	logs.Infof("instance fingerprint: %s", fp.Encode())
-	option.Fingerprint = fp.Encode()
-	option.UID = option.Fingerprint
+	clientOpt.Fingerprint = fp.Encode()
+	clientOpt.UID = clientOpt.Fingerprint
 	for _, opt := range opts {
-		opt(option)
+		if e := opt(clientOpt); e != nil {
+			return nil, e
+		}
 	}
 	// prepare pairs
 	pairs := make(map[string]string)
@@ -62,8 +63,8 @@ func New(opts ...Option) (*Client, error) {
 	pairs[constant.SideUserKey] = "TODO-USER"
 	// add finger printer
 	mh := sfs.SidecarMetaHeader{
-		BizID:       option.BizID,
-		Fingerprint: option.Fingerprint,
+		BizID:       clientOpt.BizID,
+		Fingerprint: clientOpt.Fingerprint,
 	}
 	mhBytes, err := jsoni.Marshal(mh)
 	if err != nil {
@@ -72,14 +73,14 @@ func New(opts ...Option) (*Client, error) {
 	pairs[constant.SidecarMetaKey] = string(mhBytes)
 	// prepare upstream
 	u, err := upstream.New(
-		upstream.WithFeedAddrs(option.FeedAddrs),
-		upstream.WithDialTimeoutMS(option.DialTimeoutMS),
-		upstream.WithBizID(option.BizID))
+		upstream.WithFeedAddrs(clientOpt.FeedAddrs),
+		upstream.WithDialTimeoutMS(clientOpt.DialTimeoutMS),
+		upstream.WithBizID(clientOpt.BizID))
 	if err != nil {
 		return nil, fmt.Errorf("init upstream client failed, err: %s", err.Error())
 	}
 	c := &Client{
-		opts:        *option,
+		opts:        *clientOpt,
 		fingerPrint: fp,
 		upstream:    u,
 		pairs:       pairs,
@@ -89,7 +90,7 @@ func New(opts ...Option) (*Client, error) {
 	msg := &pbfs.HandshakeMessage{
 		ApiVersion: sfs.CurrentAPIVersion,
 		Spec: &pbfs.SidecarSpec{
-			BizId:   option.BizID,
+			BizId:   clientOpt.BizID,
 			Version: c.upstream.Version(),
 		},
 	}
@@ -102,15 +103,16 @@ func New(opts ...Option) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("decode handshake payload failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}
-	err = downloader.Init(vas, option.BizID, option.Token, u, pl.RuntimeOption.RepositoryTLS)
+	err = downloader.Init(vas, clientOpt.BizID, clientOpt.Token, u, pl.RuntimeOption.RepositoryTLS)
 	if err != nil {
 		return nil, fmt.Errorf("init downloader failed, err: %s", err.Error())
 	}
-	if option.UseFileCache {
-		cache.Init(true, option.FileCacheDir)
+	if clientOpt.UseFileCache {
+		cache.Init(true, clientOpt.FileCacheDir)
 	}
-	watcher, err := watch.New(u, watch.WatchOptions{
-		BizID:       option.BizID,
+	watcher, err := watch.New(u, option.WatchOptions{
+		BizID:       clientOpt.BizID,
+		Labels:      clientOpt.Labels,
 		Fingerprint: fp.Encode(),
 	})
 	if err != nil {
@@ -121,13 +123,10 @@ func New(opts ...Option) (*Client, error) {
 }
 
 // AddWatcher add a watcher to client
-func (c *Client) AddWatcher(callback watch.Callback, opts ...watch.SubscribeOption) error {
-	_ = c.watcher.Subscribe(callback, opts...)
+func (c *Client) AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error {
+	_ = c.watcher.Subscribe(callback, app, opts...)
 	return nil
 }
-
-// void used to make map as set
-type void struct{}
 
 // StartWatch start watch
 func (c *Client) StartWatch() (context.CancelFunc, error) {
@@ -135,19 +134,36 @@ func (c *Client) StartWatch() (context.CancelFunc, error) {
 }
 
 // PullFiles pull files from remote
-func (c *Client) PullFiles(appName string, key string) (
+func (c *Client) PullFiles(app string, opts ...option.AppOption) (
 	uint32, []*types.ConfigItemFile, *pbhook.HookSpec, *pbhook.HookSpec, error) {
+	option := &option.AppOptions{}
+	for _, opt := range opts {
+		opt(option)
+	}
 	vas, _ := c.buildVas()
 	req := &pbfs.PullAppFileMetaReq{
 		ApiVersion: sfs.CurrentAPIVersion,
 		BizId:      c.opts.BizID,
 		AppMeta: &pbfs.AppMeta{
-			App:    appName,
+			App:    app,
 			Labels: c.opts.Labels,
 			Uid:    c.opts.UID,
 		},
 		Token: c.opts.Token,
-		Key:   key,
+		Key:   option.Key,
+	}
+	// merge labels, if key conflict, app value will overwrite client value
+	labels := make(map[string]string)
+	for k, v := range c.opts.Labels {
+		labels[k] = v
+	}
+	for k, v := range option.Labels {
+		labels[k] = v
+	}
+	req.AppMeta.Labels = labels
+	// reset uid
+	if option.UID != "" {
+		req.AppMeta.Uid = option.UID
 	}
 	resp, err := c.upstream.PullAppFileMeta(vas, req)
 	if err != nil {

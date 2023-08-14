@@ -15,7 +15,6 @@ package util
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -95,7 +94,7 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 	default:
 		return "", fmt.Errorf("invalid hook type: %s", hook.Type)
 	}
-	if err := ioutil.WriteFile(filePath, []byte(hook.Content), os.ModePerm); err != nil {
+	if err := os.WriteFile(filePath, []byte(hook.Content), os.ModePerm); err != nil {
 		logs.Errorf("write hook file %s error: %s", filePath, err.Error())
 		return "", err
 	}

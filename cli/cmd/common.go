@@ -16,6 +16,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/TencentBlueKing/bscp-go/cli/config"
+	"github.com/TencentBlueKing/bscp-go/cli/constant"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -28,11 +33,14 @@ var (
 	token     string
 	tempDir   string
 	validArgs []string
+	conf      = new(config.ClientConfig)
+	// flag values
+	configPath string
 )
 
 var (
-	// important: promise of compatibility
-	// priority: Command Options -> Settings Files -> Environment Variables -> Defaults
+	// !important: promise of compatibility
+	// priority: Config File -> Command Options -> Environment Variables -> Defaults
 
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
@@ -50,8 +58,25 @@ var (
 	}
 )
 
-// validateArgs validate the common args
-func validateArgs() error {
+// initArgs init the common args
+func initArgs() error {
+
+	if configPath != "" {
+		fmt.Println("use config file: ", configPath)
+		viper.SetConfigFile(configPath)
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("read config file failed, err: %s", err.Error())
+		}
+		if err := viper.Unmarshal(conf); err != nil {
+			return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
+		}
+		if err := conf.Validate(); err != nil {
+			return fmt.Errorf("validate watch config failed, err: %s", err.Error())
+		}
+		return nil
+	}
+
+	fmt.Println("use command line args or environment variables")
 	if bizID == 0 {
 		return fmt.Errorf("biz id must not be 0")
 	}
@@ -81,9 +106,24 @@ func validateArgs() error {
 	validArgs = append(validArgs, fmt.Sprintf("--token=%s", "***"))
 
 	if tempDir == "" {
-		tempDir = fmt.Sprintf("/data/bscp/%d/%s", bizID, appName)
+		tempDir = constant.DefaultTempDir
 	}
 	validArgs = append(validArgs, fmt.Sprintf("--temp-dir=%s", tempDir))
 
+	fmt.Println("args:", strings.Join(validArgs, " "))
+
+	// construct config
+	conf.Biz = bizID
+	conf.FeedAddrs = strings.Split(feedAddrs, ",")
+	conf.Token = token
+	conf.Labels = labels
+	conf.UID = uid
+	conf.TempDir = tempDir
+
+	apps := []*config.AppConfig{}
+	for _, app := range strings.Split(appName, ",") {
+		apps = append(conf.Apps, &config.AppConfig{Name: app})
+	}
+	conf.Apps = apps
 	return nil
 }
