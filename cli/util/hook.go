@@ -29,48 +29,45 @@ const (
 	executeShellCmd = "bash"
 	// executePythonCmd python script executor
 	executePythonCmd = "python3"
+
+	// !important: promise of compatibility
+	// EnvAppTempDir bscp app temp dir env
+	EnvAppTempDir = "bk_bscp_app_temp_dir"
+	// EnvTempDir bscp temp dir env
+	EnvTempDir = "bk_bscp_temp_dir"
+	// EnvApp bscp biz id env
+	EnvBiz = "bk_bscp_biz"
+	// EnvApp bscp app name env
+	EnvApp = "bk_bscp_app"
 )
 
 // ExecuteHook executes the hook.
-func ExecuteHook(workspace string, hook *pbhook.HookSpec, hookType table.HookType) error {
+func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
+	tempDir string, biz uint32, app string) error {
+	appTempDir := path.Join(tempDir, fmt.Sprintf("%d/%s", biz, app))
+	hookPath, err := saveContentToFile(appTempDir, hook, hookType)
+	if err != nil {
+		logs.Errorf("save hook content to file error: %s", err.Error())
+		return err
+	}
+	var command string
 	switch hook.Type {
 	case "shell":
-		return ExecuteShellHook(workspace, hook, hookType)
+		command = executeShellCmd
 	case "python":
-		return ExecutePythonHook(workspace, hook, hookType)
+		command = executePythonCmd
 	default:
 		return fmt.Errorf("invalid hook type: %s", hook.Type)
 	}
-}
-
-// ExecuteShellHook executes the shell hook.
-func ExecuteShellHook(workspace string, hook *pbhook.HookSpec, hookType table.HookType) error {
-	hookPath, err := saveContentToFile(workspace, hook, hookType)
-	if err != nil {
-		logs.Errorf("save hook content to file error: %s", err.Error())
-		return err
-	}
 	args := []string{hookPath}
-	cmd := exec.Command(executeShellCmd, args...)
-	cmd.Dir = workspace
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("exec %s error: %s, output: %s", hookType.String(), err.Error(), string(out))
-	}
-	logs.Infof("exec %s success, output: \n%s", hookType.String(), string(out))
-	return nil
-}
-
-// ExecutePythonHook executes the python hook.
-func ExecutePythonHook(workspace string, hook *pbhook.HookSpec, hookType table.HookType) error {
-	hookPath, err := saveContentToFile(workspace, hook, hookType)
-	if err != nil {
-		logs.Errorf("save hook content to file error: %s", err.Error())
-		return err
-	}
-	args := []string{hookPath}
-	cmd := exec.Command(executePythonCmd, args...)
-	cmd.Dir = workspace
+	cmd := exec.Command(command, args...)
+	cmd.Dir = appTempDir
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("%s=%s", EnvAppTempDir, appTempDir),
+		fmt.Sprintf("%s=%s", EnvTempDir, tempDir),
+		fmt.Sprintf("%s=%d", EnvBiz, biz),
+		fmt.Sprintf("%s=%s", EnvApp, app),
+	)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("exec %s error: %s, output: %s", hookType.String(), err.Error(), string(out))

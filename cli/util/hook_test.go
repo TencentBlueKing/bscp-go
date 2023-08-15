@@ -16,6 +16,7 @@ package util_test
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"bscp.io/pkg/dal/table"
@@ -24,11 +25,15 @@ import (
 )
 
 func TestExecuteShellHook(t *testing.T) {
-	workspace, err := os.MkdirTemp("", "hook-test")
+	tempDir, err := os.MkdirTemp("", "hook-test")
 	if err != nil {
 		t.Fatalf("create workspace error: %s", err.Error())
 	}
-	defer os.RemoveAll(workspace)
+	defer os.RemoveAll(tempDir)
+
+	biz := 2
+	app := "bscp-test"
+	appTempDir := filepath.Join(tempDir, strconv.Itoa(biz), app)
 
 	hookContent := "#!/bin/sh\nmkdir -p test"
 	hookSpec := &pbhook.HookSpec{
@@ -37,27 +42,32 @@ func TestExecuteShellHook(t *testing.T) {
 		Content: hookContent,
 	}
 
-	err = util.ExecuteHook(workspace, hookSpec, table.PreHook)
+	err = util.ExecuteHook(hookSpec, table.PreHook,tempDir, 2, "bscp-test")
 	if err != nil {
 		t.Fatalf("execute hook error: %s", err.Error())
 	}
 
-	hookPath := filepath.Join(workspace, "hooks", table.PreHook.String()+".sh")
+	hookPath := filepath.Join(appTempDir, "hooks", table.PreHook.String()+".sh")
 	if _, err := os.Stat(hookPath); os.IsNotExist(err) {
 		t.Fatalf("hook file not exist: %s", hookPath)
 	}
 
-	if _, err := os.Stat(filepath.Join(workspace, "test")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(appTempDir, "test")); os.IsNotExist(err) {
 		t.Fatal("hook exec failed")
 	}
 }
 
 func TestExecutePythonHook(t *testing.T) {
-	workspace, err := os.MkdirTemp("", "hook-test")
+	tempDir, err := os.MkdirTemp("", "hook-test")
 	if err != nil {
 		t.Fatalf("create workspace error: %s", err.Error())
 	}
-	defer os.RemoveAll(workspace)
+	defer os.RemoveAll(tempDir)
+
+	biz := 2
+	app := "bscp-test"
+	appTempDir := filepath.Join(tempDir, strconv.Itoa(biz), app)
+	
 
 	hookContent := "import os\nos.makedirs('test')"
 	hookSpec := &pbhook.HookSpec{
@@ -66,17 +76,17 @@ func TestExecutePythonHook(t *testing.T) {
 		Content: hookContent,
 	}
 
-	err = util.ExecuteHook(workspace, hookSpec, table.PostHook)
+	err = util.ExecuteHook(hookSpec, table.PostHook, tempDir, 2, "bscp-test")
 	if err != nil {
 		t.Fatalf("execute hook error: %s", err.Error())
 	}
 
-	hookPath := filepath.Join(workspace, "hooks", table.PostHook.String()+".py")
+	hookPath := filepath.Join(appTempDir, "hooks", table.PostHook.String()+".py")
 	if _, err := os.Stat(hookPath); os.IsNotExist(err) {
 		t.Fatalf("hook file not exist: %s", hookPath)
 	}
 
-	if _, err := os.Stat(filepath.Join(workspace, "test")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(appTempDir, "test")); os.IsNotExist(err) {
 		t.Fatal("hook exec failed")
 	}
 }

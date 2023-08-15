@@ -69,6 +69,7 @@ func Watch(cmd *cobra.Command, args []string) {
 			tempDir = conf.TempDir
 		}
 		handler := &WatchHandler{
+			Biz:     conf.Biz,
 			App:     subscriber.Name,
 			Labels:  subscriber.Labels,
 			UID:     subscriber.UID,
@@ -89,6 +90,8 @@ func Watch(cmd *cobra.Command, args []string) {
 
 // WatchHandler watch handler
 type WatchHandler struct {
+	// Biz BSCP biz id
+	Biz uint32
 	// App BSCP app name
 	App string
 	// Labels instance labels
@@ -118,7 +121,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 
 	// 1. execute pre hook
 	if preHook != nil {
-		if err := util.ExecuteHook(w.TempDir, preHook, table.PreHook); err != nil {
+		if err := util.ExecuteHook(preHook, table.PreHook, w.TempDir, w.Biz, w.App); err != nil {
 			logs.Errorf(err.Error())
 			return err
 		}
@@ -136,7 +139,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 	}
 	// 5. execute post hook
 	if postHook != nil {
-		if err := util.ExecuteHook(w.TempDir, postHook, table.PostHook); err != nil {
+		if err := util.ExecuteHook(postHook, table.PostHook, w.TempDir, w.Biz, w.App); err != nil {
 			logs.Errorf(err.Error())
 			return err
 		}

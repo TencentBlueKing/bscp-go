@@ -86,7 +86,7 @@ func pullAppFiles(bscp *client.Client, tempDir string, biz uint32, app string, o
 	}
 	// 2. execute pre hook
 	if preHook != nil {
-		if err := util.ExecuteHook(appDir, preHook, table.PreHook); err != nil {
+		if err := util.ExecuteHook(preHook, table.PreHook, tempDir, biz, app); err != nil {
 			return err
 		}
 	}
@@ -97,7 +97,7 @@ func pullAppFiles(bscp *client.Client, tempDir string, biz uint32, app string, o
 	}
 	// 4. execute post hook
 	if postHook != nil {
-		if err := util.ExecuteHook(appDir, postHook, table.PostHook); err != nil {
+		if err := util.ExecuteHook(postHook, table.PostHook, tempDir, biz, app); err != nil {
 			return err
 		}
 	}
