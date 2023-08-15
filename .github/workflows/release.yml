@@ -5,6 +5,8 @@ on:
   release:
     types:
       - created
+      - edited
+      - released
 
 jobs:
   release:
