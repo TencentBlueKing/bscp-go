@@ -14,19 +14,19 @@ jobs:
         include:
           - goarch: arm64
             goos: darwin
-            bin_name: bkpaas-cli
+            bin_name: bscp
           - goarch: amd64
             goos: darwin
-            bin_name: bkpaas-cli
+            bin_name: bscp
           - goarch: amd64
             goos: linux
-            bin_name: bkpaas-cli
+            bin_name: bscp
           - goarch: arm64
             goos: linux
-            bin_name: bkpaas-cli
+            bin_name: bscp
           - goarch: amd64
             goos: windows
-            bin_name: bkpaas-cli.exe
+            bin_name: bscp.exe
     steps:
       - name: checkout code
         uses: actions/checkout@v3
@@ -39,6 +39,6 @@ jobs:
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           build_command: make build GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION=${{ github.event.release.tag_name }}
-          extra_files: LICENSE.txt bkpaas-cli/Readme.md ${{ matrix.bin_name }}
-          asset_name: bkpaas-cli-${{ github.event.release.tag_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          extra_files: LICENSE.txt readme.md readme_en.md ${{ matrix.bin_name }}
+          asset_name: bscp-${{ github.event.release.tag_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
           md5sum: false
