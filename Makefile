@@ -8,6 +8,12 @@ PREFIX   ?= $(shell pwd)
 
 GOBUILD=CGO_ENABLED=0 go build -trimpath
 
+ifeq (${GOOS}, windows)
+    BIN_NAME=bscp.exe
+else
+    BIN_NAME=bscp
+endif
+
 ifeq ("$(VERSION)", "")
 	export OUTPUT_DIR = ${PRO_DIR}/build/bk-bscp
 	export LDVersionFLAG = "-X bscp.io/pkg/version.BUILDTIME=${BUILDTIME} \
@@ -33,8 +39,7 @@ build_sidecar:
 
 .PHONY: build
 build:
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/initContainer/bscp cli/main.go
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/sidecar/bscp cli/main.go
+	${GOBUILD} -ldflags ${LDVersionFLAG} -o ${BIN_NAME} cli/main.go
 
 .PHONY: test
 test:

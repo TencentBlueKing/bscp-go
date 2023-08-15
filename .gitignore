@@ -1,3 +1,5 @@
 build/initContainer/bscp
 build/sidecar/bscp
 build_local.sh
+/bscp
+/bscp.exe
