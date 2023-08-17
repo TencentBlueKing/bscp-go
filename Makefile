@@ -30,12 +30,10 @@ endif
 .PHONY: build_initContainer
 build_initContainer:
 	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/initContainer/bscp cli/main.go
-	cd build/initContainer && docker build . -t bscp-init
 
 .PHONY: build_sidecar
 build_sidecar:
 	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/sidecar/bscp cli/main.go
-	cd build/sidecar && docker build . -t bscp-sidecar
 
 .PHONY: build
 build:
