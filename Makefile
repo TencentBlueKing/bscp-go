@@ -1,6 +1,6 @@
 # version
 PRO_DIR   = $(shell pwd)
-BUILDTIME = $(shell TZ=Asia/Shanghai date +%Y-%m-%dT%H:%M:%S%z)
+BUILDTIME = $(shell TZ=Asia/Shanghai date +%Y-%m-%dT%T%z)
 GITHASH   = $(shell git rev-parse HEAD)
 VERSION   = $(shell echo ${ENV_BK_BSCP_VERSION})
 DEBUG     = $(shell echo ${ENV_BK_BSCP_ENABLE_DEBUG})
