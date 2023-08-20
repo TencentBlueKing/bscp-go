@@ -14,18 +14,16 @@ else
     BIN_NAME=bscp
 endif
 
-ifeq ("$(VERSION)", "")
-	export OUTPUT_DIR = ${PRO_DIR}/build/bk-bscp
-	export LDVersionFLAG = "-X bscp.io/pkg/version.BUILDTIME=${BUILDTIME} \
-    	-X bscp.io/pkg/version.GITHASH=${GITHASH} \
-		-X bscp.io/pkg/version.DEBUG=${DEBUG}"
-else
-	export OUTPUT_DIR = ${PRO_DIR}/build/bk-bscp-${VERSION}
-	export LDVersionFLAG = "-X bscp.io/pkg/version.VERSION=${VERSION} \
+ifeq ("$(ENV_BK_BSCP_VERSION)", "")
+	VERSION=v1.0.0-devops-unknown
+else ifeq ($(shell echo ${ENV_BK_BSCP_VERSION} | egrep "^v1\.[0-9]+\.[0-9]+"),)
+	VERSION=v1.0.0-devops-${ENV_BK_BSCP_VERSION}
+endif
+
+export LDVersionFLAG = "-X bscp.io/pkg/version.VERSION=${VERSION} \
     	-X bscp.io/pkg/version.BUILDTIME=${BUILDTIME} \
     	-X bscp.io/pkg/version.GITHASH=${GITHASH} \
     	-X bscp.io/pkg/version.DEBUG=${DEBUG}"
-endif
 
 .PHONY: build_initContainer
 build_initContainer:
