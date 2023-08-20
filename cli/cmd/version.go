@@ -15,7 +15,6 @@ package cmd
 
 import (
 	bscpVersion "bscp.io/pkg/version"
-	"github.com/TencentBlueKing/bscp-go/version"
 	"github.com/spf13/cobra"
 )
 
@@ -31,5 +30,4 @@ var (
 // Version is the version of the bscp-go cli.
 func Version(cmd *cobra.Command, args []string) {
 	bscpVersion.ShowVersion("Client", bscpVersion.JSON)
-	version.ShowServerVersion()
 }
