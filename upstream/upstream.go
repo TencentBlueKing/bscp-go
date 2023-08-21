@@ -23,7 +23,6 @@ import (
 	pbbase "bscp.io/pkg/protocol/core/base"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
-	"bscp.io/pkg/version"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
@@ -72,13 +71,12 @@ func New(opts ...Option) (Upstream, error) {
 	// dial without ssl
 	dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-	ver := version.SemanticVersion()
 	uc := &upstreamClient{
 		options: option,
 		sidecarVer: &pbbase.Versioning{
-			Major: ver[0],
-			Minor: ver[1],
-			Patch: ver[2],
+			Major: sfs.CurrentAPIVersion.Major,
+			Minor: sfs.CurrentAPIVersion.Minor,
+			Patch: sfs.CurrentAPIVersion.Patch,
 		},
 		dialOpts: dialOpts,
 		lb:       lb,
