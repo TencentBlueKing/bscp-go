@@ -122,7 +122,7 @@ func initArgs() error {
 
 	apps := []*config.AppConfig{}
 	for _, app := range strings.Split(appName, ",") {
-		apps = append(apps, &config.AppConfig{Name: app})
+		apps = append(apps, &config.AppConfig{Name: strings.TrimSpace(app)})
 	}
 	conf.Apps = apps
 	return nil
