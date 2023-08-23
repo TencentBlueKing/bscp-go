@@ -69,12 +69,13 @@ func Watch(cmd *cobra.Command, args []string) {
 			tempDir = conf.TempDir
 		}
 		handler := &WatchHandler{
-			Biz:     conf.Biz,
-			App:     subscriber.Name,
-			Labels:  subscriber.Labels,
-			UID:     subscriber.UID,
-			Lock:    sync.Mutex{},
-			TempDir: path.Join(tempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+			Biz:        conf.Biz,
+			App:        subscriber.Name,
+			Labels:     subscriber.Labels,
+			UID:        subscriber.UID,
+			Lock:       sync.Mutex{},
+			TempDir:    tempDir,
+			AppTempDir: path.Join(tempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
 			logs.Errorf(err.Error())
@@ -98,8 +99,10 @@ type WatchHandler struct {
 	Labels map[string]string
 	// UID instance unique uid
 	UID string
-	// TempDir config files temporary directory
+	// TempDir bscp temporary directory
 	TempDir string
+	// AppTempDir app temporary directory\
+	AppTempDir string
 	// Lock lock for concurrent callback
 	Lock sync.Mutex
 }
@@ -109,7 +112,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 	w.Lock.Lock()
 	defer w.Lock.Unlock()
 
-	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(w.TempDir)
+	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(w.AppTempDir)
 	if err != nil {
 		logs.Warnf("get latest release metadata failed, err: %s, maybe you should exec pull command first", err.Error())
 	} else {
@@ -127,7 +130,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 		}
 	}
 
-	filesDir := path.Join(w.TempDir, "files")
+	filesDir := path.Join(w.AppTempDir, "files")
 	if err := util.UpdateFiles(filesDir, files); err != nil {
 		logs.Errorf(err.Error())
 		return err
@@ -151,7 +154,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 		Status:    eventmeta.EventStatusSuccess,
 		EventTime: time.Now().Format(time.RFC3339),
 	}
-	if err := eventmeta.AppendMetadataToFile(w.TempDir, metadata); err != nil {
+	if err := eventmeta.AppendMetadataToFile(w.AppTempDir, metadata); err != nil {
 		logs.Errorf("append metadata to file failed, err: %s", err.Error())
 		return err
 	}
