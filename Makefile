@@ -33,6 +33,11 @@ build_initContainer:
 build_sidecar:
 	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/sidecar/bscp cli/main.go
 
+.PHONY: build_docker
+build_docker: build_initContainer build_sidecar
+	cd build/initContainer && docker build . -t bscp-init
+	cd build/sidecar && docker build . -t bscp-sidecar
+
 .PHONY: build
 build:
 	${GOBUILD} -ldflags ${LDVersionFLAG} -o ${BIN_NAME} cli/main.go
