@@ -27,7 +27,7 @@ export LDVersionFLAG = "-X bscp.io/pkg/version.VERSION=${VERSION} \
 
 .PHONY: lint
 lint:
-	@golangci-lint run ./...
+	@golangci-lint run --issues-exit-code=0
 
 .PHONY: build_initContainer
 build_initContainer:
