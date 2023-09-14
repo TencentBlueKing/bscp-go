@@ -19,15 +19,20 @@ linters:
     - unused
 
     # custom
+    - gocyclo
+    - gofmt
     - goimports
-    # - revive
+    - revive
 
 linters-settings:
   # 只开启特定的规则
   errcheck:
     exclude-functions:
       - os.RemoveAll
-
+  gocyclo:
+    min-complexity: 30
+  goimports:
+    local-prefixes: github.com/TencentBlueKing/bscp-go
   revive:
     rules:
       - name: exported
