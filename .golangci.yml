@@ -26,6 +26,7 @@ linters:
     - goimports
     - gosec
     - misspell
+    - nakedret
     - revive
     - unconvert
     - unparam
@@ -37,15 +38,10 @@ linters-settings:
       - (*os.File).Close
       - (io.Closer).Close
       - os.RemoveAll
-  gocyclo:
-    min-complexity: 30
-  misspell:
-    # Correct spellings using locale preferences for US or UK.
-    # Setting locale to US will correct the British spelling of 'colour' to 'color'.
-    # Default is to use a neutral variety of English.
-    locale: US
   govet:
     check-shadowing: true
+  gocyclo:
+    min-complexity: 30
   gosec:
     includes:
       - G201 # SQL query construction using format string
@@ -68,9 +64,10 @@ linters-settings:
        * either express or implied. See the License for the specific language governing permissions and
        * limitations under the License.
        *
-
   goimports:
     local-prefixes: github.com/TencentBlueKing/bscp-go
+  misspell:
+    locale: US
   revive:
     rules:
       - name: exported
