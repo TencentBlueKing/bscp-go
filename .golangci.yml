@@ -1,0 +1,38 @@
+run:
+  timeout: 1m
+
+issues:
+  # 显示所有 issue
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-use-default: false
+
+linters:
+  disable-all: true
+  enable:
+    # enable by default
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+    # custom
+    - goimports
+    # - revive
+
+linters-settings:
+  # 只开启特定的规则
+  errcheck:
+    exclude-functions:
+      - os.RemoveAll
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+        arguments:
+          - checkPrivateReceivers
+          - sayRepetitiveInsteadOfStutters

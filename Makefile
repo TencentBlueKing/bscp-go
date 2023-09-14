@@ -25,6 +25,10 @@ export LDVersionFLAG = "-X bscp.io/pkg/version.VERSION=${VERSION} \
     	-X bscp.io/pkg/version.GITHASH=${GITHASH} \
     	-X bscp.io/pkg/version.DEBUG=${DEBUG}"
 
+.PHONY: lint
+lint:
+	@golangci-lint run ./...
+
 .PHONY: build_initContainer
 build_initContainer:
 	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/initContainer/bscp cli/main.go
