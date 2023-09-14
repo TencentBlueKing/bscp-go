@@ -188,7 +188,7 @@ func (c *Client) PullFiles(app string, opts ...option.AppOption) (
 	return resp.ReleaseId, files, resp.PreHook, resp.PostHook, nil
 }
 
-func (c *Client) buildVas() (*kit.Vas, context.CancelFunc) {
+func (c *Client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint
 	vas := kit.OutgoingVas(c.pairs)
 	ctx, cancel := context.WithCancel(vas.Ctx)
 	vas.Ctx = ctx

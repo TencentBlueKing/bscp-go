@@ -1,6 +1,10 @@
 ## BSCP-GO
 
-[![license](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://github.com/TencentBlueKing/bscp-go/blob/master/LICENSE.txt) [![Release Version](https://img.shields.io/badge/release-0.0.4-brightgreen.svg)](https://github.com/TencentBlueKing/bscp-go/releases) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/TencentBlueKing/bscp-go/pulls)
+[![license](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://github.com/TencentBlueKing/bscp-go/blob/master/LICENSE.txt)
+[![lint](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TencentBlueKing/bscp-go?cache=v1)](https://goreportcard.com/report/github.com/TencentBlueKing/bscp-go)
+[![Release Version](https://img.shields.io/github/release/TencentBlueKing/bscp-go.svg?style=flat-square)](https://github.com/TencentBlueKing/bscp-go/releases)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/TencentBlueKing/bscp-go/pulls)
 
 [EnglishDocs](./readme_en.md)
 

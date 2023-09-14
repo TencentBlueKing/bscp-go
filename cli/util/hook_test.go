@@ -21,6 +21,7 @@ import (
 
 	"bscp.io/pkg/dal/table"
 	pbhook "bscp.io/pkg/protocol/core/hook"
+
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 )
 
@@ -42,7 +43,7 @@ func TestExecuteShellHook(t *testing.T) {
 		Content: hookContent,
 	}
 
-	err = util.ExecuteHook(hookSpec, table.PreHook,tempDir, 2, "bscp-test")
+	err = util.ExecuteHook(hookSpec, table.PreHook, tempDir, 2, "bscp-test")
 	if err != nil {
 		t.Fatalf("execute hook error: %s", err.Error())
 	}
@@ -67,7 +68,6 @@ func TestExecutePythonHook(t *testing.T) {
 	biz := 2
 	app := "bscp-test"
 	appTempDir := filepath.Join(tempDir, strconv.Itoa(biz), app)
-	
 
 	hookContent := "import os\nos.makedirs('test')"
 	hookSpec := &pbhook.HookSpec{

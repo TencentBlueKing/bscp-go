@@ -26,12 +26,13 @@ import (
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	"bscp.io/pkg/runtime/jsoni"
 	sfs "bscp.io/pkg/sf-share"
+	"go.uber.org/atomic"
+	"google.golang.org/grpc"
+
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 	"github.com/TencentBlueKing/bscp-go/upstream"
-	"go.uber.org/atomic"
-	"google.golang.org/grpc"
 )
 
 // Watcher is the main watch stream for instance

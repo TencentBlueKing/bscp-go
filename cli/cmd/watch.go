@@ -38,6 +38,7 @@ import (
 )
 
 var (
+	// WatchCmd command to watch app files
 	WatchCmd = &cobra.Command{
 		Use:   "watch",
 		Short: "watch",

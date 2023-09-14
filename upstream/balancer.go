@@ -25,7 +25,7 @@ func newBalancer(endpoints []string) (*balancer, error) {
 		return nil, errors.New("no endpoints is set, can initial the client round-robin balancer")
 	}
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // nolint
 	return &balancer{
 		lo:        sync.Mutex{},
 		index:     uint(r.Intn(len(endpoints))),

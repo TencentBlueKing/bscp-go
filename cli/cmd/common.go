@@ -19,9 +19,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/spf13/viper"
+
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
-	"github.com/spf13/viper"
 )
 
 var (

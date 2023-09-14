@@ -29,6 +29,8 @@ import (
 
 var defaultCachePath = "/tmp/bk-bscp"
 var instance *Cache
+
+// Enable define whether to enable local cache
 var Enable bool
 
 // Cache is the bscp sdk cache

@@ -32,6 +32,7 @@ import (
 )
 
 var (
+	// PullCmd command to pull app files
 	PullCmd = &cobra.Command{
 		Use:   "pull",
 		Short: "pull",
