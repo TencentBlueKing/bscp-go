@@ -90,3 +90,42 @@ func TestExecutePythonHook(t *testing.T) {
 		t.Fatal("hook exec failed")
 	}
 }
+
+func TestExecuteShellHookFailed(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "hook-test")
+	if err != nil {
+		t.Fatalf("create workspace error: %s", err.Error())
+	}
+	defer os.RemoveAll(tempDir)
+	hookContent := "#!/bin/sh\nmkdir -p test\ncmd-not-exists"
+	hookSpec := &pbhook.HookSpec{
+		Name:    "test-shell",
+		Type:    "shell",
+		Content: hookContent,
+	}
+
+	err = util.ExecuteHook(hookSpec, table.PreHook,tempDir, 2, "bscp-test")
+	if err == nil {
+		t.Fatalf("execute hook unexpected, should failed but not.")
+	}
+}
+
+func TestExecutePythonHookFailed(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "hook-test")
+	if err != nil {
+		t.Fatalf("create workspace error: %s", err.Error())
+	}
+	defer os.RemoveAll(tempDir)
+
+	hookContent := "import os\nos.makedirs('test')\n1/0"
+	hookSpec := &pbhook.HookSpec{
+		Name:    "test-python",
+		Type:    "python",
+		Content: hookContent,
+	}
+
+	err = util.ExecuteHook(hookSpec, table.PostHook, tempDir, 2, "bscp-test")
+	if err == nil {
+		t.Fatalf("execute hook unexpected, should failed but not.")
+	}
+}

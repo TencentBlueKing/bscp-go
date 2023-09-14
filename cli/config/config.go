@@ -85,8 +85,5 @@ func (c *AppConfig) Validate() error {
 	if c.Name == "" {
 		return fmt.Errorf("app is empty")
 	}
-	if len(c.Labels) == 0 {
-		return fmt.Errorf("labels is empty")
-	}
 	return nil
 }

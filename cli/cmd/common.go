@@ -16,6 +16,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
@@ -56,26 +57,43 @@ var (
 		"token":      "token",
 		"temp_dir":   "temp-dir",
 	}
+
+	envLabelsPrefix = "labels_"
 )
 
 // initArgs init the common args
 func initArgs() error {
 
 	if configPath != "" {
-		fmt.Println("use config file: ", configPath)
-		viper.SetConfigFile(configPath)
-		if err := viper.ReadInConfig(); err != nil {
-			return fmt.Errorf("read config file failed, err: %s", err.Error())
+		if err := initFromConfig(); err != nil {
+			return err
 		}
-		if err := viper.Unmarshal(conf); err != nil {
-			return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
+	} else {
+		if err := initFromCmdArgs(); err != nil {
+			return err
 		}
-		if err := conf.Validate(); err != nil {
-			return fmt.Errorf("validate watch config failed, err: %s", err.Error())
-		}
-		return nil
 	}
+	initLabelsFromEnv()
+	fmt.Printf("labels: %+v", labels)
+	return nil
+}
 
+func initFromConfig() error {
+	fmt.Println("use config file: ", configPath)
+	viper.SetConfigFile(configPath)
+	if err := viper.ReadInConfig(); err != nil {
+		return fmt.Errorf("read config file failed, err: %s", err.Error())
+	}
+	if err := viper.Unmarshal(conf); err != nil {
+		return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
+	}
+	if err := conf.Validate(); err != nil {
+		return fmt.Errorf("validate watch config failed, err: %s", err.Error())
+	}
+	return nil
+}
+
+func initFromCmdArgs() error {
 	fmt.Println("use command line args or environment variables")
 	if bizID == 0 {
 		return fmt.Errorf("biz id must not be 0")
@@ -126,4 +144,20 @@ func initArgs() error {
 	}
 	conf.Apps = apps
 	return nil
+}
+
+func initLabelsFromEnv() {
+	labels := make(map[string]string)
+	// get multi labels from environment variables
+	envs := os.Environ()
+	for _, env := range envs {
+		kv := strings.Split(env, "=")
+		k, v := kv[0], kv[1]
+		if strings.HasPrefix(k, envLabelsPrefix) && strings.TrimPrefix(k, envLabelsPrefix) != "" {
+			labels[strings.TrimPrefix(k, envLabelsPrefix)] = v
+		}
+	}
+	for k, v := range labels {
+		conf.Labels[k] = v
+	}
 }
