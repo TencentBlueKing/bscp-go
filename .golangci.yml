@@ -26,11 +26,13 @@ linters:
 
 linters-settings:
   # 只开启特定的规则
-  errcheck:
-    exclude-functions:
-      - os.RemoveAll
   gocyclo:
     min-complexity: 30
+  errcheck:
+    exclude-functions:
+      - (*os.File).Close
+      - (io.Closer).Close
+      - os.RemoveAll
   goimports:
     local-prefixes: github.com/TencentBlueKing/bscp-go
   revive:
