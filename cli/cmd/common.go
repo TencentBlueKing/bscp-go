@@ -74,7 +74,6 @@ func initArgs() error {
 		}
 	}
 	initLabelsFromEnv()
-	fmt.Printf("labels: %+v", labels)
 	return nil
 }
 
