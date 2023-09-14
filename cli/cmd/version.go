@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	// VersionCmd command to show version info
 	VersionCmd = &cobra.Command{
 		Use:   "version",
 		Short: "show version of the bscp-go cli.",

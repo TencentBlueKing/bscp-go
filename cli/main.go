@@ -15,6 +15,7 @@ package main
 
 import (
 	"bscp.io/pkg/logs"
+
 	"github.com/TencentBlueKing/bscp-go/cli/cmd"
 )
 

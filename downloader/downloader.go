@@ -46,13 +46,16 @@ const (
 	defaultDownloadSemaphoreWight      = 10
 )
 
+// DownloadTo defines the download target.
 type DownloadTo string
 
 var (
 	instance *downloader
 
+	// DownloadToBytes download file content to bytes.
 	DownloadToBytes DownloadTo = "bytes"
-	DownloadToFile  DownloadTo = "file"
+	// DownloadToFile download file content to file.
+	DownloadToFile DownloadTo = "file"
 )
 
 // Downloader implements all the supported operations which used to download

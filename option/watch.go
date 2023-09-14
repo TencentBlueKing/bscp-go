@@ -15,6 +15,7 @@ package option
 
 import (
 	pbhook "bscp.io/pkg/protocol/core/hook"
+
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
@@ -32,6 +33,5 @@ type WatchOptions struct {
 	BizID uint32
 }
 
-// TODO: how to wrapper file, kv, table types in one watch result
 // Callback watch callback
 type Callback func(releaseID uint32, files []*types.ConfigItemFile, pre *pbhook.HookSpec, post *pbhook.HookSpec) error

@@ -30,12 +30,12 @@ const (
 	// executePythonCmd python script executor
 	executePythonCmd = "python3"
 
-	// !important: promise of compatibility
 	// EnvAppTempDir bscp app temp dir env
+	// !important: promise of compatibility
 	EnvAppTempDir = "bk_bscp_app_temp_dir"
 	// EnvTempDir bscp temp dir env
 	EnvTempDir = "bk_bscp_temp_dir"
-	// EnvApp bscp biz id env
+	// EnvBiz bscp biz id env
 	EnvBiz = "bk_bscp_biz"
 	// EnvApp bscp app name env
 	EnvApp = "bk_bscp_app"

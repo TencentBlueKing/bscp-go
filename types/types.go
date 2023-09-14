@@ -36,8 +36,6 @@ func (rs ReconnectSignal) String() string {
 	return rs.Reason
 }
 
-type OnAppReleaseChange func(event *sfs.ReleaseChangeEvent)
-
 // ConfigItemFile defines config item file
 type ConfigItemFile struct {
 	// Config file name

@@ -14,7 +14,7 @@
 package constant
 
 const (
-	// !important: promise of compatibility
 	// DefaultTempDir is the bscp cli default temp dir.
+	// !important: promise of compatibility
 	DefaultTempDir = "/data/bscp"
 )
