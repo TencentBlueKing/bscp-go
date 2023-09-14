@@ -216,7 +216,7 @@ func (exec *execDownload) do() error {
 	exec.downloadUri = resp.Url
 	if exec.fileSize <= exec.dl.balanceDownloadByteSize {
 		// the file size is not big enough, download directly
-		if err := exec.downloadDirectly(requestAwaitResponseTimeoutSeconds); err != nil {
+		if err = exec.downloadDirectly(requestAwaitResponseTimeoutSeconds); err != nil {
 			return fmt.Errorf("download directly failed, err: %s", err.Error())
 		}
 
@@ -522,7 +522,7 @@ func tlsConfigFromTLSBytes(tlsBytes *sfs.TLSBytes) (*tls.Config, error) {
 	var certificate tls.Certificate
 	if len(tlsBytes.CertFileBytes) == 0 && len(tlsBytes.CertFileBytes) == 0 { //nolint:staticcheck
 		return &tls.Config{
-			InsecureSkipVerify: tlsBytes.InsecureSkipVerify,
+			InsecureSkipVerify: tlsBytes.InsecureSkipVerify, // nolint
 			ClientCAs:          caPool,
 			Certificates:       []tls.Certificate{certificate},
 			ClientAuth:         tls.RequireAndVerifyClientCert,
@@ -535,7 +535,7 @@ func tlsConfigFromTLSBytes(tlsBytes *sfs.TLSBytes) (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		InsecureSkipVerify: tlsBytes.InsecureSkipVerify,
+		InsecureSkipVerify: tlsBytes.InsecureSkipVerify, // nolint
 		ClientCAs:          caPool,
 		Certificates:       []tls.Certificate{tlsCert},
 		ClientAuth:         tls.RequireAndVerifyClientCert,
