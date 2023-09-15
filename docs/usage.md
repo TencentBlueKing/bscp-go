@@ -4,24 +4,17 @@
 
 ```shell
 # init-container
-docker run bscp-init:latest --feed-addrs={feed_addr_host}:9510 --token=***** --biz=2 --app=bscp-demo --labels='{"env":"debug","region":"shenzhen"}
-
+docker run bscp-init:latest --feed-addrs={feed_addr_host}:9510 --token=***** --biz=2 --app=bscp-demo --labels='{"env":"debug","region":"shenzhen"}'
 # sidecar
-docker run bscp-sidecar:latest --feed-addrs={feed_addr_host}:9510 --token=***** --biz=2 --app=bscp-demo --labels='{"env":"debug","region":"shenzhen"}
+docker run bscp-sidecar:latest --feed-addrs={feed_addr_host}:9510 --token=***** --biz=2 --app=bscp-demo --labels='{"env":"debug","region":"shenzhen"}'
 ```
 
 参数详情：
-
 - feed-addrs：订阅地址，必填
-
 - biz：业务ID，必填
-
 - app：服务名称，必填，多个服务以半角逗号`,`做分隔
-
 - token：服务秘钥，必填
-
 - labels：实例标签（选填）
-
 - temp-dir：bscp 临时工作目录（选填，默认为 /data/bscp）
 
 ### 环境变量
@@ -32,17 +25,12 @@ docker run -e feed_addrs={feed_addr_host}:9510 -e token=***** -e biz=2 -e app=bs
 # sidecar
 docker run -e feed_addrs={feed_addr_host}:9510 -e token=***** -e biz=2 -e app=bscp-demo -e labels='{"env":"debug","region":"shenzhen"}' bscp-sidecar:latest
 ```
-
+环境变量详情：
 - feed_addrs：订阅地址，必填
-
 - biz：业务ID，必填
-
 - app：服务名称，必填，多个服务以半角逗号`,`做分隔
-
 - token：服务秘钥，必填
-
 - labels：实例标签（选填）
-
 - temp_dir：bscp 临时工作目录（选填，默认为 /data/bscp）
 
 ### 配置文件，支持 yaml/json 类型
@@ -123,19 +111,14 @@ Json 示例：
 通过环境变量逐个获取 `labels_{key}={value}`
 
 示例：
-
 - labels_env=prod
 - labels_app=demo
 
 获取到的客户端实例标签如下：
-
 - env:prod
-
 - app:demo
 
 > 如果设置了 `labels` 命令参数或者 `labels` 环境变量，从 `labels_{key}` 环境变量获取的key，将覆盖前两者同名 key 的标签
-
-
 
 ## initContainer/sidecar 执行流程
 

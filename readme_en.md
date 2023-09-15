@@ -1,14 +1,12 @@
 ## BSCP-GO
 
 [![license](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://github.com/TencentBlueKing/bscp-go/blob/master/LICENSE.txt)
-[![lint](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml)
+[![lint](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml/badge.svg?branch=master)](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TencentBlueKing/bscp-go?cache=v1)](https://goreportcard.com/report/github.com/TencentBlueKing/bscp-go)
 [![Release Version](https://img.shields.io/github/release/TencentBlueKing/bscp-go.svg?style=flat-square)](https://github.com/TencentBlueKing/bscp-go/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/TencentBlueKing/bscp-go/pulls)
 
 [中文文档](./readme.md)
-
-[Usage](./doc/usage.md)
 
 ## Overview
 
@@ -21,6 +19,10 @@ bscp-go is an official command-line tool provided by BlueKing Basic Configuratio
 - Grayscale release
 - Multi-service support
 - Pre and post scripts
+
+## Quick Start
+
+[Containerized Access](./docs/usage.md)
 
 ## Support
 
