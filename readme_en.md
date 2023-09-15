@@ -8,6 +8,8 @@
 
 [中文文档](./readme.md)
 
+[Usage](./doc/usage.md)
+
 ## Overview
 
 bscp-go is an official command-line tool provided by BlueKing Basic Configuration Platform (BK-BSCP) for quick access to KV SDK, configuration hot update, and execution of pre- and post-scripts

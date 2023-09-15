@@ -8,6 +8,8 @@
 
 [EnglishDocs](./readme_en.md)
 
+[使用文档](./doc/usage.md)
+
 ## Overview
 
 bscp-go 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，配置热更新，执行前后置脚本的官方命令行工具
