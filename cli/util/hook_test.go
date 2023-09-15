@@ -104,7 +104,7 @@ func TestExecuteShellHookFailed(t *testing.T) {
 		Content: hookContent,
 	}
 
-	err = util.ExecuteHook(hookSpec, table.PreHook,tempDir, 2, "bscp-test")
+	err = util.ExecuteHook(hookSpec, table.PreHook, tempDir, 2, "bscp-test")
 	if err == nil {
 		t.Fatalf("execute hook unexpected, should failed but not.")
 	}
