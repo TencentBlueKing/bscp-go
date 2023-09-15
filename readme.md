@@ -1,12 +1,13 @@
 ## BSCP-GO
 
 [![license](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://github.com/TencentBlueKing/bscp-go/blob/master/LICENSE.txt)
-[![lint](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml)
+[![lint](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml/badge.svg?branch=master)](https://github.com/TencentBlueKing/bscp-go/actions/workflows/lint.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TencentBlueKing/bscp-go?cache=v1)](https://goreportcard.com/report/github.com/TencentBlueKing/bscp-go)
 [![Release Version](https://img.shields.io/github/release/TencentBlueKing/bscp-go.svg?style=flat-square)](https://github.com/TencentBlueKing/bscp-go/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/TencentBlueKing/bscp-go/pulls)
 
 [EnglishDocs](./readme_en.md)
+
 
 ## Overview
 
@@ -19,6 +20,10 @@ bscp-go 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，
 - 灰度发布
 - 多服务支持
 - 前后置脚本
+
+## 快速上手
+
+[容器化接入](./docs/usage.md)
 
 ## Support
 
