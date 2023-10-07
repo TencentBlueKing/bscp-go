@@ -129,7 +129,7 @@ func (c *Client) AddWatcher(callback option.Callback, app string, opts ...option
 }
 
 // StartWatch start watch
-func (c *Client) StartWatch() (error) {
+func (c *Client) StartWatch() error {
 	return c.watcher.StartWatch()
 }
 
