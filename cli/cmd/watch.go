@@ -83,8 +83,8 @@ func Watch(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 	}
-	if _, err := bscp.StartWatch(); err != nil {
-		logs.Errorf(err.Error())
+	if e := bscp.StartWatch(); e != nil {
+		logs.Errorf(e.Error())
 		os.Exit(1)
 	}
 	time.Sleep(time.Hour * 24 * 365)

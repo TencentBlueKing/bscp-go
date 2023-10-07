@@ -35,7 +35,7 @@ const (
 	maxHeartbeatRetryCount = 3
 )
 
-func (w *Watcher) loopHeartbeat() error {
+func (w *Watcher) loopHeartbeat(vas *kit.Vas) error {
 
 	apps := make([]sfs.SideAppMeta, 0, len(w.subscribers))
 	for _, subscriber := range w.subscribers {
@@ -60,9 +60,15 @@ func (w *Watcher) loopHeartbeat() error {
 
 	go func() {
 		for {
-			time.Sleep(defaultHeartbeatInterval)
 
-			vas, _ := w.buildVas()
+			select {
+			case <-vas.Ctx.Done():
+				logs.V(1).Infof("stream heartbeat stoped, rid: %s", vas.Rid)
+				return
+			default:
+			}
+
+			time.Sleep(defaultHeartbeatInterval)
 
 			logs.V(1).Infof("stream will heartbeat, rid: %s", vas.Rid)
 
