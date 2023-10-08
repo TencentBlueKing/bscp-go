@@ -82,7 +82,7 @@ func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 }
 
 // StartWatch start watch stream
-func (w *Watcher) StartWatch() (context.CancelFunc, error) {
+func (w *Watcher) StartWatch() error {
 	w.vas, w.cancel = w.buildVas()
 	var err error
 	apps := []sfs.SideAppMeta{}
@@ -102,19 +102,20 @@ func (w *Watcher) StartWatch() (context.CancelFunc, error) {
 	bytes, err := jsoni.Marshal(payload)
 	if err != nil {
 		w.cancel()
-		return nil, fmt.Errorf("encode watch payload failed, err: %s", err.Error())
+		return fmt.Errorf("encode watch payload failed, err: %s", err.Error())
 	}
 	upstreamClient, err := w.upstream.Watch(w.vas, bytes)
 	if err != nil {
 		w.cancel()
-		return nil, fmt.Errorf("watch upstream server with payload failed, err: %s", err.Error())
+		return fmt.Errorf("watch upstream server with payload failed, err: %s", err.Error())
 	}
-	go w.waitForReconnectSignal()
+	go w.waitForReconnectSignal(w.vas)
 	go w.loopReceiveWatchedEvent(w.vas, upstreamClient)
-	if err = w.loopHeartbeat(); err != nil {
-		return nil, fmt.Errorf("start loop hearbeat failed, err: %s", err.Error())
+	if err = w.loopHeartbeat(w.vas); err != nil {
+		w.cancel()
+		return fmt.Errorf("start loop hearbeat failed, err: %s", err.Error())
 	}
-	return w.cancel, nil
+	return nil
 }
 
 func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_WatchClient) {

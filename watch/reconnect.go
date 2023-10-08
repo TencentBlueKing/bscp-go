@@ -16,7 +16,7 @@ package watch
 import (
 	"strconv"
 
-	"bscp.io/pkg/criteria/uuid"
+	"bscp.io/pkg/kit"
 	"bscp.io/pkg/logs"
 	"bscp.io/pkg/tools"
 
@@ -32,18 +32,23 @@ func (w *Watcher) NotifyReconnect(signal types.ReconnectSignal) {
 	}
 }
 
-func (w *Watcher) waitForReconnectSignal() {
+func (w *Watcher) waitForReconnectSignal(vas *kit.Vas) {
 	for {
-		rid := uuid.UUID()
+		select {
+		case <-vas.Ctx.Done():
+			logs.V(1).Infof("wait for reconnect signal stoped, rid: %s", vas.Rid)
+			return
+		default:
+		}
 		signal := <-w.reconnectChan
-		logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), rid)
+		logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), vas.Rid)
 
 		if w.reconnecting.Load() {
 			logs.Warnf("received reconnect signal, but stream is already reconnecting, ignore this signal.")
 			return
 		}
 
-		w.tryReconnect(rid)
+		w.tryReconnect(vas.Rid)
 	}
 }
 
@@ -71,8 +76,8 @@ func (w *Watcher) tryReconnect(rid string) {
 
 	for {
 		subRid := rid + strconv.FormatUint(uint64(retry.RetryCount()), 10)
-		if _, err := w.StartWatch(); err != nil {
-			logs.Errorf("re-watch stream failed, err: %s, rid: %s", err.Error(), subRid)
+		if e := w.StartWatch(); e != nil {
+			logs.Errorf("re-watch stream failed, err: %s, rid: %s", e.Error(), subRid)
 			retry.Sleep()
 			continue
 		}
