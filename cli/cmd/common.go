@@ -38,6 +38,7 @@ var (
 	conf      = new(config.ClientConfig)
 	// flag values
 	configPath string
+	metricPort uint32
 )
 
 var (
