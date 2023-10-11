@@ -28,7 +28,6 @@ import (
 	"sync"
 	"time"
 
-	"bscp.io/pkg/criteria/constant"
 	"bscp.io/pkg/kit"
 	"bscp.io/pkg/logs"
 	pbfs "bscp.io/pkg/protocol/feed-server"
@@ -43,7 +42,10 @@ const (
 	defaultSwapBufferSize              = 2 * 1024 * 1024
 	defaultRangeDownloadByteSize       = 5 * defaultSwapBufferSize
 	requestAwaitResponseTimeoutSeconds = 10
-	defaultDownloadSemaphoreWight      = 10
+	defaultDownloadGroutines           = 10
+
+	// EnvMaxHTTPDownloadGoroutines is the env name of max goroutines to download file via http.
+	EnvMaxHTTPDownloadGoroutines = "BK_BSCP_MAX_HTTP_DOWNLOAD_GOROUTINES"
 )
 
 // DownloadTo defines the download target.
@@ -56,10 +58,18 @@ var (
 	DownloadToBytes DownloadTo = "bytes"
 	// DownloadToFile download file content to file.
 	DownloadToFile DownloadTo = "file"
+
+	// swapPool is the swap buffer pool.
+	swapPool = sync.Pool{
+		New: func() interface{} {
+			b := make([]byte, defaultSwapBufferSize)
+			return &b
+		},
+	}
 )
 
-// Downloader implements all the supported operations which used to download
-// files from provider.
+// Downloader implements all the supported operations which used to download files from provider.
+// default max memory usage: defaultDownloadGroutines(default 10) * swapSize(default 2MB) = 20MB
 type Downloader interface {
 	// Download the configuration items from provider.
 	// path is the full path of the file to be downloaded.
@@ -74,44 +84,43 @@ func Init(vas *kit.Vas, bizID uint32, token string, upstream upstream.Upstream, 
 		return fmt.Errorf("build tls config failed, err: %s", err.Error())
 	}
 
-	weight, err := setupDownloadSemWeight()
-	if err != nil {
-		return fmt.Errorf("get download sem weight failed, err: %s", err.Error())
-	}
-
 	instance = &downloader{
 		vas:                     vas,
 		token:                   token,
 		bizID:                   bizID,
 		upstream:                upstream,
 		tls:                     tlsC,
-		sem:                     semaphore.NewWeighted(weight),
+		sem:                     semaphore.NewWeighted(setupMaxHttpDownloadGoroutines()),
 		balanceDownloadByteSize: defaultRangeDownloadByteSize,
 	}
 	return nil
 }
 
-// setupDownloadSemWeight maximum combined weight for concurrent download access.
-func setupDownloadSemWeight() (int64, error) {
-	weightEnv := os.Getenv(constant.EnvMaxDownloadFileGoroutines)
+// setupMaxHttpDownloadGoroutines max goroutines to download file via http.
+func setupMaxHttpDownloadGoroutines() int64 {
+	weightEnv := os.Getenv(EnvMaxHTTPDownloadGoroutines)
 	if len(weightEnv) == 0 {
-		return defaultDownloadSemaphoreWight, nil
+		return defaultDownloadGroutines
 	}
 
 	weight, err := strconv.ParseInt(weightEnv, 10, 64)
 	if err != nil {
-		return 0, err
+		logs.Warnf("invalid max http download groutines: %s, set to %d for now", weightEnv, defaultDownloadGroutines)
+		return defaultDownloadGroutines
 	}
 
 	if weight < 1 {
-		return 0, errors.New("invalid download sem weight, should >= 1")
+		logs.Warnf("invalid max http download groutines: %d, should >= 1, set to 1 for now", weight)
+		return 1
 	}
 
 	if weight > 15 {
-		return 0, errors.New("invalid download sem weight, should <= 15")
+		logs.Warnf("invalid max http download groutines: %d, should <= 15, set to 1 for now", weight)
 	}
 
-	return weight, nil
+	logs.Infof("max http download groutines: %d", weight)
+
+	return weight
 }
 
 // GetDownloader returns the downloader instance.
@@ -316,6 +325,8 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 	if err != nil {
 		return err
 	}
+	defer body.Close()
+
 	if err := exec.write(body, exec.fileSize, 0); err != nil {
 		return err
 	}
@@ -453,7 +464,8 @@ func (exec *execDownload) doRequest(method string, header http.Header, timeoutSe
 
 func (exec *execDownload) write(body io.ReadCloser, expectSize uint64, start uint64) error {
 	totalSize := uint64(0)
-	swap := make([]byte, defaultSwapBufferSize)
+	swap := swapPool.Get().(*[]byte)
+	defer swapPool.Put(swap)
 	for {
 		select {
 		case <-exec.ctx.Done():
@@ -462,7 +474,7 @@ func (exec *execDownload) write(body io.ReadCloser, expectSize uint64, start uin
 		default:
 		}
 
-		picked, err := body.Read(swap)
+		picked, err := body.Read(*swap)
 		// we should always process the n > 0 bytes returned before
 		// considering the error err. Doing so correctly handles I/O errors
 		// that happen after reading some bytes and also both of the
@@ -472,10 +484,10 @@ func (exec *execDownload) write(body io.ReadCloser, expectSize uint64, start uin
 			switch exec.to {
 			case DownloadToBytes:
 				for i := 0; i < picked; i++ {
-					exec.bytes[totalSize+uint64(i)] = swap[i]
+					exec.bytes[totalSize+uint64(i)] = (*swap)[i]
 				}
 			case DownloadToFile:
-				cnt, err = exec.file.WriteAt(swap[0:picked], int64(start+totalSize))
+				cnt, err = exec.file.WriteAt((*swap)[0:picked], int64(start+totalSize))
 				if err != nil {
 					return fmt.Errorf("write data to file failed, err: %s", err.Error())
 				}
