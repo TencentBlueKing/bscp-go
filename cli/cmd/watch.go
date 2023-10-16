@@ -50,9 +50,12 @@ var (
 // Watch run as a daemon to watch the config changes.
 func Watch(cmd *cobra.Command, args []string) {
 	if err := initArgs(); err != nil {
-		logs.Errorf(err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
+
+	logs.InitLogger(conf.Log.Logs())
+
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),
 		option.BizID(conf.Biz),

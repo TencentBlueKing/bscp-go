@@ -44,9 +44,11 @@ var (
 // Pull executes the pull command.
 func Pull(cmd *cobra.Command, args []string) {
 	if err := initArgs(); err != nil {
-		logs.Errorf(err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
+
+	logs.InitLogger(conf.Log.Logs())
 
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),

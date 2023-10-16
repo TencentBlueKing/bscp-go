@@ -19,6 +19,8 @@ import (
 	// for unmarshal yaml config file
 	_ "gopkg.in/yaml.v2"
 
+	"bscp.io/pkg/logs"
+
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 )
 
@@ -38,6 +40,8 @@ type ClientConfig struct {
 	UID string `json:"uid" mapstructure:"uid"`
 	// TempDir config files temporary directory
 	TempDir string `json:"temp_dir" mapstructure:"temp_dir"`
+	// LogOption log option
+	Log LogOption
 }
 
 // Validate validate the watch config
@@ -86,4 +90,56 @@ func (c *AppConfig) Validate() error {
 		return fmt.Errorf("app is empty")
 	}
 	return nil
+}
+
+// LogOption defines log's related configuration
+type LogOption struct {
+	LogDir           string `yaml:"logDir"`
+	MaxPerFileSizeMB uint32 `yaml:"maxPerFileSizeMB"`
+	MaxPerLineSizeKB uint32 `yaml:"maxPerLineSizeKB"`
+	MaxFileNum       uint   `yaml:"maxFileNum"`
+	LogAppend        bool   `yaml:"logAppend"`
+	// log the log to std err only, it can not be used with AlsoToStdErr
+	// at the same time.
+	ToStdErr bool `yaml:"toStdErr"`
+	// log the log to file and also to std err. it can not be used with ToStdErr
+	// at the same time.
+	AlsoToStdErr bool `yaml:"alsoToStdErr"`
+	Verbosity    uint `yaml:"verbosity"`
+}
+
+// TrySetDefault set the log's default value if user not configured.
+func (log *LogOption) TrySetDefault() {
+	if len(log.LogDir) == 0 {
+		log.LogDir = "./"
+	}
+
+	if log.MaxPerFileSizeMB == 0 {
+		log.MaxPerFileSizeMB = 500
+	}
+
+	if log.MaxPerLineSizeKB == 0 {
+		log.MaxPerLineSizeKB = 5
+	}
+
+	if log.MaxFileNum == 0 {
+		log.MaxFileNum = 5
+	}
+
+}
+
+// Logs convert it to logs.LogConfig.
+func (log LogOption) Logs() logs.LogConfig {
+	l := logs.LogConfig{
+		LogDir:             log.LogDir,
+		LogMaxSize:         log.MaxPerFileSizeMB,
+		LogLineMaxSize:     log.MaxPerLineSizeKB,
+		LogMaxNum:          log.MaxFileNum,
+		RestartNoScrolling: log.LogAppend,
+		ToStdErr:           log.ToStdErr,
+		AlsoToStdErr:       log.AlsoToStdErr,
+		Verbosity:          log.Verbosity,
+	}
+
+	return l
 }
