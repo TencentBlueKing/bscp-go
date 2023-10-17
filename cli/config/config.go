@@ -38,8 +38,8 @@ type ClientConfig struct {
 	UID string `json:"uid" mapstructure:"uid"`
 	// TempDir config files temporary directory
 	TempDir string `json:"temp_dir" mapstructure:"temp_dir"`
-	// HttpPort sidecar http server port
-	HttpPort int `json:"http_port" mapstructure:"http_port"`
+	// Port sidecar http server port
+	Port int `json:"port" mapstructure:"port"`
 }
 
 // Validate validate the watch config
@@ -69,8 +69,8 @@ func (c *ClientConfig) Validate() error {
 	if c.TempDir == "" {
 		c.TempDir = constant.DefaultTempDir
 	}
-	if c.HttpPort == 0 {
-		c.HttpPort = constant.DefaultHttpPort
+	if c.Port == 0 {
+		c.Port = constant.DefaultHttpPort
 	}
 	return nil
 }

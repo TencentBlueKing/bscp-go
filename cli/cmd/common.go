@@ -38,7 +38,7 @@ var (
 	conf      = new(config.ClientConfig)
 	// flag values
 	configPath string
-	httpPort   int
+	port       int
 )
 
 var (
@@ -61,7 +61,7 @@ var (
 	}
 
 	watchEnvs = map[string]string{
-		"http_port": "http-port",
+		"port": "port",
 	}
 
 	envLabelsPrefix = "labels_"
@@ -133,7 +133,7 @@ func initFromCmdArgs() error {
 	}
 	validArgs = append(validArgs, fmt.Sprintf("--temp-dir=%s", tempDir))
 
-	validArgs = append(validArgs, fmt.Sprintf("--http-port=%d", httpPort))
+	validArgs = append(validArgs, fmt.Sprintf("--port=%d", port))
 
 	fmt.Println("args:", strings.Join(validArgs, " "))
 
@@ -144,7 +144,7 @@ func initFromCmdArgs() error {
 	conf.Labels = labels
 	conf.UID = uid
 	conf.TempDir = tempDir
-	conf.HttpPort = httpPort
+	conf.Port = port
 
 	apps := []*config.AppConfig{}
 	for _, app := range strings.Split(appName, ",") {

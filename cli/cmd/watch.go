@@ -93,7 +93,7 @@ func Watch(cmd *cobra.Command, args []string) {
 	// register metrics
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
-	if e := http.ListenAndServe(fmt.Sprintf(":%d", conf.HttpPort), nil); e != nil {
+	if e := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil); e != nil {
 		logs.Errorf("start http server failed, err: %s", e.Error())
 		os.Exit(1)
 	}
@@ -225,7 +225,7 @@ func init() {
 	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
 		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
 	WatchCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path")
-	WatchCmd.Flags().IntVarP(&httpPort, "http-port", "p", constant.DefaultHttpPort, "sidecar http port")
+	WatchCmd.Flags().IntVarP(&port, "port", "p", constant.DefaultHttpPort, "sidecar http port")
 
 	envs := map[string]string{}
 	for env, f := range commonEnvs {
