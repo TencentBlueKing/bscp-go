@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
+	"time"
 
 	"bscp.io/pkg/criteria/constant"
 	"bscp.io/pkg/kit"
@@ -30,6 +32,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
+	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 	"github.com/TencentBlueKing/bscp-go/upstream"
@@ -226,10 +229,13 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 				})
 			}
 			// TODO: need to retry if callback with error ?
+			start := time.Now()
 			if err := subscriber.Callback(pl.ReleaseMeta.ReleaseID, configItemFiles,
 				pl.ReleaseMeta.PreHook, pl.ReleaseMeta.PostHook); err != nil {
 				logs.Errorf("execute watch callback for app %s failed, err: %s", subscriber.App, err.Error())
+				subscriber.reportReleaseChangeCallbackMetrics("failed", start)
 			}
+			subscriber.reportReleaseChangeCallbackMetrics("success", start)
 		}
 	}
 }
@@ -274,6 +280,7 @@ type Subscriber struct {
 }
 
 // CheckConfigItemsChanged check if the subscriber watched config items are changed
+// Deprecated: commit id can not be used to check config items changed anymore
 // ? Should it used in file mode ?
 func (s *Subscriber) CheckConfigItemsChanged(cis []*sfs.ConfigItemMetaV1) bool {
 	if len(cis) == 0 {
@@ -293,6 +300,7 @@ func (s *Subscriber) CheckConfigItemsChanged(cis []*sfs.ConfigItemMetaV1) bool {
 }
 
 // ResetConfigItems reset the current config items of the subscriber
+// Deprecated: commit id can not be used to check config items changed anymore
 func (s *Subscriber) ResetConfigItems(cis []*sfs.ConfigItemMetaV1) {
 	// TODO: Filter by watch options(pattern/regex)
 	m := make(map[string]uint32)
@@ -300,4 +308,11 @@ func (s *Subscriber) ResetConfigItems(cis []*sfs.ConfigItemMetaV1) {
 		m[ci.ConfigItemSpec.Name] = ci.CommitID
 	}
 	s.currentConfigItems = m
+}
+
+func (s *Subscriber) reportReleaseChangeCallbackMetrics(status string, start time.Time) {
+	releaseID := strconv.Itoa(int(s.CurrentReleaseID))
+	metrics.ReleaseChangeCallbackCounter.WithLabelValues(s.App, status, releaseID).Inc()
+	seconds := time.Since(start).Seconds()
+	metrics.ReleaseChangeCallbackHandingSecond.WithLabelValues(s.App, status, releaseID).Observe(seconds)
 }
