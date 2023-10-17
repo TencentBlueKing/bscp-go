@@ -121,7 +121,7 @@ func init() {
 
 	PullCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
 		"feed server address, eg: 'bscp.io:8080,bscp.io:8081'")
-	PullCmd.Flags().Uint32VarP(&bizID, "biz", "b", 0, "biz id")
+	PullCmd.Flags().IntVarP(&bizID, "biz", "b", 0, "biz id")
 	PullCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	PullCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
 	PullCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")

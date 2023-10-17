@@ -93,8 +93,8 @@ func Watch(cmd *cobra.Command, args []string) {
 	// register metrics
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
-	if e := http.ListenAndServe(fmt.Sprintf(":%d", metricPort), nil); e != nil {
-		logs.Errorf("start metric server failed, err: %s", e.Error())
+	if e := http.ListenAndServe(fmt.Sprintf(":%d", conf.HttpPort), nil); e != nil {
+		logs.Errorf("start http server failed, err: %s", e.Error())
 		os.Exit(1)
 	}
 }
@@ -217,7 +217,7 @@ func init() {
 
 	WatchCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
 		"feed server address, eg: 'bscp.io:8080,bscp.io:8081'")
-	WatchCmd.Flags().Uint32VarP(&bizID, "biz", "b", 0, "biz id")
+	WatchCmd.Flags().IntVarP(&bizID, "biz", "b", 0, "biz id")
 	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	WatchCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
 	WatchCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
@@ -225,9 +225,17 @@ func init() {
 	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
 		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
 	WatchCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path")
-	WatchCmd.Flags().Uint32VarP(&metricPort, "metric-port", "m", 8080, "sidecar metric port")
+	WatchCmd.Flags().IntVarP(&httpPort, "http-port", "p", constant.DefaultHttpPort, "sidecar http port")
 
+	envs := map[string]string{}
 	for env, f := range commonEnvs {
+		envs[env] = f
+	}
+	for env, f := range watchEnvs {
+		envs[env] = f
+	}
+
+	for env, f := range envs {
 		flag := WatchCmd.Flags().Lookup(f)
 		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
 		if value := os.Getenv(env); value != "" {

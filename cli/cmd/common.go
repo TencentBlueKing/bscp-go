@@ -27,7 +27,7 @@ import (
 
 var (
 	feedAddrs string
-	bizID     uint32
+	bizID     int
 	appName   string
 	labelsStr string
 	labels    map[string]string
@@ -38,7 +38,7 @@ var (
 	conf      = new(config.ClientConfig)
 	// flag values
 	configPath string
-	metricPort uint32
+	httpPort   int
 )
 
 var (
@@ -58,6 +58,10 @@ var (
 		"feed_addrs": "feed-addrs",
 		"token":      "token",
 		"temp_dir":   "temp-dir",
+	}
+
+	watchEnvs = map[string]string{
+		"http_port": "http-port",
 	}
 
 	envLabelsPrefix = "labels_"
@@ -96,8 +100,8 @@ func initFromConfig() error {
 
 func initFromCmdArgs() error {
 	fmt.Println("use command line args or environment variables")
-	if bizID == 0 {
-		return fmt.Errorf("biz id must not be 0")
+	if bizID <= 0 {
+		return fmt.Errorf("biz id must be greater than 0")
 	}
 	validArgs = append(validArgs, fmt.Sprintf("--biz=%d", bizID))
 
@@ -129,15 +133,18 @@ func initFromCmdArgs() error {
 	}
 	validArgs = append(validArgs, fmt.Sprintf("--temp-dir=%s", tempDir))
 
+	validArgs = append(validArgs, fmt.Sprintf("--http-port=%d", httpPort))
+
 	fmt.Println("args:", strings.Join(validArgs, " "))
 
 	// construct config
-	conf.Biz = bizID
+	conf.Biz = uint32(bizID)
 	conf.FeedAddrs = strings.Split(feedAddrs, ",")
 	conf.Token = token
 	conf.Labels = labels
 	conf.UID = uid
 	conf.TempDir = tempDir
+	conf.HttpPort = httpPort
 
 	apps := []*config.AppConfig{}
 	for _, app := range strings.Split(appName, ",") {
