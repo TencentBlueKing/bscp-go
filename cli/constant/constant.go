@@ -17,4 +17,8 @@ const (
 	// DefaultTempDir is the bscp cli default temp dir.
 	// !important: promise of compatibility
 	DefaultTempDir = "/data/bscp"
+
+	// DefaultHttpPort is the bscp sidecar default http port.
+	// !important: promise of compatibility
+	DefaultHttpPort = 9616
 )

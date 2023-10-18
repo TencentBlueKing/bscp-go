@@ -40,6 +40,8 @@ type ClientConfig struct {
 	UID string `json:"uid" mapstructure:"uid"`
 	// TempDir config files temporary directory
 	TempDir string `json:"temp_dir" mapstructure:"temp_dir"`
+	// Port sidecar http server port
+	Port int `json:"port" mapstructure:"port"`
 	// LogOption log option
 	Log LogOption
 }
@@ -70,6 +72,9 @@ func (c *ClientConfig) Validate() error {
 	}
 	if c.TempDir == "" {
 		c.TempDir = constant.DefaultTempDir
+	}
+	if c.Port == 0 {
+		c.Port = constant.DefaultHttpPort
 	}
 	return nil
 }

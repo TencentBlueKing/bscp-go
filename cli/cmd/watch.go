@@ -15,6 +15,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -25,13 +26,14 @@ import (
 
 	"bscp.io/pkg/dal/table"
 	"bscp.io/pkg/logs"
-	"github.com/spf13/cobra"
-
 	pbhook "bscp.io/pkg/protocol/core/hook"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/types"
@@ -90,7 +92,14 @@ func Watch(cmd *cobra.Command, args []string) {
 		logs.Errorf(e.Error())
 		os.Exit(1)
 	}
-	time.Sleep(time.Hour * 24 * 365)
+
+	// register metrics
+	metrics.RegisterMetrics()
+	http.Handle("/metrics", promhttp.Handler())
+	if e := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil); e != nil {
+		logs.Errorf("start http server failed, err: %s", e.Error())
+		os.Exit(1)
+	}
 }
 
 // WatchHandler watch handler
@@ -105,7 +114,7 @@ type WatchHandler struct {
 	UID string
 	// TempDir bscp temporary directory
 	TempDir string
-	// AppTempDir app temporary directory\
+	// AppTempDir app temporary directory
 	AppTempDir string
 	// Lock lock for concurrent callback
 	Lock sync.Mutex
@@ -211,7 +220,7 @@ func init() {
 
 	WatchCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
 		"feed server address, eg: 'bscp.io:8080,bscp.io:8081'")
-	WatchCmd.Flags().Uint32VarP(&bizID, "biz", "b", 0, "biz id")
+	WatchCmd.Flags().IntVarP(&bizID, "biz", "b", 0, "biz id")
 	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	WatchCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
 	WatchCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
@@ -219,8 +228,17 @@ func init() {
 	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
 		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
 	WatchCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path")
+	WatchCmd.Flags().IntVarP(&port, "port", "p", constant.DefaultHttpPort, "sidecar http port")
 
+	envs := map[string]string{}
 	for env, f := range commonEnvs {
+		envs[env] = f
+	}
+	for env, f := range watchEnvs {
+		envs[env] = f
+	}
+
+	for env, f := range envs {
 		flag := WatchCmd.Flags().Lookup(f)
 		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
 		if value := os.Getenv(env); value != "" {
