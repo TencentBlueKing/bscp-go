@@ -1,0 +1,84 @@
+name: bkbscp
+version: 1.0.1.11
+description: bscp 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，配置热更新，执行前后置脚本的官方命令行工具
+scenario: bscp 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，配置热更新，执行前后置脚本的官方命令行工具
+category: official
+config_file: bkbscp.conf
+config_format: yaml
+auto_launch: true
+launch_node: proxy
+is_binary: true
+use_db: false
+config_templates:
+  - plugin_version: 1.0.1.11
+    name: bkbscp.conf
+    version: 1.0.1.11
+    file_path: etc
+    format: yaml
+    is_main_config: 1
+    source_path: etc/bkbscp.conf.tpl
+    variables:
+      title: variables
+      type: object
+      required: true
+      properties:
+        业务ID:
+          title: 业务ID
+          type: string
+          required: true
+        服务:
+          title: 服务
+          type: array
+          items:
+            title: named_label
+            type: object
+            properties:
+              服务名称:
+                title: 服务名称
+                type: string
+                required: true
+              标签:
+                title: 标签
+                type: array
+                required: false
+                items:
+                  title: label
+                  type: object
+                  properties:
+                    key:
+                      title: key
+                      type: string
+                      required: false
+                    value:
+                      title: value
+                      type: string
+                      required: false
+        服务密钥:
+          title: 服务密钥
+          type: string
+          required: true
+        全局标签:
+          title: 全局标签
+          type: array
+          required: false
+          items:
+            title: label
+            type: object
+            required: false
+            properties:
+              key:
+                title: key
+                type: string
+              value:
+                title: value
+                type: string
+        临时目录:
+          title: 临时目录
+          type: string
+          required: false
+control:
+  start: "./start.sh bkbscp"
+  stop: "./stop.sh bkbscp"
+  restart: "./restart.sh bkbscp"
+  reload: "./restart.sh bkbscp"
+  version: "./bscp version"
