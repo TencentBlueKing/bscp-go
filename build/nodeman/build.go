@@ -33,7 +33,17 @@ const (
 
 func main() {
 
-	if len(os.Args) == 1 {
+	args := os.Args
+	var isVersion bool
+
+	for i := 1; i < len(os.Args); i++ {
+		if args[i] == "version" {
+			isVersion = true
+			break
+		}
+	}
+
+	if !isVersion {
 		originalFile, err := os.Open(fmt.Sprintf("%s%s.conf", configPath, pluginName))
 		if err != nil {
 			fmt.Printf("config file not exists")

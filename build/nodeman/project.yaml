@@ -81,4 +81,4 @@ control:
   stop: "./stop.sh bkbscp"
   restart: "./restart.sh bkbscp"
   reload: "./restart.sh bkbscp"
-  version: "./bscp version"
+  version: "./bkbscp version"
