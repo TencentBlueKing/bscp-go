@@ -5,7 +5,7 @@ scenario: bscp 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV
 category: official
 config_file: bkbscp.conf
 config_format: yaml
-auto_launch: true
+auto_launch: false
 launch_node: proxy
 is_binary: true
 use_db: false
