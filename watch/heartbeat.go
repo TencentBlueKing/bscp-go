@@ -35,14 +35,14 @@ const (
 	maxHeartbeatRetryCount = 3
 )
 
-func (w *Watcher) loopHeartbeat(vas *kit.Vas) error {
+func (w *Watcher) loopHeartbeat() error {
 
 	apps := make([]sfs.SideAppMeta, 0, len(w.subscribers))
 	for _, subscriber := range w.subscribers {
 		apps = append(apps, sfs.SideAppMeta{
 			App:              subscriber.App,
-			Labels:           subscriber.Opts.Labels,
-			Uid:              subscriber.Opts.UID,
+			Labels:           subscriber.Labels,
+			Uid:              subscriber.UID,
 			CurrentReleaseID: subscriber.CurrentReleaseID,
 		})
 	}
@@ -58,28 +58,30 @@ func (w *Watcher) loopHeartbeat(vas *kit.Vas) error {
 
 	logs.Infof("stream start loop heartbeat, heartbeat interval: %v", defaultHeartbeatInterval)
 
+	w.vas.Wg.Add(1)
 	go func() {
 		for {
 
 			select {
-			case <-vas.Ctx.Done():
-				logs.V(1).Infof("stream heartbeat stoped, rid: %s", vas.Rid)
+			case <-w.vas.Ctx.Done():
+				logs.V(1).Infof("stream heartbeat stoped because of %s", w.vas.Ctx.Err().Error())
+				w.vas.Wg.Done()
 				return
 			default:
 			}
 
 			time.Sleep(defaultHeartbeatInterval)
 
-			logs.V(1).Infof("stream will heartbeat, rid: %s", vas.Rid)
+			logs.V(1).Infof("stream will heartbeat, rid: %s", w.vas.Rid)
 
-			if err := w.heartbeatOnce(vas, heartbeatPayload.MessagingType(), payload); err != nil {
-				logs.Warnf("stream heartbeat failed, notify reconnect upstream, err: %v, rid: %s", err, vas.Rid)
+			if err := w.heartbeatOnce(w.vas, heartbeatPayload.MessagingType(), payload); err != nil {
+				logs.Warnf("stream heartbeat failed, notify reconnect upstream, err: %v, rid: %s", err, w.vas.Rid)
 
 				w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
 				continue
 			}
 
-			logs.V(1).Infof("stream heartbeat successfully, rid: %s", vas.Rid)
+			logs.V(1).Infof("stream heartbeat successfully, rid: %s", w.vas.Rid)
 		}
 	}()
 

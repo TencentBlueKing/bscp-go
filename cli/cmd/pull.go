@@ -48,6 +48,16 @@ func Pull(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	if conf.LabelsFile != "" {
+		_, err := watchLabelsFile(conf.LabelsFile)
+		if err != nil {
+			logs.Errorf("watch labels file failed, err: %s", err.Error())
+			os.Exit(1)
+		}
+		for k, v := range labelsFromFile {
+			conf.Labels[k] = v
+		}
+	}
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),
 		option.BizID(conf.Biz),
@@ -125,10 +135,10 @@ func init() {
 	PullCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	PullCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
 	PullCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
+	PullCmd.Flags().StringVarP(&labelsFilePath, "labels-file", "", "", "labels file path")
 	// TODO: set client UID
 	PullCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
 		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
-	PullCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path")
 
 	for env, f := range commonEnvs {
 		flag := PullCmd.Flags().Lookup(f)

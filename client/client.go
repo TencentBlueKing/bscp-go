@@ -133,6 +133,19 @@ func (c *Client) StartWatch() error {
 	return c.watcher.StartWatch()
 }
 
+// StopWatch stop watch
+func (c *Client) StopWatch() {
+	c.watcher.StopWatch()
+}
+
+// ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
+func (c *Client) ResetLabels(labels map[string]string) {
+	c.opts.Labels = labels
+	for _, subscriber := range c.watcher.Subscribers() {
+		subscriber.ResetLabels(labels)
+	}
+}
+
 // PullFiles pull files from remote
 func (c *Client) PullFiles(app string, opts ...option.AppOption) (
 	uint32, []*types.ConfigItemFile, *pbhook.HookSpec, *pbhook.HookSpec, error) {

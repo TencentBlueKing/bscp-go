@@ -55,11 +55,28 @@ func Watch(cmd *cobra.Command, args []string) {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
+	labels := map[string]string{}
+	for k, v := range conf.Labels {
+		labels[k] = v
+	}
+	var reloadChan chan ReloadMessage
+	var err error
+	if conf.LabelsFile != "" {
+		reloadChan, err = watchLabelsFile(conf.LabelsFile)
+		if err != nil {
+			logs.Errorf("watch labels file failed, err: %s", err.Error())
+			os.Exit(1)
+		}
+		for k, v := range labelsFromFile {
+			labels[k] = v
+		}
+		logs.Infof("watching labels file: %s", conf.LabelsFile)
+	}
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),
 		option.BizID(conf.Biz),
 		option.Token(conf.Token),
-		option.Labels(conf.Labels),
+		option.Labels(labels),
 		option.UID(conf.UID),
 		option.LogVerbosity(logVerbosity),
 	)
@@ -89,6 +106,33 @@ func Watch(cmd *cobra.Command, args []string) {
 		logs.Errorf(e.Error())
 		os.Exit(1)
 	}
+
+	go func() {
+		if reloadChan == nil {
+			return
+		}
+		for {
+			msg := <-reloadChan
+			if msg.Error != nil {
+				logs.Errorf("reload labels failed, err: %s", msg.Error.Error())
+				continue
+			}
+			labels := map[string]string{}
+			for k, v := range conf.Labels {
+				labels[k] = v
+			}
+			for k, v := range labelsFromFile {
+				labels[k] = v
+			}
+			bscp.StopWatch()
+			bscp.ResetLabels(labels)
+			if e := bscp.StartWatch(); e != nil {
+				logs.Errorf(e.Error())
+				os.Exit(1)
+			}
+			logs.Infof("reload labels success")
+		}
+	}()
 
 	// register metrics
 	metrics.RegisterMetrics()
@@ -221,10 +265,10 @@ func init() {
 	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	WatchCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
 	WatchCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
+	WatchCmd.Flags().StringVarP(&labelsFilePath, "labels-file", "", "", "labels file path")
 	// TODO: set client UID
 	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
 		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
-	WatchCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path")
 	WatchCmd.Flags().IntVarP(&port, "port", "p", constant.DefaultHttpPort, "sidecar http port")
 
 	envs := map[string]string{}

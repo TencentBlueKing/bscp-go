@@ -4,3 +4,4 @@ build_local.sh
 /bscp
 /bscp.exe
 cover.out
+/debug

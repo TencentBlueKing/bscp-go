@@ -38,6 +38,8 @@ type ClientConfig struct {
 	UID string `json:"uid" mapstructure:"uid"`
 	// TempDir config files temporary directory
 	TempDir string `json:"temp_dir" mapstructure:"temp_dir"`
+	// LabelsFile labels file path
+	LabelsFile string `json:"labels_file" mapstructure:"labels_file"`
 	// Port sidecar http server port
 	Port int `json:"port" mapstructure:"port"`
 }
@@ -92,3 +94,6 @@ func (c *AppConfig) Validate() error {
 	}
 	return nil
 }
+
+// LabelsFromFile labels from labels file
+type LabelsFromFile map[string]string
