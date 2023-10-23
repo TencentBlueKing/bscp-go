@@ -21,7 +21,7 @@ import (
 
 func main() {
 	// set to stdout
-	logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000, Verbosity: 5})
+	logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
 
 	cmd.Execute()
 }
