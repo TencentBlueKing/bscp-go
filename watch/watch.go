@@ -34,6 +34,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
+	"github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
 	"github.com/TencentBlueKing/bscp-go/upstream"
 )
@@ -268,21 +269,14 @@ func (w *Watcher) Subscribe(callback option.Callback, app string, opts ...option
 	for _, opt := range opts {
 		opt(options)
 	}
-	// merge labels, if key conflict, app value will overwrite client value
-	labels := make(map[string]string)
-	for k, v := range w.opts.Labels {
-		labels[k] = v
-	}
-	for k, v := range options.Labels {
-		labels[k] = v
-	}
 	if options.UID == "" {
 		options.UID = w.opts.Fingerprint
 	}
 	subscriber := &Subscriber{
-		App:              app,
-		Opts:             options,
-		Labels:           labels,
+		App:  app,
+		Opts: options,
+		// merge labels, if key conflict, app value will overwrite client value
+		Labels:           util.MergeLabels(w.opts.Labels, options.Labels),
 		UID:              options.UID,
 		Callback:         callback,
 		CurrentReleaseID: 0,
@@ -346,10 +340,7 @@ func (s *Subscriber) ResetConfigItems(cis []*sfs.ConfigItemMetaV1) {
 // ResetLabels reset the labels of the subscriber
 // s.Opts.Labels as origion labels would not be reset
 func (s *Subscriber) ResetLabels(labels map[string]string) {
-	s.Labels = labels
-	for k, v := range s.Opts.Labels {
-		s.Labels[k] = v
-	}
+	s.Labels = util.MergeLabels(labels, s.Opts.Labels)
 }
 
 func (s *Subscriber) reportReleaseChangeCallbackMetrics(status string, start time.Time) {

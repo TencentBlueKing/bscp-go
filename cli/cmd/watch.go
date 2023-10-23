@@ -14,6 +14,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -36,6 +37,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
+	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
@@ -55,21 +57,23 @@ func Watch(cmd *cobra.Command, args []string) {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
-	labels := map[string]string{}
-	for k, v := range conf.Labels {
-		labels[k] = v
-	}
+	labels := conf.Labels
+	var labelsFromFile map[string]string
 	var reloadChan chan ReloadMessage
 	var err error
 	if conf.LabelsFile != "" {
-		reloadChan, err = watchLabelsFile(conf.LabelsFile)
+		labelsFromFile, err = readLabelsFile(conf.LabelsFile)
+		if err != nil {
+			logs.Errorf("read labels file failed, err: %s", err.Error())
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		reloadChan, err = watchLabelsFile(ctx, conf.LabelsFile)
 		if err != nil {
 			logs.Errorf("watch labels file failed, err: %s", err.Error())
 			os.Exit(1)
 		}
-		for k, v := range labelsFromFile {
-			labels[k] = v
-		}
+		labels = pkgutil.MergeLabels(labels, labelsFromFile)
 		logs.Infof("watching labels file: %s", conf.LabelsFile)
 	}
 	bscp, err := client.New(
@@ -117,15 +121,8 @@ func Watch(cmd *cobra.Command, args []string) {
 				logs.Errorf("reload labels failed, err: %s", msg.Error.Error())
 				continue
 			}
-			labels := map[string]string{}
-			for k, v := range conf.Labels {
-				labels[k] = v
-			}
-			for k, v := range labelsFromFile {
-				labels[k] = v
-			}
 			bscp.StopWatch()
-			bscp.ResetLabels(labels)
+			bscp.ResetLabels(pkgutil.MergeLabels(conf.Labels, msg.Labels))
 			if e := bscp.StartWatch(); e != nil {
 				logs.Errorf(e.Error())
 				os.Exit(1)

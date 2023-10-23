@@ -29,6 +29,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
+	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
 )
 
 var (
@@ -49,14 +50,12 @@ func Pull(cmd *cobra.Command, args []string) {
 	}
 
 	if conf.LabelsFile != "" {
-		_, err := watchLabelsFile(conf.LabelsFile)
+		labels, err := readLabelsFile(conf.LabelsFile)
 		if err != nil {
-			logs.Errorf("watch labels file failed, err: %s", err.Error())
+			logs.Errorf("read labels file failed, err: %s", err.Error())
 			os.Exit(1)
 		}
-		for k, v := range labelsFromFile {
-			conf.Labels[k] = v
-		}
+		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
 	}
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),

@@ -14,6 +14,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
+	"github.com/TencentBlueKing/bscp-go/pkg/util"
 )
 
 var (
@@ -41,7 +43,6 @@ var (
 	tempDir        string
 	validArgs      []string
 	conf           = new(config.ClientConfig)
-	labelsFromFile = make(map[string]string)
 	// flag values
 	configPath string
 	port       int
@@ -76,8 +77,9 @@ var (
 
 // ReloadMessage reload message with event and error
 type ReloadMessage struct {
-	Event fsnotify.Event
-	Error error
+	Event  fsnotify.Event
+	Labels map[string]string
+	Error  error
 }
 
 // initArgs init the common args
@@ -189,29 +191,13 @@ func initLabelsFromEnv() {
 			labels[strings.TrimPrefix(k, envLabelsPrefix)] = v
 		}
 	}
-	for k, v := range labels {
-		conf.Labels[k] = v
-	}
+	conf.Labels = util.MergeLabels(conf.Labels, labels)
 }
 
-func watchLabelsFile(path string) (chan ReloadMessage, error) {
+func watchLabelsFile(ctx context.Context, path string) (chan ReloadMessage, error) {
 	watchChan := make(chan ReloadMessage)
 	v := viper.New()
 	v.SetConfigFile(path)
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			logs.Warnf("labels file %s not exist, skip watching", path)
-		} else {
-			return nil, fmt.Errorf("stat labels file %s failed, err: %s", path, err.Error())
-		}
-	} else {
-		if e := v.ReadInConfig(); e != nil {
-			return nil, fmt.Errorf("read labels file %s failed, err: %s", path, e.Error())
-		}
-		if e := v.Unmarshal(&labelsFromFile); e != nil {
-			return nil, fmt.Errorf("unmarshal labels file %s failed, err: %s", path, e.Error())
-		}
-	}
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("new watcher failed, err: %s", err.Error())
@@ -222,6 +208,12 @@ func watchLabelsFile(path string) (chan ReloadMessage, error) {
 	go func() {
 		for {
 			select {
+			case <-ctx.Done():
+				logs.Infof("watch labels file %s stoped because of %s", path, ctx.Err().Error())
+				if err := watcher.Close(); err != nil {
+					logs.Warnf("close watcher failed, err: %s", err.Error())
+				}
+				return
 			case event := <-watcher.Events:
 				msg := ReloadMessage{Event: event}
 				if event.Name != path {
@@ -237,12 +229,14 @@ func watchLabelsFile(path string) (chan ReloadMessage, error) {
 					watchChan <- msg
 					continue
 				}
-				if err := v.Unmarshal(&labelsFromFile); err != nil {
+				labels := make(map[string]string)
+				if err := v.Unmarshal(&labels); err != nil {
 					logs.Infof("unmarshal labels file failed, err: ", err.Error())
 					msg.Error = errors.New("unmarshal labels file failed")
 					watchChan <- msg
 					continue
 				}
+				msg.Labels = labels
 				watchChan <- msg
 			case err := <-watcher.Errors:
 				logs.Errorf("watcher error: %s", err.Error())
@@ -250,4 +244,25 @@ func watchLabelsFile(path string) (chan ReloadMessage, error) {
 		}
 	}()
 	return watchChan, nil
+}
+
+func readLabelsFile(path string) (map[string]string, error) {
+	v := viper.New()
+	v.SetConfigFile(path)
+	labels := make(map[string]string)
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			logs.Warnf("labels file %s not exist, skip read", path)
+			return labels, nil
+		} else {
+			return nil, fmt.Errorf("stat labels file %s failed, err: %s", path, err.Error())
+		}
+	}
+	if err := v.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("read labels file %s failed, err: %s", path, err.Error())
+	}
+	if err := v.Unmarshal(&labels); err != nil {
+		return nil, fmt.Errorf("unmarshal labels file %s failed, err: %s", path, err.Error())
+	}
+	return labels, nil
 }
