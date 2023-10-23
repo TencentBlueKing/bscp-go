@@ -94,6 +94,3 @@ func (c *AppConfig) Validate() error {
 	}
 	return nil
 }
-
-// LabelsFromFile labels from labels file
-type LabelsFromFile map[string]string
