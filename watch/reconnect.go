@@ -16,7 +16,6 @@ package watch
 import (
 	"strconv"
 
-	"bscp.io/pkg/kit"
 	"bscp.io/pkg/logs"
 	"bscp.io/pkg/tools"
 
@@ -32,23 +31,24 @@ func (w *Watcher) NotifyReconnect(signal types.ReconnectSignal) {
 	}
 }
 
-func (w *Watcher) waitForReconnectSignal(vas *kit.Vas) {
+func (w *Watcher) waitForReconnectSignal() {
+	w.vas.Wg.Add(1)
 	for {
 		select {
-		case <-vas.Ctx.Done():
-			logs.V(1).Infof("wait for reconnect signal stoped, rid: %s", vas.Rid)
+		case <-w.vas.Ctx.Done():
+			logs.V(1).Infof("wait for reconnect signal stoped, rid: %s", w.vas.Rid)
+			w.vas.Wg.Done()
 			return
-		default:
-		}
-		signal := <-w.reconnectChan
-		logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), vas.Rid)
+		case signal := <-w.reconnectChan:
+			logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), w.vas.Rid)
 
-		if w.reconnecting.Load() {
-			logs.Warnf("received reconnect signal, but stream is already reconnecting, ignore this signal.")
-			return
-		}
+			if w.reconnecting.Load() {
+				logs.Warnf("received reconnect signal, but stream is already reconnecting, ignore this signal.")
+				return
+			}
 
-		w.tryReconnect(vas.Rid)
+			w.tryReconnect(w.vas.Rid)
+		}
 	}
 }
 
@@ -57,8 +57,8 @@ func (w *Watcher) tryReconnect(rid string) {
 
 	logs.Infof("start to reconnect the upstream server, rid: %s", rid)
 
-	// close the previous watch stream before close conn.
-	w.CloseWatch()
+	// stop the previous watch stream before close conn.
+	w.StopWatch()
 
 	retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 	for {

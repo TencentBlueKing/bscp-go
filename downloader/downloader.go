@@ -32,6 +32,7 @@ import (
 	"bscp.io/pkg/logs"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
+	"bscp.io/pkg/tools"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/TencentBlueKing/bscp-go/upstream"
@@ -225,8 +226,8 @@ func (exec *execDownload) do() error {
 	exec.downloadUri = resp.Url
 	if exec.fileSize <= exec.dl.balanceDownloadByteSize {
 		// the file size is not big enough, download directly
-		if err = exec.downloadDirectly(requestAwaitResponseTimeoutSeconds); err != nil {
-			return fmt.Errorf("download directly failed, err: %s", err.Error())
+		if e := exec.downloadDirectlyWithRetry(); e != nil {
+			return fmt.Errorf("download directly failed, err: %s", e.Error())
 		}
 
 		return nil
@@ -251,7 +252,7 @@ func (exec *execDownload) do() error {
 
 	logs.Warnf("provider does not support download with range policy, download directly now.")
 
-	if err := exec.downloadDirectly(requestAwaitResponseTimeoutSeconds); err != nil {
+	if err := exec.downloadDirectlyWithRetry(); err != nil {
 		return fmt.Errorf("download directly failed, err: %s", err.Error())
 	}
 
@@ -311,6 +312,25 @@ func (exec *execDownload) isProviderSupportRangeDownload() (uint64, bool, error)
 
 }
 
+// downloadDirectlyWithRetry download file directly with retry
+func (exec *execDownload) downloadDirectlyWithRetry() error {
+	// do download with retry
+	retry := tools.NewRetryPolicy(1, [2]uint{500, 10000})
+	maxRetryCount := 5
+	for {
+		if retry.RetryCount() >= uint32(maxRetryCount) {
+			return fmt.Errorf("exec do download failed, retry count: %d", maxRetryCount)
+		}
+		if err := exec.downloadDirectly(requestAwaitResponseTimeoutSeconds); err != nil {
+			logs.Errorf("exec do download, err: %s, retry count: %d", err.Error(), retry.RetryCount())
+			retry.Sleep()
+			continue
+		}
+		break
+	}
+	return nil
+}
+
 // downloadDirectly download file without range.
 func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 	if err := exec.dl.sem.Acquire(exec.ctx, 1); err != nil {
@@ -354,10 +374,6 @@ func (exec *execDownload) downloadWithRange() error {
 	wg := sync.WaitGroup{}
 
 	for part := 0; part < totalParts; part++ {
-		if err := exec.dl.sem.Acquire(exec.ctx, 1); err != nil {
-			return fmt.Errorf("acquire semaphore failed, err: %s", err.Error())
-		}
-
 		start = uint64(part) * batchSize
 
 		if part == totalParts-1 {
@@ -371,13 +387,10 @@ func (exec *execDownload) downloadWithRange() error {
 		wg.Add(1)
 
 		go func(pos int, from uint64, to uint64) {
-			defer func() {
-				wg.Done()
-				exec.dl.sem.Release(1)
-			}()
+			defer wg.Done()
 
 			start := time.Now()
-			if err := exec.downloadOneRangedPart(from, to); err != nil {
+			if err := exec.downloadOneRangedPartWithRetry(from, to); err != nil {
 				hitError = err
 				logs.Errorf("download file[%s] part %d failed, start: %d, err: %s",
 					path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name),
@@ -404,10 +417,32 @@ func (exec *execDownload) downloadWithRange() error {
 	return nil
 }
 
+func (exec *execDownload) downloadOneRangedPartWithRetry(start uint64, end uint64) error {
+	retry := tools.NewRetryPolicy(1, [2]uint{500, 10000})
+	maxRetryCount := 5
+	for {
+		if retry.RetryCount() >= uint32(maxRetryCount) {
+			return fmt.Errorf("download file part failed, retry count: %d", maxRetryCount)
+		}
+		if err := exec.downloadOneRangedPart(start, end); err != nil {
+			logs.Errorf("download file part failed, err: %s, retry count: %d", err.Error(), retry.RetryCount())
+			retry.Sleep()
+			continue
+		}
+		break
+	}
+	return nil
+}
+
 func (exec *execDownload) downloadOneRangedPart(start uint64, end uint64) error {
 	if start > end {
 		return errors.New("invalid start or end to do range download")
 	}
+
+	if err := exec.dl.sem.Acquire(exec.ctx, 1); err != nil {
+		return fmt.Errorf("acquire semaphore failed, err: %s", err.Error())
+	}
+	defer exec.dl.sem.Release(1)
 
 	header := exec.header.Clone()
 	// set ranged part.
