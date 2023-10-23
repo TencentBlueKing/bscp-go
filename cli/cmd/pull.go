@@ -48,8 +48,6 @@ func Pull(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	logs.InitLogger(conf.Log.Logs())
-
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),
 		option.BizID(conf.Biz),
@@ -57,6 +55,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		option.Labels(conf.Labels),
 		option.UID(conf.UID),
 		option.LogVerbosity(logVerbosity),
+		option.SetLogOption(&option.LogOption{LogDir: "/data/log", MaxPerFileSizeMB: 1000}),
 	)
 	if err != nil {
 		logs.Errorf(err.Error())

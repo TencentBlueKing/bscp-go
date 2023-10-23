@@ -95,7 +95,6 @@ func initFromConfig() error {
 	if err := conf.Validate(); err != nil {
 		return fmt.Errorf("validate watch config failed, err: %s", err.Error())
 	}
-	conf.Log.TrySetDefault()
 	return nil
 }
 
@@ -152,7 +151,6 @@ func initFromCmdArgs() error {
 		apps = append(apps, &config.AppConfig{Name: strings.TrimSpace(app)})
 	}
 	conf.Apps = apps
-	conf.Log.TrySetDefault()
 	return nil
 }
 

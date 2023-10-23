@@ -57,6 +57,9 @@ func New(opts ...option.ClientOption) (*Client, error) {
 			return nil, e
 		}
 	}
+	clientOpt.LogOption.TrySetDefault()
+	logs.InitLogger(clientOpt.LogOption.Logs())
+
 	// prepare pairs
 	pairs := make(map[string]string)
 	// add user information
@@ -85,6 +88,7 @@ func New(opts ...option.ClientOption) (*Client, error) {
 		upstream:    u,
 		pairs:       pairs,
 	}
+	//clientOpt.LogOption
 	// handshake
 	vas, _ := c.buildVas()
 	msg := &pbfs.HandshakeMessage{
