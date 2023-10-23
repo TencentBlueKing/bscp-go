@@ -71,7 +71,7 @@ var (
 		"port": "port",
 	}
 
-	envLabelPrefix = "labels_"
+	envLabelsPrefix = "labels_"
 )
 
 // ReloadMessage reload message with event and error
@@ -181,12 +181,12 @@ func initLabelsFromEnv() {
 		kv := strings.Split(env, "=")
 		k, v := kv[0], kv[1]
 		// labels_file is a special env used to set labels file to watch
-		// TODO: set envLabelPrefix to 'label_' so that env key would not conflict with labels_file
+		// TODO: set envLabelsPrefix to 'label_' so that env key would not conflict with labels_file
 		if k == "labels_file" {
 			continue
 		}
-		if strings.HasPrefix(k, envLabelPrefix) && strings.TrimPrefix(k, envLabelPrefix) != "" {
-			labels[strings.TrimPrefix(k, envLabelPrefix)] = v
+		if strings.HasPrefix(k, envLabelsPrefix) && strings.TrimPrefix(k, envLabelsPrefix) != "" {
+			labels[strings.TrimPrefix(k, envLabelsPrefix)] = v
 		}
 	}
 	for k, v := range labels {
