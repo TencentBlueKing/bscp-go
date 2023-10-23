@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"bscp.io/pkg/logs"
@@ -70,7 +71,7 @@ var (
 		"port": "port",
 	}
 
-	envLabelPrefix = "label_"
+	envLabelPrefix = "labels_"
 )
 
 // ReloadMessage reload message with event and error
@@ -179,6 +180,11 @@ func initLabelsFromEnv() {
 	for _, env := range envs {
 		kv := strings.Split(env, "=")
 		k, v := kv[0], kv[1]
+		// labels_file is a special env used to set labels file to watch
+		// TODO: set envLabelPrefix to 'label_' so that env key would not conflict with labels_file
+		if k == "labels_file" {
+			continue
+		}
 		if strings.HasPrefix(k, envLabelPrefix) && strings.TrimPrefix(k, envLabelPrefix) != "" {
 			labels[strings.TrimPrefix(k, envLabelPrefix)] = v
 		}
@@ -192,33 +198,56 @@ func watchLabelsFile(path string) (chan ReloadMessage, error) {
 	watchChan := make(chan ReloadMessage)
 	v := viper.New()
 	v.SetConfigFile(path)
-	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("read labels file failed, err: %s", err.Error())
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			logs.Warnf("labels file %s not exist, skip watching", path)
+		} else {
+			return nil, fmt.Errorf("stat labels file %s failed, err: %s", path, err.Error())
+		}
+	} else {
+		if e := v.ReadInConfig(); e != nil {
+			return nil, fmt.Errorf("read labels file %s failed, err: %s", path, e.Error())
+		}
+		if e := v.Unmarshal(&labelsFromFile); e != nil {
+			return nil, fmt.Errorf("unmarshal labels file %s failed, err: %s", path, e.Error())
+		}
 	}
-	v.WatchConfig()
-	if err := v.Unmarshal(&labelsFromFile); err != nil {
-		return nil, fmt.Errorf("unmarshal labels file failed, err: %s", err.Error())
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, fmt.Errorf("new watcher failed, err: %s", err.Error())
 	}
-	v.OnConfigChange(func(e fsnotify.Event) {
-		msg := ReloadMessage{Event: e}
-		if e.Op != fsnotify.Write {
-			return
+	if err := watcher.Add(filepath.Dir(path)); err != nil {
+		return nil, fmt.Errorf("add watcher for %s failed, err: %s", path, err.Error())
+	}
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				msg := ReloadMessage{Event: event}
+				if event.Name != path {
+					continue
+				}
+				if event.Op != fsnotify.Write {
+					continue
+				}
+				logs.Infof("labels file %s changed, reload labels", path)
+				if err := v.ReadInConfig(); err != nil {
+					logs.Infof("read labels file failed, err: ", err.Error())
+					msg.Error = fmt.Errorf("read labels file failed, err: %s", err.Error())
+					watchChan <- msg
+					continue
+				}
+				if err := v.Unmarshal(&labelsFromFile); err != nil {
+					logs.Infof("unmarshal labels file failed, err: ", err.Error())
+					msg.Error = errors.New("unmarshal labels file failed")
+					watchChan <- msg
+					continue
+				}
+				watchChan <- msg
+			case err := <-watcher.Errors:
+				logs.Errorf("watcher error: %s", err.Error())
+			}
 		}
-		logs.Infof("labels file changed, reload labels")
-		if err := v.ReadInConfig(); err != nil {
-			logs.Infof("read labels file failed, err: ", err.Error())
-			msg.Error = fmt.Errorf("read labels file failed, err: %s", err.Error())
-			watchChan <- msg
-			return
-		}
-		if err := v.Unmarshal(&labelsFromFile); err != nil {
-			logs.Infof("unmarshal labels file failed, err: ", err.Error())
-			msg.Error = errors.New("unmarshal labels file failed")
-			watchChan <- msg
-			return
-		}
-		watchChan <- msg
-	})
-
+	}()
 	return watchChan, nil
 }
