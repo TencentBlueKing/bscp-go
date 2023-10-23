@@ -21,7 +21,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
@@ -71,4 +71,4 @@ require (
 	k8s.io/klog/v2 v2.100.1 // indirect
 )
 
-replace bscp.io => github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20230912072028-e63ab393fd05
+replace bscp.io => github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231023061744-043bdae0b61e

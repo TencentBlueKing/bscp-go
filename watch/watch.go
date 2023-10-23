@@ -34,6 +34,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
+	"github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
 	"github.com/TencentBlueKing/bscp-go/upstream"
 )
@@ -67,10 +68,8 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 // New return a Watcher
 func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 	w := &Watcher{
-		opts:          opts,
-		reconnectChan: make(chan types.ReconnectSignal, 5),
-		reconnecting:  atomic.NewBool(false),
-		upstream:      u,
+		opts:     opts,
+		upstream: u,
 	}
 	mh := sfs.SidecarMetaHeader{
 		BizID:       w.opts.BizID,
@@ -87,13 +86,15 @@ func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 // StartWatch start watch stream
 func (w *Watcher) StartWatch() error {
 	w.vas, w.cancel = w.buildVas()
+	w.reconnectChan = make(chan types.ReconnectSignal, 5)
+	w.reconnecting = atomic.NewBool(false)
 	var err error
 	apps := []sfs.SideAppMeta{}
 	for _, subscriber := range w.subscribers {
 		apps = append(apps, sfs.SideAppMeta{
 			App:              subscriber.App,
-			Uid:              subscriber.Opts.UID,
-			Labels:           subscriber.Opts.Labels,
+			Uid:              subscriber.UID,
+			Labels:           subscriber.Labels,
 			CurrentReleaseID: subscriber.CurrentReleaseID,
 			CurrentCursorID:  0,
 		})
@@ -112,20 +113,38 @@ func (w *Watcher) StartWatch() error {
 		w.cancel()
 		return fmt.Errorf("watch upstream server with payload failed, err: %s", err.Error())
 	}
-	go w.waitForReconnectSignal(w.vas)
-	go w.loopReceiveWatchedEvent(w.vas, upstreamClient)
-	if err = w.loopHeartbeat(w.vas); err != nil {
+	go w.waitForReconnectSignal()
+	go w.loopReceiveWatchedEvent(upstreamClient)
+	if err = w.loopHeartbeat(); err != nil {
 		w.cancel()
 		return fmt.Errorf("start loop hearbeat failed, err: %s", err.Error())
 	}
 	return nil
 }
 
-func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_WatchClient) {
+func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
+	w.vas.Wg.Add(1)
+	type RecvResult struct {
+		event *pbfs.FeedWatchMessage
+		err   error
+	}
+	resultChan := make(chan RecvResult)
+	go func() {
+		for {
+			select {
+			case <-w.vas.Ctx.Done():
+				logs.Infof("stop receive upstream event because of %s", w.vas.Ctx.Err().Error())
+				return
+			default:
+			}
+			event, err := wStream.Recv()
+			resultChan <- RecvResult{event, err}
+		}
+	}()
 	for {
 		select {
-		case <-vas.Ctx.Done():
-			logs.Warnf("watch will closed because of %s", vas.Ctx.Err().Error())
+		case <-w.vas.Ctx.Done():
+			logs.Warnf("watch will closed because of %s", w.vas.Ctx.Err().Error())
 
 			if err := wStream.CloseSend(); err != nil {
 				logs.Errorf("close watch failed, err: %s", err.Error())
@@ -133,69 +152,73 @@ func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_Wa
 			}
 
 			logs.Infof("watch is closed successfully")
+			w.vas.Wg.Done()
 			return
 
-		default:
-		}
-		event, err := wStream.Recv()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				logs.Errorf("watch stream has been closed by remote upstream stream server, need to re-connect again")
-				w.NotifyReconnect(types.ReconnectSignal{Reason: "connection is closed " +
-					"by remote upstream server"})
+		case result := <-resultChan:
+			event, err := result.event, result.err
+
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					logs.Errorf("watch stream has been closed by remote upstream stream server, need to re-connect again")
+					w.NotifyReconnect(types.ReconnectSignal{Reason: "connection is closed " +
+						"by remote upstream server"})
+					return
+				}
+
+				logs.Errorf("watch stream is corrupted because of %s, rid: %s", err.Error(), w.vas.Rid)
+				w.NotifyReconnect(types.ReconnectSignal{Reason: "watch stream corrupted"})
 				return
 			}
 
-			logs.Errorf("watch stream is corrupted because of %s, rid: %s", err.Error(), vas.Rid)
-			w.NotifyReconnect(types.ReconnectSignal{Reason: "watch stream corrupted"})
-			return
-		}
+			logs.Infof("received upstream event, apiVersion: %s, payload: %s, rid: %s", event.ApiVersion.Format(),
+				event.Payload, event.Rid)
 
-		logs.Infof("received upstream event, apiVersion: %s, payload: %s, rid: %s", event.ApiVersion.Format(),
-			event.Payload, event.Rid)
-
-		if !sfs.IsAPIVersionMatch(event.ApiVersion) {
-			// 此处是不是不应该做版本兼容的校验？
-			// TODO: set sidecar unhealthy, offline and exit.
-			logs.Errorf("watch stream received incompatible event version: %s, rid: %s", event.ApiVersion.Format(),
-				event.Rid)
-			break
-		}
-
-		switch sfs.FeedMessageType(event.Type) {
-		case sfs.Bounce:
-			logs.Infof("received upstream bounce request, need to reconnect upstream server, rid: %s", event.Rid)
-			w.NotifyReconnect(types.ReconnectSignal{Reason: "received bounce request"})
-			return
-
-		case sfs.PublishRelease:
-			logs.Infof("received upstream publish release event, rid: %s", event.Rid)
-			change := &sfs.ReleaseChangeEvent{
-				Rid:        event.Rid,
-				APIVersion: event.ApiVersion,
-				Payload:    event.Payload,
+			if !sfs.IsAPIVersionMatch(event.ApiVersion) {
+				// 此处是不是不应该做版本兼容的校验？
+				// TODO: set sidecar unhealthy, offline and exit.
+				logs.Errorf("watch stream received incompatible event version: %s, rid: %s", event.ApiVersion.Format(),
+					event.Rid)
+				break
 			}
 
-			if c := cache.GetCache(); c != nil {
-				go c.OnReleaseChange(change)
-			}
-			go w.OnReleaseChange(change)
-			continue
+			switch sfs.FeedMessageType(event.Type) {
+			case sfs.Bounce:
+				logs.Infof("received upstream bounce request, need to reconnect upstream server, rid: %s", event.Rid)
+				w.NotifyReconnect(types.ReconnectSignal{Reason: "received bounce request"})
+				return
 
-		default:
-			logs.Errorf("watch stream received unsupported event type: %s, skip, rid: %s", event.Type, event.Rid)
-			continue
+			case sfs.PublishRelease:
+				logs.Infof("received upstream publish release event, rid: %s", event.Rid)
+				change := &sfs.ReleaseChangeEvent{
+					Rid:        event.Rid,
+					APIVersion: event.ApiVersion,
+					Payload:    event.Payload,
+				}
+
+				if c := cache.GetCache(); c != nil {
+					go c.OnReleaseChange(change)
+				}
+				go w.OnReleaseChange(change)
+				continue
+
+			default:
+				logs.Errorf("watch stream received unsupported event type: %s, skip, rid: %s", event.Type, event.Rid)
+				continue
+			}
 		}
 	}
 }
 
-// CloseWatch close watch stream
-func (w *Watcher) CloseWatch() {
+// StopWatch close watch stream
+func (w *Watcher) StopWatch() {
 	if w.cancel == nil {
 		return
 	}
 
 	w.cancel()
+
+	w.vas.Wg.Wait()
 }
 
 // OnReleaseChange handle all instances release change event
@@ -209,8 +232,8 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 	// TODO: encode subscriber options(App, UID, Labels) to a unique string key
 	for _, subscriber := range w.subscribers {
 		if subscriber.App == pl.Instance.App &&
-			subscriber.Opts.UID == pl.Instance.Uid &&
-			reflect.DeepEqual(subscriber.Opts.Labels, pl.Instance.Labels) &&
+			subscriber.UID == pl.Instance.Uid &&
+			reflect.DeepEqual(subscriber.Labels, pl.Instance.Labels) &&
 			subscriber.CurrentReleaseID != pl.ReleaseMeta.ReleaseID {
 
 			subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
@@ -246,21 +269,15 @@ func (w *Watcher) Subscribe(callback option.Callback, app string, opts ...option
 	for _, opt := range opts {
 		opt(options)
 	}
-	// merge labels, if key conflict, app value will overwrite client value
-	labels := make(map[string]string)
-	for k, v := range w.opts.Labels {
-		labels[k] = v
-	}
-	for k, v := range options.Labels {
-		labels[k] = v
-	}
-	options.Labels = labels
 	if options.UID == "" {
 		options.UID = w.opts.Fingerprint
 	}
 	subscriber := &Subscriber{
-		App:              app,
-		Opts:             options,
+		App:  app,
+		Opts: options,
+		// merge labels, if key conflict, app value will overwrite client value
+		Labels:           util.MergeLabels(w.opts.Labels, options.Labels),
+		UID:              options.UID,
 		Callback:         callback,
 		CurrentReleaseID: 0,
 	}
@@ -268,13 +285,23 @@ func (w *Watcher) Subscribe(callback option.Callback, app string, opts ...option
 	return subscriber
 }
 
+// Subscribers return all subscribers
+func (w *Watcher) Subscribers() []*Subscriber {
+	return w.subscribers
+}
+
 // Subscriber is the subscriber of the instance
 type Subscriber struct {
 	Opts *option.AppOptions
 	App  string
 	// Callback is the callback function when the watched items are changed
-	Callback         option.Callback
+	Callback option.Callback
+	// CurrentReleaseID is the current release id of the subscriber
 	CurrentReleaseID uint32
+	// Labels is the labels of the subscriber
+	Labels map[string]string
+	// UID is the unique id of the subscriber
+	UID string
 	// currentConfigItems store the current config items of the subscriber, map[configItemName]commitID
 	currentConfigItems map[string]uint32
 }
@@ -308,6 +335,12 @@ func (s *Subscriber) ResetConfigItems(cis []*sfs.ConfigItemMetaV1) {
 		m[ci.ConfigItemSpec.Name] = ci.CommitID
 	}
 	s.currentConfigItems = m
+}
+
+// ResetLabels reset the labels of the subscriber
+// s.Opts.Labels as origion labels would not be reset
+func (s *Subscriber) ResetLabels(labels map[string]string) {
+	s.Labels = util.MergeLabels(labels, s.Opts.Labels)
 }
 
 func (s *Subscriber) reportReleaseChangeCallbackMetrics(status string, start time.Time) {

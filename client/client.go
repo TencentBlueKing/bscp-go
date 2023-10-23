@@ -28,6 +28,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/downloader"
 	"github.com/TencentBlueKing/bscp-go/option"
+	"github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
 	"github.com/TencentBlueKing/bscp-go/upstream"
 	"github.com/TencentBlueKing/bscp-go/watch"
@@ -133,6 +134,19 @@ func (c *Client) StartWatch() error {
 	return c.watcher.StartWatch()
 }
 
+// StopWatch stop watch
+func (c *Client) StopWatch() {
+	c.watcher.StopWatch()
+}
+
+// ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
+func (c *Client) ResetLabels(labels map[string]string) {
+	c.opts.Labels = labels
+	for _, subscriber := range c.watcher.Subscribers() {
+		subscriber.ResetLabels(labels)
+	}
+}
+
 // PullFiles pull files from remote
 func (c *Client) PullFiles(app string, opts ...option.AppOption) (
 	uint32, []*types.ConfigItemFile, *pbhook.HookSpec, *pbhook.HookSpec, error) {
@@ -153,14 +167,7 @@ func (c *Client) PullFiles(app string, opts ...option.AppOption) (
 		Key:   option.Key,
 	}
 	// merge labels, if key conflict, app value will overwrite client value
-	labels := make(map[string]string)
-	for k, v := range c.opts.Labels {
-		labels[k] = v
-	}
-	for k, v := range option.Labels {
-		labels[k] = v
-	}
-	req.AppMeta.Labels = labels
+	req.AppMeta.Labels = util.MergeLabels(c.opts.Labels, option.Labels)
 	// reset uid
 	if option.UID != "" {
 		req.AppMeta.Uid = option.UID

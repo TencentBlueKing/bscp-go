@@ -48,6 +48,7 @@ func init() {
 	rootCmd.AddCommand(WatchCmd)
 	rootCmd.AddCommand(VersionCmd)
 	rootCmd.PersistentFlags().UintVarP(&logVerbosity, "verbosity", "v", 0, "log verbosity")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file path")
 
 	for env, f := range rootEnvs {
 		flag := rootCmd.PersistentFlags().Lookup(f)
