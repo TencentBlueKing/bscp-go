@@ -217,8 +217,8 @@ func (exec *execDownload) do() error {
 	exec.downloadUri = resp.Url
 	if exec.fileSize <= exec.dl.balanceDownloadByteSize {
 		// the file size is not big enough, download directly
-		if err := exec.downloadDirectlyWithRetry(); err != nil {
-			return fmt.Errorf("download directly failed, err: %s", err.Error())
+		if e := exec.downloadDirectlyWithRetry(); e != nil {
+			return fmt.Errorf("download directly failed, err: %s", e.Error())
 		}
 
 		return nil
