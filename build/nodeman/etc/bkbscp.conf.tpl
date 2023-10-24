@@ -8,8 +8,8 @@ apps: {% for app in 服务 %}
 # token
 token: {{ 服务密钥 }}
 temp_dir: {{ 临时目录 }}
-{% if 全局目录 %}labels:
-{% for label in 全局目录 %}{{ "-" if loop.first else " "  }} {{ label.key }}: "{{ label.value }}"
+{% if 全局标签 %}labels:
+{% for label in 全局标签 %}{{ "-" if loop.first else " "  }} {{ label.key }}: "{{ label.value }}"
 {% endfor %}
 {% endif %}
 
