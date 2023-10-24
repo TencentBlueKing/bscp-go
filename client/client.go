@@ -50,7 +50,7 @@ func New(opts ...option.ClientOption) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())
 	}
-	logs.Infof("instance fingerprint: %s", fp.Encode())
+	fmt.Printf("instance fingerprint: %s\n", fp.Encode())
 	clientOpt.Fingerprint = fp.Encode()
 	clientOpt.UID = clientOpt.Fingerprint
 	for _, opt := range opts {

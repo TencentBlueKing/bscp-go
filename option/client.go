@@ -147,7 +147,7 @@ func SetLogOption(l *LogOption) ClientOption {
 // TrySetDefault set the log's default value if user not configured.
 func (log *LogOption) TrySetDefault() {
 	if len(log.LogDir) == 0 {
-		log.LogDir = "./"
+		log.LogDir = "./log"
 	}
 
 	if log.MaxPerFileSizeMB == 0 {
