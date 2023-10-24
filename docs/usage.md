@@ -120,16 +120,35 @@ Json 示例：
 
 > 如果设置了 `labels` 命令参数或者 `labels` 环境变量，从 `labels_{key}` 环境变量获取的key，将覆盖前两者同名 key 的标签
 
+## 从标签文件中获取标签
+
+通过配置项指定标签文件路径，从标签文件中获取标签，支持 json 和 yaml 格式
+配置环境变量 labels_file=pathToFile.yaml
+
+Yaml 示例：labels.yaml
+```yaml
+key1: value1
+key2: value2
+```
+
+Json 示例：labels.json
+```json
+{
+    "key1": "value1",
+    "key2": "value2"
+}
+```
+
 ## initContainer/sidecar 执行流程
 
 1. initContainer 启动 / sidecar 监听到服务端版本发布事件
 2. 准备 BSCP 临时目录 `tempDir`，默认为  `/data/bscp`
 3. 准备服务临时目录：`appTempDir` : `{tempDir}/{biz_id}/{app_name}`
 4. 保存前后置脚本到 `{appTempDir}/hooks/` 目录，文件名分别为 `pre-hook.sh/pre-hook.py`,  `post-hook.sh/post-hook.py` 
-5. **执行前置脚本，如果状态码返回 0，则前置脚本执行成功；如果返回状态码为非 0，则前置脚本失败** 
+5. 执行前置脚本，如果状态码返回 0，则前置脚本执行成功；如果返回状态码为非 0，则前置脚本失败
 6. 下载配置文件到临时目录 `{appTempDir}/files` 目录
 7. 为配置文件设置权限信息
-8. **执行后置脚本**
+8. 执行后置脚本
 9. 写入版本变更成功事件到哨兵文件 `{appTempDir}/metadata.json`
 
 initContainer/sidecar 容器与业务容器协作关系如图：
