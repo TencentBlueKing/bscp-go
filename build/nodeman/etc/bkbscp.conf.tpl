@@ -15,13 +15,3 @@ temp_dir: {{ 临时目录 }}
 
 feed_addrs:
   - bscp-feed.site.bktencent.com:9511
-
-log:
-  alsoToStdErr: false
-  logAppend: false
-  logDir: ./log
-  maxFileNum: 5
-  maxPerFileSizeMB: 1024
-  maxPerLineSizeKB: 2
-  toStdErr: false
-  verbosity: 5
