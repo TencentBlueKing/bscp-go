@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"bscp.io/pkg/dal/table"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
@@ -30,7 +31,6 @@ import (
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
 	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
-	"github.com/sirupsen/logrus"
 )
 
 var (
