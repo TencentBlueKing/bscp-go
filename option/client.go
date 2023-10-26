@@ -13,8 +13,6 @@
 
 package option
 
-import "bscp.io/pkg/logs"
-
 // ClientOptions options for bscp sdk client
 type ClientOptions struct {
 	// FeedAddr BSCP feed_server address
@@ -39,8 +37,6 @@ type ClientOptions struct {
 	DialTimeoutMS int64
 	// Token sdk token
 	Token string
-	// LogOption log option
-	LogOption LogOption
 }
 
 // LogOption defines log's related configuration
@@ -133,49 +129,4 @@ func LogVerbosity(verbosity uint) ClientOption {
 		o.LogVerbosity = verbosity
 		return nil
 	}
-}
-
-// SetLogOption set log option
-func SetLogOption(l *LogOption) ClientOption {
-	return func(o *ClientOptions) error {
-		o.LogOption = *l
-		return nil
-	}
-
-}
-
-// TrySetDefault set the log's default value if user not configured.
-func (log *LogOption) TrySetDefault() {
-	if len(log.LogDir) == 0 {
-		log.LogDir = "./log"
-	}
-
-	if log.MaxPerFileSizeMB == 0 {
-		log.MaxPerFileSizeMB = 500
-	}
-
-	if log.MaxPerLineSizeKB == 0 {
-		log.MaxPerLineSizeKB = 5
-	}
-
-	if log.MaxFileNum == 0 {
-		log.MaxFileNum = 5
-	}
-
-}
-
-// Logs convert it to logs.LogConfig.
-func (log LogOption) Logs() logs.LogConfig {
-	l := logs.LogConfig{
-		LogDir:             log.LogDir,
-		LogMaxSize:         log.MaxPerFileSizeMB,
-		LogLineMaxSize:     log.MaxPerLineSizeKB,
-		LogMaxNum:          log.MaxFileNum,
-		RestartNoScrolling: log.LogAppend,
-		ToStdErr:           log.ToStdErr,
-		AlsoToStdErr:       log.AlsoToStdErr,
-		Verbosity:          log.Verbosity,
-	}
-
-	return l
 }

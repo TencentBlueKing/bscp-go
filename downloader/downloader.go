@@ -29,12 +29,12 @@ import (
 	"time"
 
 	"bscp.io/pkg/kit"
-	"bscp.io/pkg/logs"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
 	"golang.org/x/sync/semaphore"
 
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/upstream"
 )
 
@@ -106,20 +106,20 @@ func setupMaxHttpDownloadGoroutines() int64 {
 
 	weight, err := strconv.ParseInt(weightEnv, 10, 64)
 	if err != nil {
-		logs.Warnf("invalid max http download groutines: %s, set to %d for now", weightEnv, defaultDownloadGroutines)
+		logger.Warnf("invalid max http download groutines: %s, set to %d for now", weightEnv, defaultDownloadGroutines)
 		return defaultDownloadGroutines
 	}
 
 	if weight < 1 {
-		logs.Warnf("invalid max http download groutines: %d, should >= 1, set to 1 for now", weight)
+		logger.Warnf("invalid max http download groutines: %d, should >= 1, set to 1 for now", weight)
 		return 1
 	}
 
 	if weight > 15 {
-		logs.Warnf("invalid max http download groutines: %d, should <= 15, set to 1 for now", weight)
+		logger.Warnf("invalid max http download groutines: %d, should <= 15, set to 1 for now", weight)
 	}
 
-	logs.Infof("max http download groutines: %d", weight)
+	logger.Infof("max http download groutines: %d", weight)
 
 	return weight
 }
@@ -235,7 +235,7 @@ func (exec *execDownload) do() error {
 
 	size, yes, err := exec.isProviderSupportRangeDownload()
 	if err != nil {
-		logs.Warnf("check if provider support range download failed because of %s", err.Error())
+		logger.Warnf("check if provider support range download failed because of %s", err.Error())
 	}
 
 	if yes {
@@ -250,7 +250,7 @@ func (exec *execDownload) do() error {
 		return nil
 	}
 
-	logs.Warnf("provider does not support download with range policy, download directly now.")
+	logger.Warnf("provider does not support download with range policy, download directly now.")
 
 	if err := exec.downloadDirectlyWithRetry(); err != nil {
 		return fmt.Errorf("download directly failed, err: %s", err.Error())
@@ -322,7 +322,7 @@ func (exec *execDownload) downloadDirectlyWithRetry() error {
 			return fmt.Errorf("exec do download failed, retry count: %d", maxRetryCount)
 		}
 		if err := exec.downloadDirectly(requestAwaitResponseTimeoutSeconds); err != nil {
-			logs.Errorf("exec do download, err: %s, retry count: %d", err.Error(), retry.RetryCount())
+			logger.Errorf("exec do download, err: %s, retry count: %d", err.Error(), retry.RetryCount())
 			retry.Sleep()
 			continue
 		}
@@ -351,7 +351,7 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 		return err
 	}
 
-	logs.V(0).Infof("file[%s], download directly success, cost: %s",
+	logger.Infof("file[%s], download directly success, cost: %s",
 		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name), time.Since(start).String())
 
 	return nil
@@ -359,7 +359,7 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 
 func (exec *execDownload) downloadWithRange() error {
 
-	logs.Infof("start download file[%s] with range",
+	logger.Infof("start download file[%s] with range",
 		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name))
 
 	var start, end uint64
@@ -392,13 +392,13 @@ func (exec *execDownload) downloadWithRange() error {
 			start := time.Now()
 			if err := exec.downloadOneRangedPartWithRetry(from, to); err != nil {
 				hitError = err
-				logs.Errorf("download file[%s] part %d failed, start: %d, err: %s",
+				logger.Errorf("download file[%s] part %d failed, start: %d, err: %s",
 					path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name),
 					pos, from, err.Error())
 				return
 			}
 
-			logs.V(0).Infof("download file range part %d success, range [%d, %d], cost: %s", pos, from, to,
+			logger.Infof("download file range part %d success, range [%d, %d], cost: %s", pos, from, to,
 				time.Since(start).String())
 
 		}(part, start, end)
@@ -411,7 +411,7 @@ func (exec *execDownload) downloadWithRange() error {
 		return hitError
 	}
 
-	logs.V(1).Infof("download full file[%s] success",
+	logger.Infof("download full file[%s] success",
 		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name))
 
 	return nil
@@ -425,7 +425,7 @@ func (exec *execDownload) downloadOneRangedPartWithRetry(start uint64, end uint6
 			return fmt.Errorf("download file part failed, retry count: %d", maxRetryCount)
 		}
 		if err := exec.downloadOneRangedPart(start, end); err != nil {
-			logs.Errorf("download file part failed, err: %s, retry count: %d", err.Error(), retry.RetryCount())
+			logger.Errorf("download file part failed, err: %s, retry count: %d", err.Error(), retry.RetryCount())
 			retry.Sleep()
 			continue
 		}

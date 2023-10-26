@@ -16,10 +16,10 @@ package upstream
 import (
 	"time"
 
-	"bscp.io/pkg/logs"
 	"bscp.io/pkg/tools"
-
 	"go.uber.org/atomic"
+
+	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
 const defaultBounceIntervalHour = 1
@@ -53,7 +53,7 @@ func (b *bounce) updateInterval(intervalHour uint) {
 // with each call, reschedule bounce time.
 func (b *bounce) enableBounce() {
 	if b.st.Load() {
-		logs.Errorf("bounce is enabled state, unable to enable bounce again")
+		logger.Errorf("bounce is enabled state, unable to enable bounce again")
 		return
 	}
 
@@ -62,21 +62,21 @@ func (b *bounce) enableBounce() {
 	for {
 		intervalHour := b.intervalHour.Load()
 
-		logs.Infof("start wait connect bounce, bounce interval: %d hour", intervalHour)
+		logger.Infof("start wait connect bounce, bounce interval: %d hour", intervalHour)
 
 		time.Sleep(time.Duration(intervalHour) * time.Hour)
 
-		logs.Infof("reach the bounce time and start to reconnect stream server")
+		logger.Infof("reach the bounce time and start to reconnect stream server")
 
 		retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 		for {
 			if err := b.reconnectFunc(); err != nil {
-				logs.Errorf("reconnect upstream server failed, err: %s", err.Error())
+				logger.Errorf("reconnect upstream server failed, err: %s", err.Error())
 				retry.Sleep()
 				continue
 			}
 
-			logs.Infof("reconnect new upstream server success.")
+			logger.Infof("reconnect new upstream server success.")
 			break
 		}
 	}

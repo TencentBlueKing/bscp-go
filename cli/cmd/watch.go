@@ -29,11 +29,13 @@ import (
 	"bscp.io/pkg/logs"
 	pbhook "bscp.io/pkg/protocol/core/hook"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
@@ -53,8 +55,9 @@ var (
 
 // Watch run as a daemon to watch the config changes.
 func Watch(cmd *cobra.Command, args []string) {
+	logger.SetLogger(logrus.New())
 	if err := initArgs(); err != nil {
-		fmt.Println(err.Error())
+		logger.Errorf(err.Error())
 		os.Exit(1)
 	}
 	labels := conf.Labels
@@ -84,7 +87,7 @@ func Watch(cmd *cobra.Command, args []string) {
 		option.Labels(labels),
 		option.UID(conf.UID),
 		option.LogVerbosity(logVerbosity),
-		option.SetLogOption(&option.LogOption{LogDir: "/data/log", MaxPerFileSizeMB: 1000}),
+		//option.SetLogOption(&option.LogOption{LogDir: "/data/log", MaxPerFileSizeMB: 1000}),
 	)
 	if err != nil {
 		logs.Errorf(err.Error())

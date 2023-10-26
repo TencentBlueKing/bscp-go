@@ -21,15 +21,16 @@ import (
 	"time"
 
 	"bscp.io/pkg/dal/table"
-	"bscp.io/pkg/logs"
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
 	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -44,15 +45,16 @@ var (
 
 // Pull executes the pull command.
 func Pull(cmd *cobra.Command, args []string) {
+	logger.SetLogger(logrus.New())
 	if err := initArgs(); err != nil {
-		fmt.Println(err.Error())
+		logger.Errorf(err.Error())
 		os.Exit(1)
 	}
 
 	if conf.LabelsFile != "" {
 		labels, err := readLabelsFile(conf.LabelsFile)
 		if err != nil {
-			logs.Errorf("read labels file failed, err: %s", err.Error())
+			logger.Errorf("read labels file failed, err: %s", err.Error())
 			os.Exit(1)
 		}
 		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
@@ -64,10 +66,9 @@ func Pull(cmd *cobra.Command, args []string) {
 		option.Labels(conf.Labels),
 		option.UID(conf.UID),
 		option.LogVerbosity(logVerbosity),
-		option.SetLogOption(&option.LogOption{LogDir: "/data/log", MaxPerFileSizeMB: 1000}),
 	)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Errorf(err.Error())
 		os.Exit(1)
 	}
 	for _, app := range conf.Apps {
@@ -79,7 +80,7 @@ func Pull(cmd *cobra.Command, args []string) {
 			tempDir = conf.TempDir
 		}
 		if err = pullAppFiles(bscp, tempDir, conf.Biz, app.Name, opts); err != nil {
-			logs.Errorf(err.Error())
+			logger.Errorf(err.Error())
 			os.Exit(1)
 		}
 	}
@@ -121,7 +122,7 @@ func pullAppFiles(bscp *client.Client, tempDir string, biz uint32, app string, o
 	if err := eventmeta.AppendMetadataToFile(appDir, metadata); err != nil {
 		return err
 	}
-	logs.Infof("pull files success, current releaseID: %d", releaseID)
+	logger.Infof("pull files success, current releaseID: %d", releaseID)
 	return nil
 }
 

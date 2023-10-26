@@ -24,7 +24,6 @@ import (
 
 	"bscp.io/pkg/criteria/constant"
 	"bscp.io/pkg/kit"
-	"bscp.io/pkg/logs"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	"bscp.io/pkg/runtime/jsoni"
 	sfs "bscp.io/pkg/sf-share"
@@ -32,6 +31,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/util"
@@ -133,7 +133,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 		for {
 			select {
 			case <-w.vas.Ctx.Done():
-				logs.Infof("stop receive upstream event because of %s", w.vas.Ctx.Err().Error())
+				logger.Infof("stop receive upstream event because of %s", w.vas.Ctx.Err().Error())
 				return
 			default:
 			}
@@ -144,14 +144,14 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 	for {
 		select {
 		case <-w.vas.Ctx.Done():
-			logs.Warnf("watch will closed because of %s", w.vas.Ctx.Err().Error())
+			logger.Warnf("watch will closed because of %s", w.vas.Ctx.Err().Error())
 
 			if err := wStream.CloseSend(); err != nil {
-				logs.Errorf("close watch failed, err: %s", err.Error())
+				logger.Errorf("close watch failed, err: %s", err.Error())
 				return
 			}
 
-			logs.Infof("watch is closed successfully")
+			logger.Infof("watch is closed successfully")
 			w.vas.Wg.Done()
 			return
 
@@ -160,36 +160,36 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 
 			if err != nil {
 				if errors.Is(err, io.EOF) {
-					logs.Errorf("watch stream has been closed by remote upstream stream server, need to re-connect again")
+					logger.Errorf("watch stream has been closed by remote upstream stream server, need to re-connect again")
 					w.NotifyReconnect(types.ReconnectSignal{Reason: "connection is closed " +
 						"by remote upstream server"})
 					return
 				}
 
-				logs.Errorf("watch stream is corrupted because of %s, rid: %s", err.Error(), w.vas.Rid)
+				logger.Errorf("watch stream is corrupted because of %s, rid: %s", err.Error(), w.vas.Rid)
 				w.NotifyReconnect(types.ReconnectSignal{Reason: "watch stream corrupted"})
 				return
 			}
 
-			logs.Infof("received upstream event, apiVersion: %s, payload: %s, rid: %s", event.ApiVersion.Format(),
+			logger.Infof("received upstream event, apiVersion: %s, payload: %s, rid: %s", event.ApiVersion.Format(),
 				event.Payload, event.Rid)
 
 			if !sfs.IsAPIVersionMatch(event.ApiVersion) {
 				// 此处是不是不应该做版本兼容的校验？
 				// TODO: set sidecar unhealthy, offline and exit.
-				logs.Errorf("watch stream received incompatible event version: %s, rid: %s", event.ApiVersion.Format(),
+				logger.Errorf("watch stream received incompatible event version: %s, rid: %s", event.ApiVersion.Format(),
 					event.Rid)
 				break
 			}
 
 			switch sfs.FeedMessageType(event.Type) {
 			case sfs.Bounce:
-				logs.Infof("received upstream bounce request, need to reconnect upstream server, rid: %s", event.Rid)
+				logger.Infof("received upstream bounce request, need to reconnect upstream server, rid: %s", event.Rid)
 				w.NotifyReconnect(types.ReconnectSignal{Reason: "received bounce request"})
 				return
 
 			case sfs.PublishRelease:
-				logs.Infof("received upstream publish release event, rid: %s", event.Rid)
+				logger.Infof("received upstream publish release event, rid: %s", event.Rid)
 				change := &sfs.ReleaseChangeEvent{
 					Rid:        event.Rid,
 					APIVersion: event.ApiVersion,
@@ -203,7 +203,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 				continue
 
 			default:
-				logs.Errorf("watch stream received unsupported event type: %s, skip, rid: %s", event.Type, event.Rid)
+				logger.Errorf("watch stream received unsupported event type: %s, skip, rid: %s", event.Type, event.Rid)
 				continue
 			}
 		}
@@ -226,7 +226,7 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 	// parse payload according the api version.
 	pl := new(sfs.ReleaseChangePayload)
 	if err := jsoni.Unmarshal(event.Payload, pl); err != nil {
-		logs.Errorf("decode release change event payload failed, skip the event, err: %s, rid: %s", err.Error(), event.Rid)
+		logger.Errorf("decode release change event payload failed, skip the event, err: %s, rid: %s", err.Error(), event.Rid)
 		return
 	}
 	// TODO: encode subscriber options(App, UID, Labels) to a unique string key
@@ -255,7 +255,7 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 			start := time.Now()
 			if err := subscriber.Callback(pl.ReleaseMeta.ReleaseID, configItemFiles,
 				pl.ReleaseMeta.PreHook, pl.ReleaseMeta.PostHook); err != nil {
-				logs.Errorf("execute watch callback for app %s failed, err: %s", subscriber.App, err.Error())
+				logger.Errorf("execute watch callback for app %s failed, err: %s", subscriber.App, err.Error())
 				subscriber.reportReleaseChangeCallbackMetrics("failed", start)
 			}
 			subscriber.reportReleaseChangeCallbackMetrics("success", start)
