@@ -154,3 +154,65 @@ Json 示例：labels.json
 initContainer/sidecar 容器与业务容器协作关系如图：
 
 ![bscp-init-sidecar](./img/bscp_sidecar_workspace.png)
+
+
+
+
+
+## 传统主机部署方式：
+
+### 编译插件包
+
+#### 设置插件包版本
+
+[project.yaml](../build/nodeman/project.yaml)
+
+```yaml
+name: bkbscp
+version: 1.0.1.* (设置插件包版本号)
+
+........
+
+config_templates:
+  - plugin_version: 1.0.1.* (设置插件包版本号)
+    name: bkbscp.conf
+    version: 1.0.1.* (设置插件包版本号)
+```
+
+#### make
+
+```bash
+make build_nodeman_plugin
+```
+
+插件包输出目录为 **build/nodeman/bkbscp.tar.gz**
+
+### 插件包部署
+
+#### 前置操作
+
+为临时目录授权
+
+```bash
+chmod 660 /data/bscp
+```
+
+#### 上传插件包
+
+![上传插件包1](./img/upload-plugin-1.png)
+
+![上传插件包1](./img/upload-plugin-2.png)
+
+#### 插件部署策略
+
+#### 选择部署版本
+
+#### 参数配置
+
+![上传插件包1](./img/node_man_set_config.png)
+
+#### 执行
+
+![上传插件包1](./img/nodeman_execution_succeed.png)
+
+##  
