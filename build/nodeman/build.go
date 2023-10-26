@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package main defines the bscp node manager plugin main entry.
 package main
 
 import (
@@ -60,7 +61,7 @@ func main() {
 		newFile, err := os.Create(fmt.Sprintf("%s%s.yaml", configPath, pluginName))
 		if err != nil {
 			fmt.Printf("create config file fail, err: %v\n", err)
-			os.Exit(1)
+			os.Exit(1) //nolint:gocritic
 		}
 
 		defer func() {
