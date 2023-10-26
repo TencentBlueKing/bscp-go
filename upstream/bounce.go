@@ -17,7 +17,6 @@ import (
 
 	"bscp.io/pkg/logs"
 	"bscp.io/pkg/tools"
-
 	"go.uber.org/atomic"
 )
 

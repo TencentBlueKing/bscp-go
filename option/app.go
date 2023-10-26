@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package option defines the common options.
 package option
 
 // AppOptions options for app pull and watch

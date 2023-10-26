@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package types defines the common types.
 package types
 
 import (

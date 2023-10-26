@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package metrics defines the metrics for bscp-go.
 package metrics
 
 import (

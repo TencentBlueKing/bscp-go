@@ -110,11 +110,11 @@ func (w *Watcher) heartbeatOnce(vas *kit.Vas, msgType sfs.MessagingType, payload
 }
 
 // sendHeartbeatMessaging send heartbeat message to upstream server.
-func (s *Watcher) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType, payload []byte) error {
+func (w *Watcher) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType, payload []byte) error {
 	timeoutVas, cancel := vas.WithTimeout(defaultHeartbeatTimeout)
 	defer cancel()
 
-	if _, err := s.upstream.Messaging(timeoutVas, msgType, payload); err != nil {
+	if _, err := w.upstream.Messaging(timeoutVas, msgType, payload); err != nil {
 		return err
 	}
 

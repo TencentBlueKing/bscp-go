@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package cmd define the command line for bscp client.
 package cmd
 
 import (
@@ -253,9 +254,8 @@ func readLabelsFile(path string) (map[string]string, error) {
 		if os.IsNotExist(err) {
 			logs.Warnf("labels file %s not exist, skip read", path)
 			return labels, nil
-		} else {
-			return nil, fmt.Errorf("stat labels file %s failed, err: %s", path, err.Error())
 		}
+		return nil, fmt.Errorf("stat labels file %s failed, err: %s", path, err.Error())
 	}
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("read labels file %s failed, err: %s", path, err.Error())

@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package util defines the common utils functions for cli.
 package util
 
 import (

@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package upstream defines upstream client.
 package upstream
 
 import (

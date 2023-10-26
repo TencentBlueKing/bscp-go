@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package watch defines the watcher client.
 package watch
 
 import (

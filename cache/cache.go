@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package cache defines the config item cache.
 package cache
 
 import (

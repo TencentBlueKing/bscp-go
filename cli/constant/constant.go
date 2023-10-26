@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package constant defines the constants for cli.
 package constant
 
 const (

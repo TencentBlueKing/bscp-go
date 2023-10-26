@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package downloader defines the config item downloader.
 package downloader
 
 import (
@@ -366,7 +367,7 @@ func (exec *execDownload) downloadWithRange() error {
 	// calculate the total parts to be downloaded
 	totalParts := int(exec.fileSize / batchSize)
 	if (exec.fileSize % batchSize) > 0 {
-		totalParts += 1
+		totalParts++
 	}
 
 	var hitError error
@@ -381,7 +382,7 @@ func (exec *execDownload) downloadWithRange() error {
 			end = start + batchSize
 		}
 
-		end -= 1
+		end--
 
 		wg.Add(1)
 
@@ -566,7 +567,7 @@ func tlsConfigFromTLSBytes(tlsBytes *sfs.TLSBytes) (*tls.Config, error) {
 	}
 
 	var certificate tls.Certificate
-	if len(tlsBytes.CertFileBytes) == 0 && len(tlsBytes.CertFileBytes) == 0 { //nolint:staticcheck
+	if len(tlsBytes.CertFileBytes) == 0 && len(tlsBytes.KeyFileBytes) == 0 {
 		return &tls.Config{
 			InsecureSkipVerify: tlsBytes.InsecureSkipVerify, // nolint
 			ClientCAs:          caPool,

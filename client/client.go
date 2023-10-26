@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package client defines the bscp-go client.
 package client
 
 import (

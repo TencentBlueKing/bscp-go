@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package eventmeta defines the callback event metadata for release change event.
 package eventmeta
 
 import (

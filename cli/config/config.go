@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package config defines the config for cli.
 package config
 
 import (

@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 
+// Package main defines the bscp cli main entry.
 package main
 
 import (

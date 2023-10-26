@@ -31,11 +31,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
+	"github.com/TencentBlueKing/bscp-go/cli/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
-	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
 	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
@@ -70,7 +70,7 @@ func Watch(cmd *cobra.Command, args []string) {
 		reloadChan, err = watchLabelsFile(ctx, conf.LabelsFile)
 		if err != nil {
 			logs.Errorf("watch labels file failed, err: %s", err.Error())
-			os.Exit(1)
+			os.Exit(1) //nolint:gocritic
 		}
 		labels = pkgutil.MergeLabels(labels, labelsFromFile)
 		logs.Infof("watching labels file: %s", conf.LabelsFile)
@@ -165,11 +165,9 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(w.AppTempDir)
 	if err != nil {
 		logs.Warnf("get latest release metadata failed, err: %s, maybe you should exec pull command first", err.Error())
-	} else {
-		if lastMetadata.ReleaseID == releaseID {
-			logs.Infof("current release is consistent with the received release %d, skip", releaseID)
-			return nil
-		}
+	} else if lastMetadata.ReleaseID == releaseID {
+		logs.Infof("current release is consistent with the received release %d, skip", releaseID)
+		return nil
 	}
 
 	// 1. execute pre hook
