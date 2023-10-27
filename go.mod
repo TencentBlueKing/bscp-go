@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	bscp.io v0.0.0-00010101000000-000000000000
+	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5
 	github.com/prometheus/client_golang v1.16.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -14,8 +15,8 @@ require (
 )
 
 require (
-	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect

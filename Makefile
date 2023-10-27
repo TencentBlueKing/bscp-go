@@ -50,3 +50,12 @@ build:
 test:
 	go test ./...
 
+.PYONY: build_nodeman_plugin
+build_nodeman_plugin:
+# 当前仅支持 plugins_linux_x86_64
+	mkdir -p "build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/etc" "build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/bin"
+	cp build/nodeman/project.yaml build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/project.yaml
+	cp build/nodeman/etc/bkbscp.conf.tpl build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/etc/bkbscp.conf.tpl
+	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/bin/bkbscp build/nodeman/build.go
+	cd build/nodeman/bkbscp && tar -zcf ../bkbscp.tar.gz .
+
