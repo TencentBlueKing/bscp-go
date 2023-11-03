@@ -8,7 +8,6 @@
  * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package watch
@@ -111,11 +110,11 @@ func (w *Watcher) heartbeatOnce(vas *kit.Vas, msgType sfs.MessagingType, payload
 }
 
 // sendHeartbeatMessaging send heartbeat message to upstream server.
-func (s *Watcher) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType, payload []byte) error {
+func (w *Watcher) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType, payload []byte) error {
 	timeoutVas, cancel := vas.WithTimeout(defaultHeartbeatTimeout)
 	defer cancel()
 
-	if _, err := s.upstream.Messaging(timeoutVas, msgType, payload); err != nil {
+	if _, err := w.upstream.Messaging(timeoutVas, msgType, payload); err != nil {
 		return err
 	}
 

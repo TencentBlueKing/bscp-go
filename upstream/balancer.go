@@ -8,7 +8,6 @@
  * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package upstream
@@ -52,7 +51,7 @@ func (r *balancer) PickOne() string {
 		return r.endpoints[r.max]
 	}
 
-	r.index += 1
+	r.index++
 
 	return r.endpoints[r.index-1]
 }

@@ -8,7 +8,6 @@
  * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package cmd
@@ -25,10 +24,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
+	"github.com/TencentBlueKing/bscp-go/cli/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/option"
-	"github.com/TencentBlueKing/bscp-go/pkg/eventmeta"
 	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
 )
 

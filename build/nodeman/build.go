@@ -8,9 +8,9 @@
  * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
+// Package main defines the bscp node manager plugin main entry.
 package main
 
 import (
@@ -61,7 +61,7 @@ func main() {
 		newFile, err := os.Create(fmt.Sprintf("%s%s.yaml", configPath, pluginName))
 		if err != nil {
 			fmt.Printf("create config file fail, err: %v\n", err)
-			os.Exit(1)
+			os.Exit(1) //nolint:gocritic
 		}
 
 		defer func() {
