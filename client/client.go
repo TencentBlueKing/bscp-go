@@ -130,13 +130,13 @@ func (c *Client) AddWatcher(callback option.Callback, app string, opts ...option
 }
 
 // StartWatch start watch
-func (c *Client) StartWatch() error {
+func (c *Client) StartWatch() (*kit.Vas, error) {
 	return c.watcher.StartWatch()
 }
 
 // StopWatch stop watch
-func (c *Client) StopWatch() {
-	c.watcher.StopWatch()
+func (c *Client) StopWatch(vas *kit.Vas) {
+	c.watcher.StopWatch(vas)
 }
 
 // ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value

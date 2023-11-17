@@ -15,6 +15,7 @@ package watch
 import (
 	"strconv"
 
+	"bscp.io/pkg/kit"
 	"bscp.io/pkg/logs"
 	"bscp.io/pkg/tools"
 
@@ -30,38 +31,36 @@ func (w *Watcher) NotifyReconnect(signal types.ReconnectSignal) {
 	}
 }
 
-func (w *Watcher) waitForReconnectSignal() {
-	w.vas.Wg.Add(1)
+func (w *Watcher) waitForReconnectSignal(vas *kit.Vas) {
 	for {
 		select {
-		case <-w.vas.Ctx.Done():
-			logs.V(1).Infof("wait for reconnect signal stoped, rid: %s", w.vas.Rid)
-			w.vas.Wg.Done()
+		case <-vas.Ctx.Done():
+			logs.V(1).Infof("wait for reconnect signal stoped, rid: %s", vas.Rid)
 			return
 		case signal := <-w.reconnectChan:
-			logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), w.vas.Rid)
+			logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), vas.Rid)
 
 			if w.reconnecting.Load() {
 				logs.Warnf("received reconnect signal, but stream is already reconnecting, ignore this signal.")
 				return
 			}
 
-			w.tryReconnect(w.vas.Rid)
+			w.tryReconnect(vas)
 		}
 	}
 }
 
-func (w *Watcher) tryReconnect(rid string) {
+func (w *Watcher) tryReconnect(vas *kit.Vas) {
 	w.reconnecting.Store(true)
 
-	logs.Infof("start to reconnect the upstream server, rid: %s", rid)
+	logs.Infof("start to reconnect the upstream server, rid: %s", vas.Rid)
 
 	// stop the previous watch stream before close conn.
-	w.StopWatch()
+	w.StopWatch(vas)
 
 	retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 	for {
-		subRid := rid + strconv.FormatUint(uint64(retry.RetryCount()), 10)
+		subRid := vas.Rid + strconv.FormatUint(uint64(retry.RetryCount()), 10)
 
 		if err := w.upstream.ReconnectUpstreamServer(); err != nil {
 			logs.Errorf("reconnect upstream server failed, err: %s, rid: %s", err.Error(), subRid)
@@ -74,8 +73,8 @@ func (w *Watcher) tryReconnect(rid string) {
 	}
 
 	for {
-		subRid := rid + strconv.FormatUint(uint64(retry.RetryCount()), 10)
-		if e := w.StartWatch(); e != nil {
+		subRid := vas.Rid + strconv.FormatUint(uint64(retry.RetryCount()), 10)
+		if _, e := w.StartWatch(); e != nil {
 			logs.Errorf("re-watch stream failed, err: %s, rid: %s", e.Error(), subRid)
 			retry.Sleep()
 			continue
@@ -88,5 +87,5 @@ func (w *Watcher) tryReconnect(rid string) {
 	// set reconnecting to false.
 	w.reconnecting.Store(false)
 
-	logs.Infof("reconnect the upstream server success, rid: %s", rid)
+	logs.Infof("reconnect the upstream server success, rid: %s", vas.Rid)
 }
