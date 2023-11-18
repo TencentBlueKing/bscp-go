@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"bscp.io/pkg/dal/table"
-	"bscp.io/pkg/kit"
 	"bscp.io/pkg/logs"
 	pbhook "bscp.io/pkg/protocol/core/hook"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -106,15 +105,12 @@ func Watch(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 	}
-	vas, e := bscp.StartWatch()
-	if err != nil {
+	if e := bscp.StartWatch(); e != nil {
 		logs.Errorf(e.Error())
 		os.Exit(1)
 	}
 
-	go func(vas *kit.Vas) {
-		inVas := vas
-		var inErr error
+	go func() {
 		if reloadChan == nil {
 			return
 		}
@@ -124,16 +120,15 @@ func Watch(cmd *cobra.Command, args []string) {
 				logs.Errorf("reload labels failed, err: %s", msg.Error.Error())
 				continue
 			}
-			bscp.StopWatch(inVas)
+			bscp.StopWatch()
 			bscp.ResetLabels(pkgutil.MergeLabels(conf.Labels, msg.Labels))
-			inVas, inErr = bscp.StartWatch()
-			if inErr != nil {
-				logs.Errorf("restart watch err: %s, retry", e.Error())
-				continue
+			if e := bscp.StartWatch(); e != nil {
+				logs.Errorf(e.Error())
+				os.Exit(1)
 			}
 			logs.Infof("reload labels success")
 		}
-	}(vas)
+	}()
 
 	// register metrics
 	metrics.RegisterMetrics()

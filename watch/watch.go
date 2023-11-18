@@ -42,6 +42,8 @@ import (
 // Watcher is the main watch stream for instance
 type Watcher struct {
 	subscribers     []*Subscriber
+	vas             *kit.Vas
+	cancel          context.CancelFunc
 	opts            option.WatchOptions
 	metaHeaderValue string
 	reconnectChan   chan types.ReconnectSignal
@@ -82,10 +84,8 @@ func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 }
 
 // StartWatch start watch stream
-func (w *Watcher) StartWatch() (*kit.Vas, error) {
-	vas, cancel := w.buildVas()
-	vas.Cancel = cancel
-
+func (w *Watcher) StartWatch() error {
+	w.vas, w.cancel = w.buildVas()
 	w.reconnectChan = make(chan types.ReconnectSignal, 5)
 	w.reconnecting = atomic.NewBool(false)
 	var err error
@@ -105,32 +105,25 @@ func (w *Watcher) StartWatch() (*kit.Vas, error) {
 	}
 	bytes, err := jsoni.Marshal(payload)
 	if err != nil {
-		cancel()
-		return nil, fmt.Errorf("encode watch payload failed, err: %s", err.Error())
+		w.cancel()
+		return fmt.Errorf("encode watch payload failed, err: %s", err.Error())
 	}
-	upstreamClient, err := w.upstream.Watch(vas, bytes)
+	upstreamClient, err := w.upstream.Watch(w.vas, bytes)
 	if err != nil {
-		cancel()
-		return nil, fmt.Errorf("watch upstream server with payload failed, err: %s", err.Error())
+		w.cancel()
+		return fmt.Errorf("watch upstream server with payload failed, err: %s", err.Error())
 	}
-	go w.waitForReconnectSignal(vas)
-	go w.loopReceiveWatchedEvent(vas, upstreamClient)
-	if err = w.loopHeartbeat(vas); err != nil {
-		cancel()
-		return nil, fmt.Errorf("start loop hearbeat failed, err: %s", err.Error())
+	go w.waitForReconnectSignal()
+	go w.loopReceiveWatchedEvent(upstreamClient)
+	if err = w.loopHeartbeat(); err != nil {
+		w.cancel()
+		return fmt.Errorf("start loop hearbeat failed, err: %s", err.Error())
 	}
-	return vas, nil
+	return nil
 }
 
-// StopWatch close watch stream
-func (w *Watcher) StopWatch(vas *kit.Vas) {
-	vas.Cancel()
-	vas.Wg.Wait()
-}
-
-func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_WatchClient) {
-	vas.Wg.Add(1)
-	defer vas.Wg.Done()
+func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
+	w.vas.Wg.Add(1)
 	type RecvResult struct {
 		event *pbfs.FeedWatchMessage
 		err   error
@@ -139,8 +132,8 @@ func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_Wa
 	go func() {
 		for {
 			select {
-			case <-vas.Ctx.Done():
-				logs.Infof("stop receive upstream event because of %s", vas.Ctx.Err().Error())
+			case <-w.vas.Ctx.Done():
+				logs.Infof("stop receive upstream event because of %s", w.vas.Ctx.Err().Error())
 				return
 			default:
 			}
@@ -150,8 +143,8 @@ func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_Wa
 	}()
 	for {
 		select {
-		case <-vas.Ctx.Done():
-			logs.Warnf("watch will closed because of %s", vas.Ctx.Err().Error())
+		case <-w.vas.Ctx.Done():
+			logs.Warnf("watch will closed because of %s", w.vas.Ctx.Err().Error())
 
 			if err := wStream.CloseSend(); err != nil {
 				logs.Errorf("close watch failed, err: %s", err.Error())
@@ -159,6 +152,7 @@ func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_Wa
 			}
 
 			logs.Infof("watch is closed successfully")
+			w.vas.Wg.Done()
 			return
 
 		case result := <-resultChan:
@@ -172,7 +166,7 @@ func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_Wa
 					return
 				}
 
-				logs.Errorf("watch stream is corrupted because of %s, rid: %s", err.Error(), vas.Rid)
+				logs.Errorf("watch stream is corrupted because of %s, rid: %s", err.Error(), w.vas.Rid)
 				w.NotifyReconnect(types.ReconnectSignal{Reason: "watch stream corrupted"})
 				return
 			}
@@ -214,6 +208,17 @@ func (w *Watcher) loopReceiveWatchedEvent(vas *kit.Vas, wStream pbfs.Upstream_Wa
 			}
 		}
 	}
+}
+
+// StopWatch close watch stream
+func (w *Watcher) StopWatch() {
+	if w.cancel == nil {
+		return
+	}
+
+	w.cancel()
+
+	w.vas.Wg.Wait()
 }
 
 // OnReleaseChange handle all instances release change event

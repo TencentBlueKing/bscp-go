@@ -42,9 +42,9 @@ type Client interface {
 	// AddWatcher add a watcher to client
 	AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error
 	// StartWatch start watch
-	StartWatch() (*kit.Vas, error)
+	StartWatch() error
 	// StopWatch stop watch
-	StopWatch(vas *kit.Vas)
+	StopWatch()
 	// ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
 	ResetLabels(labels map[string]string)
 }
@@ -145,13 +145,13 @@ func (c *client) AddWatcher(callback option.Callback, app string, opts ...option
 }
 
 // StartWatch start watch
-func (c *client) StartWatch() (*kit.Vas, error) {
+func (c *client) StartWatch() error {
 	return c.watcher.StartWatch()
 }
 
 // StopWatch stop watch
-func (c *client) StopWatch(vas *kit.Vas) {
-	c.watcher.StopWatch(vas)
+func (c *client) StopWatch() {
+	c.watcher.StopWatch()
 }
 
 // ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
