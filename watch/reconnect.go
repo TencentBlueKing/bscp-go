@@ -50,9 +50,11 @@ func (w *Watcher) waitForReconnectSignal() {
 }
 
 func (w *Watcher) tryReconnect(rid string) {
-	w.reconnecting.Store(true)
-
 	logs.Infof("start to reconnect the upstream server, rid: %s", rid)
+
+	w.reconnecting.Store(true)
+	// set reconnecting to false.
+	defer w.reconnecting.Store(false)
 
 	retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 	for {
@@ -79,9 +81,4 @@ func (w *Watcher) tryReconnect(rid string) {
 		logs.Infof("re-watch stream success, rid: %s", subRid)
 		break
 	}
-
-	// set reconnecting to false.
-	w.reconnecting.Store(false)
-
-	logs.Infof("reconnect the upstream server success, rid: %s", rid)
 }
