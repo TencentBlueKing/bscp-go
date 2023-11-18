@@ -59,12 +59,12 @@ func (w *Watcher) loopHeartbeat() error {
 
 	w.vas.Wg.Add(1)
 	go func() {
-		for {
+		defer w.vas.Wg.Done()
 
+		for {
 			select {
 			case <-w.vas.Ctx.Done():
 				logs.V(1).Infof("stream heartbeat stoped because of %s", w.vas.Ctx.Err().Error())
-				w.vas.Wg.Done()
 				return
 			default:
 			}

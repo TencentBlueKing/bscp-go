@@ -56,30 +56,30 @@ func Watch(cmd *cobra.Command, args []string) {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
-	labels := conf.Labels
-	var labelsFromFile map[string]string
-	var reloadChan chan ReloadMessage
-	var err error
+
+	confLabels := conf.Labels
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var (
+		r   *refinedLabelsFile
+		err error
+	)
+
 	if conf.LabelsFile != "" {
-		labelsFromFile, err = readLabelsFile(conf.LabelsFile)
+		r, err = refineLabelsFile(ctx, conf.LabelsFile, confLabels)
 		if err != nil {
-			logs.Errorf("read labels file failed, err: %s", err.Error())
-		}
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		reloadChan, err = watchLabelsFile(ctx, conf.LabelsFile)
-		if err != nil {
-			logs.Errorf("watch labels file failed, err: %s", err.Error())
+			logs.Errorf(err.Error())
 			os.Exit(1) //nolint:gocritic
 		}
-		labels = pkgutil.MergeLabels(labels, labelsFromFile)
-		logs.Infof("watching labels file: %s", conf.LabelsFile)
+		confLabels = r.mergeLabels
 	}
+
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),
 		option.BizID(conf.Biz),
 		option.Token(conf.Token),
-		option.Labels(labels),
+		option.Labels(confLabels),
 		option.UID(conf.UID),
 		option.LogVerbosity(logVerbosity),
 	)
@@ -87,6 +87,7 @@ func Watch(cmd *cobra.Command, args []string) {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
+
 	for _, subscriber := range conf.Apps {
 		if conf.TempDir != "" {
 			tempDir = conf.TempDir
@@ -111,22 +112,17 @@ func Watch(cmd *cobra.Command, args []string) {
 	}
 
 	go func() {
-		if reloadChan == nil {
+		if r.reloadChan == nil {
 			return
 		}
 		for {
-			msg := <-reloadChan
+			msg := <-r.reloadChan
 			if msg.Error != nil {
-				logs.Errorf("reload labels failed, err: %s", msg.Error.Error())
+				logs.Errorf("reset labels failed, err: %s", msg.Error.Error())
 				continue
 			}
-			bscp.StopWatch()
 			bscp.ResetLabels(pkgutil.MergeLabels(conf.Labels, msg.Labels))
-			if e := bscp.StartWatch(); e != nil {
-				logs.Errorf(e.Error())
-				os.Exit(1)
-			}
-			logs.Infof("reload labels success")
+			logs.Infof("reset labels success, will reload watch")
 		}
 	}()
 
@@ -155,6 +151,38 @@ type WatchHandler struct {
 	AppTempDir string
 	// Lock lock for concurrent callback
 	Lock sync.Mutex
+}
+
+type refinedLabelsFile struct {
+	absPath     string
+	reloadChan  chan ReloadMessage
+	mergeLabels map[string]string
+}
+
+func refineLabelsFile(ctx context.Context, path string, confLabels map[string]string) (*refinedLabelsFile, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("read labels file path failed, err: %s", err.Error())
+	}
+
+	labelsFromFile, err := readLabelsFile(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("read labels file failed, err: %s", err.Error())
+	}
+
+	reloadChan, err := watchLabelsFile(ctx, absPath)
+	if err != nil {
+		return nil, fmt.Errorf("watch labels file failed, err: %s", err.Error())
+	}
+	logs.Infof("watching labels file: %s", absPath)
+
+	mergeLabels := pkgutil.MergeLabels(confLabels, labelsFromFile)
+	r := &refinedLabelsFile{
+		absPath:     absPath,
+		reloadChan:  reloadChan,
+		mergeLabels: mergeLabels,
+	}
+	return r, nil
 }
 
 func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItemFile,
