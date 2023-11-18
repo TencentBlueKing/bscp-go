@@ -34,8 +34,23 @@ import (
 	"github.com/TencentBlueKing/bscp-go/watch"
 )
 
+// Client bscp client method
+type Client interface {
+	// PullFiles pull files from remote
+	PullFiles(app string, opts ...option.AppOption) (
+		uint32, []*types.ConfigItemFile, *pbhook.HookSpec, *pbhook.HookSpec, error)
+	// AddWatcher add a watcher to client
+	AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error
+	// StartWatch start watch
+	StartWatch() (*kit.Vas, error)
+	// StopWatch stop watch
+	StopWatch(vas *kit.Vas)
+	// ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
+	ResetLabels(labels map[string]string)
+}
+
 // Client is the bscp client
-type Client struct {
+type client struct {
 	pairs       map[string]string
 	opts        option.ClientOptions
 	fingerPrint sfs.FingerPrint
@@ -44,7 +59,7 @@ type Client struct {
 }
 
 // New return a bscp client instance
-func New(opts ...option.ClientOption) (*Client, error) {
+func New(opts ...option.ClientOption) (Client, error) {
 	clientOpt := &option.ClientOptions{}
 	fp, err := sfs.GetFingerPrint()
 	if err != nil {
@@ -80,7 +95,7 @@ func New(opts ...option.ClientOption) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init upstream client failed, err: %s", err.Error())
 	}
-	c := &Client{
+	c := &client{
 		opts:        *clientOpt,
 		fingerPrint: fp,
 		upstream:    u,
@@ -124,23 +139,23 @@ func New(opts ...option.ClientOption) (*Client, error) {
 }
 
 // AddWatcher add a watcher to client
-func (c *Client) AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error {
+func (c *client) AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error {
 	_ = c.watcher.Subscribe(callback, app, opts...)
 	return nil
 }
 
 // StartWatch start watch
-func (c *Client) StartWatch() (*kit.Vas, error) {
+func (c *client) StartWatch() (*kit.Vas, error) {
 	return c.watcher.StartWatch()
 }
 
 // StopWatch stop watch
-func (c *Client) StopWatch(vas *kit.Vas) {
+func (c *client) StopWatch(vas *kit.Vas) {
 	c.watcher.StopWatch(vas)
 }
 
 // ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
-func (c *Client) ResetLabels(labels map[string]string) {
+func (c *client) ResetLabels(labels map[string]string) {
 	c.opts.Labels = labels
 	for _, subscriber := range c.watcher.Subscribers() {
 		subscriber.ResetLabels(labels)
@@ -148,7 +163,7 @@ func (c *Client) ResetLabels(labels map[string]string) {
 }
 
 // PullFiles pull files from remote
-func (c *Client) PullFiles(app string, opts ...option.AppOption) (
+func (c *client) PullFiles(app string, opts ...option.AppOption) (
 	uint32, []*types.ConfigItemFile, *pbhook.HookSpec, *pbhook.HookSpec, error) {
 	option := &option.AppOptions{}
 	for _, opt := range opts {
@@ -195,7 +210,7 @@ func (c *Client) PullFiles(app string, opts ...option.AppOption) (
 	return resp.ReleaseId, files, resp.PreHook, resp.PostHook, nil
 }
 
-func (c *Client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint
+func (c *client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint
 	vas := kit.OutgoingVas(c.pairs)
 	ctx, cancel := context.WithCancel(vas.Ctx)
 	vas.Ctx = ctx

@@ -83,7 +83,7 @@ func Pull(cmd *cobra.Command, args []string) {
 	}
 }
 
-func pullAppFiles(bscp *client.Client, tempDir string, biz uint32, app string, opts []option.AppOption) error {
+func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, opts []option.AppOption) error {
 	// 1. prepare app workspace dir
 	appDir := path.Join(tempDir, strconv.Itoa(int(biz)), app)
 	if e := os.MkdirAll(appDir, os.ModePerm); e != nil {
