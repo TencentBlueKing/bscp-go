@@ -160,6 +160,8 @@ func (c *client) ResetLabels(labels map[string]string) {
 	for _, subscriber := range c.watcher.Subscribers() {
 		subscriber.ResetLabels(labels)
 	}
+
+	c.watcher.NotifyReconnect(types.ReconnectSignal{Reason: "reset labels"})
 }
 
 // PullFiles pull files from remote

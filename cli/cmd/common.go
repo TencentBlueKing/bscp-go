@@ -216,7 +216,12 @@ func watchLabelsFile(ctx context.Context, path string) (chan ReloadMessage, erro
 				return
 			case event := <-watcher.Events:
 				msg := ReloadMessage{Event: event}
-				if event.Name != path {
+				absPath, err := filepath.Abs(event.Name)
+				if err != nil {
+					logs.Warnf("unmarshal labels file failed, err: %s", err.Error())
+					continue
+				}
+				if absPath != path {
 					continue
 				}
 				if event.Op != fsnotify.Write {
@@ -231,7 +236,7 @@ func watchLabelsFile(ctx context.Context, path string) (chan ReloadMessage, erro
 				}
 				labels := make(map[string]string)
 				if err := v.Unmarshal(&labels); err != nil {
-					logs.Infof("unmarshal labels file failed, err: ", err.Error())
+					logs.Warnf("unmarshal labels file failed, err: ", err.Error())
 					msg.Error = errors.New("unmarshal labels file failed")
 					watchChan <- msg
 					continue

@@ -56,25 +56,40 @@ func Watch(cmd *cobra.Command, args []string) {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
+
 	labels := conf.Labels
-	var labelsFromFile map[string]string
-	var reloadChan chan ReloadMessage
-	var err error
+	var (
+		labelsFromFile map[string]string
+		reloadChan     chan ReloadMessage
+		err            error
+		absPath        string
+	)
+
 	if conf.LabelsFile != "" {
-		labelsFromFile, err = readLabelsFile(conf.LabelsFile)
+		absPath, err = filepath.Abs(conf.LabelsFile)
+		if err != nil {
+			logs.Errorf("read labels file path failed, err: %s", err.Error())
+			os.Exit(1) //nolint:gocritic
+		}
+
+		labelsFromFile, err = readLabelsFile(absPath)
 		if err != nil {
 			logs.Errorf("read labels file failed, err: %s", err.Error())
+			os.Exit(1) //nolint:gocritic
 		}
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		reloadChan, err = watchLabelsFile(ctx, conf.LabelsFile)
+		reloadChan, err = watchLabelsFile(ctx, absPath)
 		if err != nil {
 			logs.Errorf("watch labels file failed, err: %s", err.Error())
 			os.Exit(1) //nolint:gocritic
 		}
+
 		labels = pkgutil.MergeLabels(labels, labelsFromFile)
-		logs.Infof("watching labels file: %s", conf.LabelsFile)
+		logs.Infof("watching labels file: %s", absPath)
 	}
+
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),
 		option.BizID(conf.Biz),
@@ -120,12 +135,7 @@ func Watch(cmd *cobra.Command, args []string) {
 				logs.Errorf("reload labels failed, err: %s", msg.Error.Error())
 				continue
 			}
-			bscp.StopWatch()
 			bscp.ResetLabels(pkgutil.MergeLabels(conf.Labels, msg.Labels))
-			if e := bscp.StartWatch(); e != nil {
-				logs.Errorf(e.Error())
-				os.Exit(1)
-			}
 			logs.Infof("reload labels success")
 		}
 	}()
