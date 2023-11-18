@@ -114,7 +114,13 @@ func (w *Watcher) StartWatch() error {
 		return fmt.Errorf("watch upstream server with payload failed, err: %s", err.Error())
 	}
 	go w.waitForReconnectSignal()
-	go w.loopReceiveWatchedEvent(upstreamClient)
+
+	w.vas.Wg.Add(1)
+	go func() {
+		defer w.vas.Wg.Done()
+		w.loopReceiveWatchedEvent(upstreamClient)
+	}()
+
 	if err = w.loopHeartbeat(); err != nil {
 		w.cancel()
 		return fmt.Errorf("start loop hearbeat failed, err: %s", err.Error())
@@ -123,7 +129,6 @@ func (w *Watcher) StartWatch() error {
 }
 
 func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
-	w.vas.Wg.Add(1)
 	type RecvResult struct {
 		event *pbfs.FeedWatchMessage
 		err   error
@@ -152,7 +157,6 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 			}
 
 			logs.Infof("watch is closed successfully")
-			w.vas.Wg.Done()
 			return
 
 		case result := <-resultChan:
@@ -219,6 +223,7 @@ func (w *Watcher) StopWatch() {
 	w.cancel()
 
 	w.vas.Wg.Wait()
+	logs.Infof("stop watch done, rid: %s", w.vas.Rid)
 }
 
 // OnReleaseChange handle all instances release change event
