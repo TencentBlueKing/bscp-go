@@ -16,7 +16,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -216,28 +215,28 @@ func watchLabelsFile(ctx context.Context, path string) (chan ReloadMessage, erro
 				return
 			case event := <-watcher.Events:
 				msg := ReloadMessage{Event: event}
+				if event.Op != fsnotify.Write {
+					continue
+				}
+
 				absPath, err := filepath.Abs(event.Name)
 				if err != nil {
-					logs.Warnf("unmarshal labels file failed, err: %s", err.Error())
+					logs.Warnf("get labels file absPath failed, err: %s", err.Error())
 					continue
 				}
 				if absPath != path {
 					continue
 				}
-				if event.Op != fsnotify.Write {
-					continue
-				}
-				logs.Infof("labels file %s changed, reload labels", path)
+
+				logs.Infof("labels file %s changed, try reset labels", path)
 				if err := v.ReadInConfig(); err != nil {
-					logs.Infof("read labels file failed, err: ", err.Error())
 					msg.Error = fmt.Errorf("read labels file failed, err: %s", err.Error())
 					watchChan <- msg
 					continue
 				}
 				labels := make(map[string]string)
 				if err := v.Unmarshal(&labels); err != nil {
-					logs.Warnf("unmarshal labels file failed, err: ", err.Error())
-					msg.Error = errors.New("unmarshal labels file failed")
+					msg.Error = fmt.Errorf("unmarshal labels file failed, err: %s", err.Error())
 					watchChan <- msg
 					continue
 				}

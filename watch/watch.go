@@ -149,14 +149,14 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 	for {
 		select {
 		case <-w.vas.Ctx.Done():
-			logs.Warnf("watch will closed because of %s", w.vas.Ctx.Err().Error())
+			logs.Warnf("watch stream will closed because of %s", w.vas.Ctx.Err().Error())
 
 			if err := wStream.CloseSend(); err != nil {
-				logs.Errorf("close watch failed, err: %s", err.Error())
+				logs.Errorf("close watch stream failed, err: %s", err.Error())
 				return
 			}
 
-			logs.Infof("watch is closed successfully")
+			logs.Infof("watch stream is closed successfully")
 			return
 
 		case result := <-resultChan:
