@@ -67,7 +67,7 @@ func (w *Watcher) loopHeartbeat() error {
 		for {
 			select {
 			case <-w.vas.Ctx.Done():
-				logs.V(1).Infof("stream heartbeat stoped because of %s", w.vas.Ctx.Err().Error())
+				logs.Infof("stream heartbeat stoped because of %s", w.vas.Ctx.Err().Error())
 				return
 
 			case <-tick.C:
@@ -77,7 +77,6 @@ func (w *Watcher) loopHeartbeat() error {
 					logs.Warnf("stream heartbeat failed, notify reconnect upstream, err: %v, rid: %s", err, w.vas.Rid)
 
 					w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
-					return
 				}
 				logs.V(1).Infof("stream heartbeat successfully, rid: %s", w.vas.Rid)
 			}

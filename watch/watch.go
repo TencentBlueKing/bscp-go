@@ -68,9 +68,12 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 // New return a Watcher
 func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 	w := &Watcher{
-		opts:     opts,
-		upstream: u,
+		opts:          opts,
+		upstream:      u,
+		reconnectChan: make(chan types.ReconnectSignal, 3),
+		reconnecting:  atomic.NewBool(false),
 	}
+
 	mh := sfs.SidecarMetaHeader{
 		BizID:       w.opts.BizID,
 		Fingerprint: w.opts.Fingerprint,
@@ -86,8 +89,7 @@ func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 // StartWatch start watch stream
 func (w *Watcher) StartWatch() error {
 	w.vas, w.cancel = w.buildVas()
-	w.reconnectChan = make(chan types.ReconnectSignal, 5)
-	w.reconnecting = atomic.NewBool(false)
+
 	var err error
 	apps := []sfs.SideAppMeta{}
 	for _, subscriber := range w.subscribers {

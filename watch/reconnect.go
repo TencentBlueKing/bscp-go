@@ -32,31 +32,39 @@ func (w *Watcher) NotifyReconnect(signal types.ReconnectSignal) {
 }
 
 func (w *Watcher) waitForReconnectSignal() {
-	for { // nolint
+	w.vas.Wg.Add(1)
+	defer w.vas.Wg.Done()
+
+	for {
 		select {
+		case <-w.vas.Ctx.Done():
+			logs.Warnf("watch reconnect signal stoped because of %s", w.vas.Ctx.Err().Error())
+			return
+
 		case signal := <-w.reconnectChan:
 			logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), w.vas.Rid)
 
 			if w.reconnecting.Load() {
 				logs.Warnf("received reconnect signal, but stream is already reconnecting, ignore this signal.")
-				return
+				continue
 			}
 
 			// stop the previous watch stream before close conn.
-			w.StopWatch()
-			w.tryReconnect(w.vas.Rid)
-			return
+			w.reconnecting.Store(true)
+			go func() {
+				defer w.reconnecting.Store(false)
+
+				w.StopWatch()
+				w.tryReconnect(w.vas.Rid)
+			}()
 		}
 	}
 }
 
+// tryReconnect, Use NotifyReconnect method instead of direct call
 func (w *Watcher) tryReconnect(rid string) {
 	st := time.Now()
 	logs.Infof("start to reconnect the upstream server, rid: %s", rid)
-
-	w.reconnecting.Store(true)
-	// set reconnecting to false.
-	defer w.reconnecting.Store(false)
 
 	retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 	for {
