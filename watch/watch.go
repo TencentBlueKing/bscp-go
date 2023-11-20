@@ -70,8 +70,7 @@ func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 	w := &Watcher{
 		opts:          opts,
 		upstream:      u,
-		reconnectChan: make(chan types.ReconnectSignal, 3),
-		reconnecting:  atomic.NewBool(false),
+		reconnectChan: make(chan types.ReconnectSignal),
 	}
 
 	mh := sfs.SidecarMetaHeader{
