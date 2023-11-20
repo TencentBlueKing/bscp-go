@@ -145,30 +145,30 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 		event *pbfs.FeedWatchMessage
 		err   error
 	}
+
 	resultChan := make(chan RecvResult)
 	go func() {
 		for {
+			event, err := wStream.Recv()
 			select {
 			case <-w.vas.Ctx.Done():
 				logs.Infof("stop receive upstream event because of %s", w.vas.Ctx.Err().Error())
 				return
-			default:
+			case resultChan <- RecvResult{event, err}:
 			}
-			event, err := wStream.Recv()
-			resultChan <- RecvResult{event, err}
+
 		}
 	}()
+	defer func() {
+		if err := wStream.CloseSend(); err != nil {
+			logs.Errorf("close watch stream failed, err: %s", err.Error())
+		}
+	}()
+
 	for {
 		select {
 		case <-w.vas.Ctx.Done():
-			logs.Warnf("watch stream will closed because of %s", w.vas.Ctx.Err().Error())
-
-			if err := wStream.CloseSend(); err != nil {
-				logs.Errorf("close watch stream failed, err: %s", err.Error())
-				return
-			}
-
-			logs.Infof("watch stream is closed successfully")
+			logs.Infof("watch stream will closed because of %s", w.vas.Ctx.Err().Error())
 			return
 
 		case result := <-resultChan:

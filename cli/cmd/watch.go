@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof" // nolint
 	"os"
 	"path"
 	"path/filepath"
