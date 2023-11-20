@@ -32,8 +32,10 @@ func (w *Watcher) NotifyReconnect(signal types.ReconnectSignal) {
 }
 
 func (w *Watcher) waitForReconnectSignal() {
-	for { // nolint
+	for {
 		select {
+		case <-w.vas.Ctx.Done():
+			return
 		case signal := <-w.reconnectChan:
 			logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), w.vas.Rid)
 
