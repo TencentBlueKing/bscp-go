@@ -61,26 +61,26 @@ func (w *Watcher) loopHeartbeat() error {
 	go func() {
 		defer w.vas.Wg.Done()
 
+		tick := time.NewTicker(defaultHeartbeatInterval)
+		defer tick.Stop()
+
 		for {
 			select {
 			case <-w.vas.Ctx.Done():
 				logs.V(1).Infof("stream heartbeat stoped because of %s", w.vas.Ctx.Err().Error())
 				return
-			default:
+
+			case <-tick.C:
+				logs.V(1).Infof("stream will heartbeat, rid: %s", w.vas.Rid)
+
+				if err := w.heartbeatOnce(w.vas, heartbeatPayload.MessagingType(), payload); err != nil {
+					logs.Warnf("stream heartbeat failed, notify reconnect upstream, err: %v, rid: %s", err, w.vas.Rid)
+
+					w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
+					return
+				}
+				logs.V(1).Infof("stream heartbeat successfully, rid: %s", w.vas.Rid)
 			}
-
-			time.Sleep(defaultHeartbeatInterval)
-
-			logs.V(1).Infof("stream will heartbeat, rid: %s", w.vas.Rid)
-
-			if err := w.heartbeatOnce(w.vas, heartbeatPayload.MessagingType(), payload); err != nil {
-				logs.Warnf("stream heartbeat failed, notify reconnect upstream, err: %v, rid: %s", err, w.vas.Rid)
-
-				w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
-				continue
-			}
-
-			logs.V(1).Infof("stream heartbeat successfully, rid: %s", w.vas.Rid)
 		}
 	}()
 
@@ -93,6 +93,12 @@ func (w *Watcher) heartbeatOnce(vas *kit.Vas, msgType sfs.MessagingType, payload
 
 	var lastErr error
 	for {
+		select {
+		case <-w.vas.Ctx.Done():
+			return nil
+		default:
+		}
+
 		if retry.RetryCount() == maxHeartbeatRetryCount {
 			return lastErr
 		}

@@ -3,4 +3,5 @@ build/sidecar/bscp
 build_local.sh
 /bscp
 /bscp.exe
+/dev*
 cover.out

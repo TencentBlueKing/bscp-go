@@ -14,6 +14,7 @@ package watch
 
 import (
 	"strconv"
+	"time"
 
 	"bscp.io/pkg/logs"
 	"bscp.io/pkg/tools"
@@ -50,6 +51,7 @@ func (w *Watcher) waitForReconnectSignal() {
 }
 
 func (w *Watcher) tryReconnect(rid string) {
+	st := time.Now()
 	logs.Infof("start to reconnect the upstream server, rid: %s", rid)
 
 	w.reconnecting.Store(true)
@@ -81,4 +83,6 @@ func (w *Watcher) tryReconnect(rid string) {
 		logs.Infof("re-watch stream success, rid: %s", subRid)
 		break
 	}
+
+	logs.Infof("reconnect and re-watch the upstream server done, rid: %s, duration: %s", rid, time.Since(st))
 }

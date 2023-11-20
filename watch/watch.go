@@ -128,6 +128,19 @@ func (w *Watcher) StartWatch() error {
 	return nil
 }
 
+// StopWatch close watch stream
+func (w *Watcher) StopWatch() {
+	st := time.Now()
+	if w.cancel == nil {
+		return
+	}
+
+	w.cancel()
+
+	w.vas.Wg.Wait()
+	logs.Infof("stop watch done, rid: %s, duration: %s", w.vas.Rid, time.Since(st))
+}
+
 func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 	type RecvResult struct {
 		event *pbfs.FeedWatchMessage
@@ -212,18 +225,6 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 			}
 		}
 	}
-}
-
-// StopWatch close watch stream
-func (w *Watcher) StopWatch() {
-	if w.cancel == nil {
-		return
-	}
-
-	w.cancel()
-
-	w.vas.Wg.Wait()
-	logs.Infof("stop watch done, rid: %s", w.vas.Rid)
 }
 
 // OnReleaseChange handle all instances release change event
