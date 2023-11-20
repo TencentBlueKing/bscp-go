@@ -37,6 +37,7 @@ func (w *Watcher) waitForReconnectSignal() {
 		case signal := <-w.reconnectChan:
 			logs.Infof("received reconnect signal, reason: %s, rid: %s", signal.String(), w.vas.Rid)
 
+			// stop the previous watch stream before close conn.
 			w.StopWatch()
 			w.tryReconnect(w.vas.Rid)
 			return

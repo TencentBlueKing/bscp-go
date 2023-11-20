@@ -28,7 +28,6 @@ import (
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	"bscp.io/pkg/runtime/jsoni"
 	sfs "bscp.io/pkg/sf-share"
-	"go.uber.org/atomic"
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
@@ -47,7 +46,6 @@ type Watcher struct {
 	opts            option.WatchOptions
 	metaHeaderValue string
 	reconnectChan   chan types.ReconnectSignal
-	reconnecting    *atomic.Bool
 	Conn            *grpc.ClientConn
 	upstream        upstream.Upstream
 }
