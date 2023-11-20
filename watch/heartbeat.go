@@ -67,7 +67,7 @@ func (w *Watcher) loopHeartbeat() error {
 		for {
 			select {
 			case <-w.vas.Ctx.Done():
-				logs.V(1).Infof("stream heartbeat stoped because of %s", w.vas.Ctx.Err().Error())
+				logs.Infof("stream heartbeat stoped because of %s", w.vas.Ctx.Err().Error())
 				return
 
 			case <-tick.C:

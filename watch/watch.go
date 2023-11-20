@@ -28,7 +28,6 @@ import (
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	"bscp.io/pkg/runtime/jsoni"
 	sfs "bscp.io/pkg/sf-share"
-	"go.uber.org/atomic"
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
@@ -47,7 +46,6 @@ type Watcher struct {
 	opts            option.WatchOptions
 	metaHeaderValue string
 	reconnectChan   chan types.ReconnectSignal
-	reconnecting    *atomic.Bool
 	Conn            *grpc.ClientConn
 	upstream        upstream.Upstream
 }
@@ -68,9 +66,11 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 // New return a Watcher
 func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 	w := &Watcher{
-		opts:     opts,
-		upstream: u,
+		opts:          opts,
+		upstream:      u,
+		reconnectChan: make(chan types.ReconnectSignal),
 	}
+
 	mh := sfs.SidecarMetaHeader{
 		BizID:       w.opts.BizID,
 		Fingerprint: w.opts.Fingerprint,
@@ -86,8 +86,7 @@ func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 // StartWatch start watch stream
 func (w *Watcher) StartWatch() error {
 	w.vas, w.cancel = w.buildVas()
-	w.reconnectChan = make(chan types.ReconnectSignal, 5)
-	w.reconnecting = atomic.NewBool(false)
+
 	var err error
 	apps := []sfs.SideAppMeta{}
 	for _, subscriber := range w.subscribers {
