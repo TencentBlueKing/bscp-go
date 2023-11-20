@@ -130,6 +130,7 @@ func (w *Watcher) StartWatch() error {
 
 // StopWatch close watch stream
 func (w *Watcher) StopWatch() {
+	st := time.Now()
 	if w.cancel == nil {
 		return
 	}
@@ -137,7 +138,7 @@ func (w *Watcher) StopWatch() {
 	w.cancel()
 
 	w.vas.Wg.Wait()
-	logs.Infof("stop watch done, rid: %s", w.vas.Rid)
+	logs.Infof("stop watch done, rid: %s, duration: %s", w.vas.Rid, time.Since(st))
 }
 
 func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
