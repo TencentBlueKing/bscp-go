@@ -5,6 +5,7 @@ go 1.20
 require (
 	bscp.io v0.0.0-00010101000000-000000000000
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -22,7 +23,6 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
