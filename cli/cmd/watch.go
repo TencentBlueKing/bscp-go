@@ -171,7 +171,7 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 		return nil, fmt.Errorf("read labels file failed, err: %s", err.Error())
 	}
 
-	reloadChan, err := watchLabelsFile(ctx, absPath)
+	reloadChan, err := watchLabelsFile(ctx, absPath, labelsFromFile)
 	if err != nil {
 		return nil, fmt.Errorf("watch labels file failed, err: %s", err.Error())
 	}

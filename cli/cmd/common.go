@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"bscp.io/pkg/logs"
@@ -193,7 +194,7 @@ func initLabelsFromEnv() {
 	conf.Labels = util.MergeLabels(conf.Labels, labels)
 }
 
-func watchLabelsFile(ctx context.Context, path string) (chan ReloadMessage, error) {
+func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]string) (chan ReloadMessage, error) {
 	watchChan := make(chan ReloadMessage)
 	v := viper.New()
 	v.SetConfigFile(path)
@@ -205,6 +206,7 @@ func watchLabelsFile(ctx context.Context, path string) (chan ReloadMessage, erro
 		return nil, fmt.Errorf("add watcher for %s failed, err: %s", path, err.Error())
 	}
 	go func() {
+		oldLabels := oldLabels
 		for {
 			select {
 			case <-ctx.Done():
@@ -228,20 +230,27 @@ func watchLabelsFile(ctx context.Context, path string) (chan ReloadMessage, erro
 					continue
 				}
 
-				logs.Infof("labels file %s changed, try reset labels", path)
 				if err := v.ReadInConfig(); err != nil {
 					msg.Error = fmt.Errorf("read labels file failed, err: %s", err.Error())
 					watchChan <- msg
 					continue
 				}
+
 				labels := make(map[string]string)
 				if err := v.Unmarshal(&labels); err != nil {
 					msg.Error = fmt.Errorf("unmarshal labels file failed, err: %s", err.Error())
 					watchChan <- msg
 					continue
 				}
+
+				if reflect.DeepEqual(labels, oldLabels) {
+					continue
+				}
+
+				logs.Infof("labels file %s changed, try reset labels, old: %s, new: %s", path, oldLabels, labels)
 				msg.Labels = labels
 				watchChan <- msg
+				oldLabels = labels
 			case err := <-watcher.Errors:
 				logs.Errorf("watcher error: %s", err.Error())
 			}
