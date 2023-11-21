@@ -66,9 +66,10 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 // New return a Watcher
 func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
 	w := &Watcher{
-		opts:          opts,
-		upstream:      u,
-		reconnectChan: make(chan types.ReconnectSignal),
+		opts:     opts,
+		upstream: u,
+		// 重启按原子顺序, 添加一个buff, 对labelfile watch的场景，保留一个重启次数
+		reconnectChan: make(chan types.ReconnectSignal, 1),
 	}
 
 	mh := sfs.SidecarMetaHeader{
