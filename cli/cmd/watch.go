@@ -59,14 +59,12 @@ func Watch(cmd *cobra.Command, args []string) {
 	}
 
 	confLabels := conf.Labels
+	r := &refinedLabelsFile{}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var (
-		r   *refinedLabelsFile
-		err error
-	)
-
+	var err error
 	if conf.LabelsFile != "" {
 		r, err = refineLabelsFile(ctx, conf.LabelsFile, confLabels)
 		if err != nil {
