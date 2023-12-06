@@ -25,7 +25,7 @@ cd examples/pull-file
 go run main.go
 ```
 
-示例都能运行成功，再参考修改
+示例都能运行成功，可参考修改
 
 
 ## 编译&引入
