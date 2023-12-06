@@ -58,15 +58,16 @@ func main() {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
-
 }
 
+// pullAppFiles 拉取服务文件
 func pullAppFiles(bscp client.Client, app string, opts []option.AppOption) error {
 	releaseID, files, _, _, err := bscp.PullFiles(app, opts...)
 	if err != nil {
 		return err
 	}
 
+	// 文件列表, 可以自定义操作，如查看content, 写入文件等
 	for _, f := range files {
 		logs.Infof("get event: %d, %v", releaseID, f)
 	}
