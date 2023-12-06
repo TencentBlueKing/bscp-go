@@ -14,9 +14,13 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"bscp.io/pkg/logs"
 	pbhook "bscp.io/pkg/protocol/core/hook"
@@ -61,8 +65,9 @@ func main() {
 
 }
 
-func callback(releaseID uint32, files []*types.ConfigItemFile, pre *pbhook.HookSpec, post *pbhook.HookSpec) {
-
+func callback(releaseID uint32, files []*types.ConfigItemFile, preHook *pbhook.HookSpec, postHook *pbhook.HookSpec) error {
+	fmt.Println(releaseID)
+	return nil
 }
 
 func watchAppFiles(bscp client.Client, app string, opts []option.AppOption) error {
@@ -70,6 +75,16 @@ func watchAppFiles(bscp client.Client, app string, opts []option.AppOption) erro
 	if err != nil {
 		return err
 	}
+
+	if err := bscp.StartWatch(); err != nil {
+		return err
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	<-ctx.Done()
+	bscp.StopWatch()
 
 	return nil
 }
