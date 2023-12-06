@@ -22,8 +22,8 @@ bscp-go is an official command-line tool provided by BlueKing Basic Configuratio
 
 ## Quick Start
 
-[Containerized Access](./docs/usage.md)
-[SDK Examples](./examples/README.md)
+- [Containerized Access](./docs/usage.md)
+- [SDK Examples](./examples/README.md)
 
 ## Support
 
