@@ -14,7 +14,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -27,6 +26,8 @@ import (
 )
 
 func main() {
+	logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
+
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
@@ -67,7 +68,7 @@ func pullAppFiles(bscp client.Client, app string, opts []option.AppOption) error
 	}
 
 	for _, f := range files {
-		fmt.Println(releaseID, f.Name, f.Path)
+		logs.Infof("get event: %d, %v", releaseID, f)
 	}
 
 	return nil

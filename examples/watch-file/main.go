@@ -15,7 +15,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
@@ -32,6 +31,8 @@ import (
 )
 
 func main() {
+	logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
+
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
@@ -65,8 +66,9 @@ func main() {
 
 }
 
-func callback(releaseID uint32, files []*types.ConfigItemFile, preHook *pbhook.HookSpec, postHook *pbhook.HookSpec) error {
-	fmt.Println(releaseID)
+func callback(releaseID uint32, files []*types.ConfigItemFile,
+	preHook *pbhook.HookSpec, postHook *pbhook.HookSpec) error {
+	logs.Infof("get event: %d, %v", releaseID, files)
 	return nil
 }
 
