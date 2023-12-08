@@ -2,8 +2,8 @@ bscp sdk examples
 ============
 
 ## 示例代码
-* [pull-file](https://github.com/TencentBlueKing/bscp-go/examples/pull-file) - 拉取 file 型配置
-* [watch-file](https://github.com/TencentBlueKing/bscp-go/examples/watch-file) - 拉取 file 型配置并监听配置变更
+* [pull-file](./pull-file) - 拉取 file 型配置
+* [watch-file](./watch-file) - 拉取 file 型配置并监听配置变更
 
 运行测试
 
