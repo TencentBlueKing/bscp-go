@@ -18,6 +18,7 @@ import (
 
 	"bscp.io/pkg/logs"
 	pbci "bscp.io/pkg/protocol/core/config-item"
+	pbhook "bscp.io/pkg/protocol/core/hook"
 	sfs "bscp.io/pkg/sf-share"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
@@ -34,6 +35,14 @@ type ReconnectSignal struct {
 // String format the reconnect signal to a string.
 func (rs ReconnectSignal) String() string {
 	return rs.Reason
+}
+
+// Release bscp 服务版本
+type Release struct {
+	ReleaseID uint32            `json:"release_id"`
+	Items     []*ConfigItemFile `json:"items"`
+	PreHook   *pbhook.HookSpec  `json:"pre_hook"`
+	PostHook  *pbhook.HookSpec  `json:"post_hook"`
 }
 
 // ConfigItemFile defines config item file

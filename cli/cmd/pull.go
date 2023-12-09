@@ -89,37 +89,37 @@ func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, op
 	if e := os.MkdirAll(appDir, os.ModePerm); e != nil {
 		return e
 	}
-	releaseID, files, preHook, postHook, err := bscp.PullFiles(app, opts...)
+	release, err := bscp.PullFiles(app, opts...)
 	if err != nil {
 		return err
 	}
 	// 2. execute pre hook
-	if preHook != nil {
-		if err := util.ExecuteHook(preHook, table.PreHook, tempDir, biz, app); err != nil {
+	if release.PreHook != nil {
+		if err := util.ExecuteHook(release.PreHook, table.PreHook, tempDir, biz, app); err != nil {
 			return err
 		}
 	}
 	// 3. download files and save to temp dir
 	filesDir := path.Join(appDir, "files")
-	if err := util.UpdateFiles(filesDir, files); err != nil {
+	if err := util.UpdateFiles(filesDir, release.Items); err != nil {
 		return err
 	}
 	// 4. execute post hook
-	if postHook != nil {
-		if err := util.ExecuteHook(postHook, table.PostHook, tempDir, biz, app); err != nil {
+	if release.PostHook != nil {
+		if err := util.ExecuteHook(release.PostHook, table.PostHook, tempDir, biz, app); err != nil {
 			return err
 		}
 	}
 	// 5. append metadata to metadata.json
 	metadata := &eventmeta.EventMeta{
-		ReleaseID: releaseID,
+		ReleaseID: release.ReleaseID,
 		Status:    eventmeta.EventStatusSuccess,
 		EventTime: time.Now().Format(time.RFC3339),
 	}
 	if err := eventmeta.AppendMetadataToFile(appDir, metadata); err != nil {
 		return err
 	}
-	logs.Infof("pull files success, current releaseID: %d", releaseID)
+	logs.Infof("pull files success, current releaseID: %d", release.ReleaseID)
 	return nil
 }
 

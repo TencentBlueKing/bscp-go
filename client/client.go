@@ -20,7 +20,6 @@ import (
 	"bscp.io/pkg/criteria/constant"
 	"bscp.io/pkg/kit"
 	"bscp.io/pkg/logs"
-	pbhook "bscp.io/pkg/protocol/core/hook"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	"bscp.io/pkg/runtime/jsoni"
 	sfs "bscp.io/pkg/sf-share"
@@ -37,8 +36,7 @@ import (
 // Client bscp client method
 type Client interface {
 	// PullFiles pull files from remote
-	PullFiles(app string, opts ...option.AppOption) (
-		uint32, []*types.ConfigItemFile, *pbhook.HookSpec, *pbhook.HookSpec, error)
+	PullFiles(app string, opts ...option.AppOption) (*types.Release, error)
 	// AddWatcher add a watcher to client
 	AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error
 	// StartWatch start watch
@@ -165,8 +163,7 @@ func (c *client) ResetLabels(labels map[string]string) {
 }
 
 // PullFiles pull files from remote
-func (c *client) PullFiles(app string, opts ...option.AppOption) (
-	uint32, []*types.ConfigItemFile, *pbhook.HookSpec, *pbhook.HookSpec, error) {
+func (c *client) PullFiles(app string, opts ...option.AppOption) (*types.Release, error) {
 	option := &option.AppOptions{}
 	for _, opt := range opts {
 		opt(option)
@@ -191,7 +188,7 @@ func (c *client) PullFiles(app string, opts ...option.AppOption) (
 	}
 	resp, err := c.upstream.PullAppFileMeta(vas, req)
 	if err != nil {
-		return 0, nil, nil, nil, fmt.Errorf("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
+		return nil, fmt.Errorf("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}
 	files := make([]*types.ConfigItemFile, len(resp.FileMetas))
 	for i, meta := range resp.FileMetas {
@@ -209,7 +206,14 @@ func (c *client) PullFiles(app string, opts ...option.AppOption) (
 			},
 		}
 	}
-	return resp.ReleaseId, files, resp.PreHook, resp.PostHook, nil
+
+	r := &types.Release{
+		ReleaseID: resp.ReleaseId,
+		Items:     files,
+		PreHook:   resp.PreHook,
+		PostHook:  resp.PostHook,
+	}
+	return r, nil
 }
 
 func (c *client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint
