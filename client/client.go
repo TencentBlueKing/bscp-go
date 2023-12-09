@@ -210,7 +210,7 @@ func (c *client) PullFiles(app string, opts ...option.AppOption) (*types.Release
 
 	r := &types.Release{
 		ReleaseID: resp.ReleaseId,
-		Items:     files,
+		FileItems: files,
 		PreHook:   resp.PreHook,
 		PostHook:  resp.PostHook,
 	}

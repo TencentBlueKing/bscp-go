@@ -204,12 +204,12 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 	}
 
 	filesDir := path.Join(w.AppTempDir, "files")
-	if err := util.UpdateFiles(filesDir, release.Items); err != nil {
+	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
 		logs.Errorf(err.Error())
 		return err
 	}
 	// 4. clear old files
-	if err := clearOldFiles(filesDir, release.Items); err != nil {
+	if err := clearOldFiles(filesDir, release.FileItems); err != nil {
 		logs.Errorf("clear old files failed, err: %s", err.Error())
 		return err
 	}

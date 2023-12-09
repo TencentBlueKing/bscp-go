@@ -260,7 +260,7 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 
 			release := &types.Release{
 				ReleaseID: pl.ReleaseMeta.ReleaseID,
-				Items:     configItemFiles,
+				FileItems: configItemFiles,
 				KvItems:   pl.ReleaseMeta.KvMetas,
 				PreHook:   pl.ReleaseMeta.PreHook,
 				PostHook:  pl.ReleaseMeta.PostHook,
