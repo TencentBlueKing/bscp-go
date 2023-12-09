@@ -10,23 +10,19 @@
  * limitations under the License.
  */
 
-// watch file example for bscp sdk
+// pull kv example for bscp sdk
 package main
 
 import (
-	"context"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"bscp.io/pkg/logs"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/option"
-	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 func main() {
@@ -58,37 +54,20 @@ func main() {
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
-	if err = watchAppRelease(bscp, appName, opts); err != nil {
+	key := "key1"
+	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
 }
 
-// callback watch 回调函数
-func callback(release *types.Release) error {
-
-	// 文件列表, 可以自定义操作，如查看content, 写入文件等
-	logs.Infof("get event: %d, %v", release.ReleaseID, release.FileItems)
-
-	return nil
-}
-
-// watchAppRelease watch 服务版本
-func watchAppRelease(bscp client.Client, app string, opts []option.AppOption) error {
-	err := bscp.AddWatcher(callback, app, opts...)
+// pullAppKvs 拉取 key 的值
+func pullAppKvs(bscp client.Client, app string, key string, opts []option.AppOption) error {
+	value, err := bscp.Get(app, key, opts...)
 	if err != nil {
 		return err
 	}
 
-	if err := bscp.StartWatch(); err != nil {
-		return err
-	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
-	<-ctx.Done()
-	bscp.StopWatch()
-
+	logs.Infof("get %s value %s", key, value)
 	return nil
 }

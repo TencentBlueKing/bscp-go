@@ -58,7 +58,7 @@ func main() {
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
-	if err = watchAppRelease(bscp, appName, opts); err != nil {
+	if err = watchAppKV(bscp, appName, opts); err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
@@ -67,14 +67,16 @@ func main() {
 // callback watch 回调函数
 func callback(release *types.Release) error {
 
-	// 文件列表, 可以自定义操作，如查看content, 写入文件等
-	logs.Infof("get event: %d, %v", release.ReleaseID, release.FileItems)
+	// kv 列表, 可以读取值
+	for _, item := range release.KvItems {
+		logs.Infof("get event: %d, %v", release.ReleaseID, item.Key)
+	}
 
 	return nil
 }
 
-// watchAppRelease watch 服务版本
-func watchAppRelease(bscp client.Client, app string, opts []option.AppOption) error {
+// watchAppKV watch 服务版本
+func watchAppKV(bscp client.Client, app string, opts []option.AppOption) error {
 	err := bscp.AddWatcher(callback, app, opts...)
 	if err != nil {
 		return err

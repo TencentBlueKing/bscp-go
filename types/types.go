@@ -40,7 +40,8 @@ func (rs ReconnectSignal) String() string {
 // Release bscp 服务版本
 type Release struct {
 	ReleaseID uint32            `json:"release_id"`
-	Items     []*ConfigItemFile `json:"items"`
+	FileItems []*ConfigItemFile `json:"items"`
+	KvItems   []*sfs.KvMetaV1   `json:"kvs"`
 	PreHook   *pbhook.HookSpec  `json:"pre_hook"`
 	PostHook  *pbhook.HookSpec  `json:"post_hook"`
 }

@@ -101,7 +101,7 @@ func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, op
 	}
 	// 3. download files and save to temp dir
 	filesDir := path.Join(appDir, "files")
-	if err := util.UpdateFiles(filesDir, release.Items); err != nil {
+	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
 		return err
 	}
 	// 4. execute post hook

@@ -257,10 +257,18 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 					FileMeta:   ci,
 				})
 			}
+
+			release := &types.Release{
+				ReleaseID: pl.ReleaseMeta.ReleaseID,
+				FileItems: configItemFiles,
+				KvItems:   pl.ReleaseMeta.KvMetas,
+				PreHook:   pl.ReleaseMeta.PreHook,
+				PostHook:  pl.ReleaseMeta.PostHook,
+			}
+
 			// TODO: need to retry if callback with error ?
 			start := time.Now()
-			if err := subscriber.Callback(pl.ReleaseMeta.ReleaseID, configItemFiles,
-				pl.ReleaseMeta.PreHook, pl.ReleaseMeta.PostHook); err != nil {
+			if err := subscriber.Callback(release); err != nil {
 				logs.Errorf("execute watch callback for app %s failed, err: %s", subscriber.App, err.Error())
 				subscriber.reportReleaseChangeCallbackMetrics("failed", start)
 			}

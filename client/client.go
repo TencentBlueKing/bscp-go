@@ -37,6 +37,7 @@ import (
 type Client interface {
 	// PullFiles pull files from remote
 	PullFiles(app string, opts ...option.AppOption) (*types.Release, error)
+	Get(app string, key string, opts ...option.AppOption) (string, error)
 	// AddWatcher add a watcher to client
 	AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error
 	// StartWatch start watch
@@ -209,11 +210,32 @@ func (c *client) PullFiles(app string, opts ...option.AppOption) (*types.Release
 
 	r := &types.Release{
 		ReleaseID: resp.ReleaseId,
-		Items:     files,
+		FileItems: files,
 		PreHook:   resp.PreHook,
 		PostHook:  resp.PostHook,
 	}
 	return r, nil
+}
+
+// Get 读取 Key 的值
+func (c *client) Get(app string, key string, opts ...option.AppOption) (string, error) {
+	option := &option.AppOptions{}
+	for _, opt := range opts {
+		opt(option)
+	}
+	vas, _ := c.buildVas()
+	req := &pbfs.GetKvValueReq{
+		ApiVersion: sfs.CurrentAPIVersion,
+		BizId:      c.opts.BizID,
+		Token:      c.opts.Token,
+		Key:        key,
+	}
+	resp, err := c.upstream.GetKvValue(vas, req)
+	if err != nil {
+		return "", fmt.Errorf("get kv value failed, err: %s, rid: %s", err, vas.Rid)
+	}
+
+	return resp.Value, nil
 }
 
 func (c *client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint

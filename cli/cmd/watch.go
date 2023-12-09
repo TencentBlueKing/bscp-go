@@ -27,7 +27,6 @@ import (
 
 	"bscp.io/pkg/dal/table"
 	"bscp.io/pkg/logs"
-	pbhook "bscp.io/pkg/protocol/core/hook"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 
@@ -184,40 +183,39 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 	return r, nil
 }
 
-func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItemFile,
-	preHook *pbhook.HookSpec, postHook *pbhook.HookSpec) error {
+func (w *WatchHandler) watchCallback(release *types.Release) error {
 	w.Lock.Lock()
 	defer w.Lock.Unlock()
 
 	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(w.AppTempDir)
 	if err != nil {
 		logs.Warnf("get latest release metadata failed, err: %s, maybe you should exec pull command first", err.Error())
-	} else if lastMetadata.ReleaseID == releaseID {
-		logs.Infof("current release is consistent with the received release %d, skip", releaseID)
+	} else if lastMetadata.ReleaseID == release.ReleaseID {
+		logs.Infof("current release is consistent with the received release %d, skip", release.ReleaseID)
 		return nil
 	}
 
 	// 1. execute pre hook
-	if preHook != nil {
-		if err := util.ExecuteHook(preHook, table.PreHook, w.TempDir, w.Biz, w.App); err != nil {
+	if release.PreHook != nil {
+		if err := util.ExecuteHook(release.PreHook, table.PreHook, w.TempDir, w.Biz, w.App); err != nil {
 			logs.Errorf(err.Error())
 			return err
 		}
 	}
 
 	filesDir := path.Join(w.AppTempDir, "files")
-	if err := util.UpdateFiles(filesDir, files); err != nil {
+	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
 		logs.Errorf(err.Error())
 		return err
 	}
 	// 4. clear old files
-	if err := clearOldFiles(filesDir, files); err != nil {
+	if err := clearOldFiles(filesDir, release.FileItems); err != nil {
 		logs.Errorf("clear old files failed, err: %s", err.Error())
 		return err
 	}
 	// 5. execute post hook
-	if postHook != nil {
-		if err := util.ExecuteHook(postHook, table.PostHook, w.TempDir, w.Biz, w.App); err != nil {
+	if release.PostHook != nil {
+		if err := util.ExecuteHook(release.PostHook, table.PostHook, w.TempDir, w.Biz, w.App); err != nil {
 			logs.Errorf(err.Error())
 			return err
 		}
@@ -225,7 +223,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 	// 6. reload app
 	// 6.1 append metadata to metadata.json
 	metadata := &eventmeta.EventMeta{
-		ReleaseID: releaseID,
+		ReleaseID: release.ReleaseID,
 		Status:    eventmeta.EventStatusSuccess,
 		EventTime: time.Now().Format(time.RFC3339),
 	}
@@ -234,7 +232,7 @@ func (w *WatchHandler) watchCallback(releaseID uint32, files []*types.ConfigItem
 		return err
 	}
 	// TODO: 6.2 call the callback notify api
-	logs.Infof("watch release change success, current releaseID: %d", releaseID)
+	logs.Infof("watch release change success, current releaseID: %d", release.ReleaseID)
 	return nil
 }
 

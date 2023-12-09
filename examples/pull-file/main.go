@@ -68,7 +68,7 @@ func pullAppFiles(bscp client.Client, app string, opts []option.AppOption) error
 	}
 
 	// 文件列表, 可以自定义操作，如查看content, 写入文件等
-	for _, f := range release.Items {
+	for _, f := range release.FileItems {
 		logs.Infof("get event: %d, %v", release.ReleaseID, f)
 	}
 
