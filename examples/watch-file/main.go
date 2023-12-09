@@ -22,7 +22,6 @@ import (
 	"syscall"
 
 	"bscp.io/pkg/logs"
-	pbhook "bscp.io/pkg/protocol/core/hook"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
@@ -66,11 +65,10 @@ func main() {
 }
 
 // callback watch 回调函数
-func callback(releaseID uint32, files []*types.ConfigItemFile,
-	preHook *pbhook.HookSpec, postHook *pbhook.HookSpec) error {
+func callback(release *types.Release) error {
 
 	// 文件列表, 可以自定义操作，如查看content, 写入文件等
-	logs.Infof("get event: %d, %v", releaseID, files)
+	logs.Infof("get event: %d, %v", release.ReleaseID, release.Items)
 
 	return nil
 }

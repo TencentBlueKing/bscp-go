@@ -14,7 +14,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -55,19 +54,20 @@ func main() {
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
-	if err = pullAppKvs(bscp, appName, opts); err != nil {
+	key := "key1"
+	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
 		logs.Errorf(err.Error())
 		os.Exit(1)
 	}
 }
 
-// pullAppFiles 拉取服务文件
-func pullAppKvs(bscp client.Client, app string, opts []option.AppOption) error {
-	value, err := bscp.Get(app, opts...)
+// pullAppKvs 拉取 key 的值
+func pullAppKvs(bscp client.Client, app string, key string, opts []option.AppOption) error {
+	value, err := bscp.Get(app, key, opts...)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("leijiaomin", value)
+	logs.Infof("get %s value %s", key, value)
 	return nil
 }

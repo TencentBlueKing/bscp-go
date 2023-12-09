@@ -41,6 +41,7 @@ func (rs ReconnectSignal) String() string {
 type Release struct {
 	ReleaseID uint32            `json:"release_id"`
 	Items     []*ConfigItemFile `json:"items"`
+	KvItems   []*sfs.KvMetaV1   `json:"kvs"`
 	PreHook   *pbhook.HookSpec  `json:"pre_hook"`
 	PostHook  *pbhook.HookSpec  `json:"post_hook"`
 }
