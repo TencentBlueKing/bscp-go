@@ -232,7 +232,7 @@ func (c *client) Get(app string, key string, opts ...option.AppOption) (string, 
 	}
 	resp, err := c.upstream.GetKvValue(vas, req)
 	if err != nil {
-		return "", fmt.Errorf("get key values failed, err: %s, rid: %s", err.Error(), vas.Rid)
+		return "", fmt.Errorf("get kv value failed, err: %s, rid: %s", err, vas.Rid)
 	}
 
 	return resp.Value, nil

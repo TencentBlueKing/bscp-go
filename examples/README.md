@@ -4,6 +4,8 @@ bscp sdk examples
 ## 示例代码
 * [pull-file](./pull-file) - 拉取 file 型配置
 * [watch-file](./watch-file) - 拉取 file 型配置并监听配置变更
+* [pull-kv](./pull-kv) - 拉取 kv 型配置
+* [watch-kv](./watch-kv) - 拉取 kv 型配置并监听配置变更
 
 运行测试
 
