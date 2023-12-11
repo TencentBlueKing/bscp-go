@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-// watch file example for bscp sdk
+// vk ctl example for bscp sdk
 package main
 
 import (
