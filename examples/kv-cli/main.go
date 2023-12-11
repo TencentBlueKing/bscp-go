@@ -23,6 +23,7 @@ import (
 	"syscall"
 
 	"bscp.io/pkg/logs"
+	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
@@ -30,8 +31,34 @@ import (
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
+var rootCmd = &cobra.Command{
+	Use:   "kv-ctl",
+	Short: "bscp kv ctl",
+	Run: func(cmd *cobra.Command, args []string) {
+		execute()
+	},
+}
+
+var (
+	watchMode  bool
+	keys       string
+	logEnabled bool
+)
+
+func init() {
+	rootCmd.PersistentFlags().BoolVarP(&watchMode, "watch", "w", false, "use watch mode")
+	rootCmd.PersistentFlags().BoolVarP(&logEnabled, "log.enabled", "", false, "enable log")
+	rootCmd.PersistentFlags().StringVarP(&keys, "keys", "k", "", "use commas to separate, like key1,key2. (watch mode empty key will get all values)")
+}
+
 func main() {
-	logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
+	rootCmd.Execute()
+}
+
+func execute() {
+	if logEnabled {
+		logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
+	}
 
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
@@ -67,19 +94,36 @@ func main() {
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
-	if err = watchAppKV(bscp, appName, opts); err != nil {
-		logs.Errorf(err.Error())
-		os.Exit(1)
+	keySlice := strings.Split(keys, ",")
+	if watchMode {
+		if err = watchAppKV(bscp, appName, keySlice, opts); err != nil {
+			logs.Errorf(err.Error())
+			os.Exit(1)
+		}
+	} else {
+		result := map[string]string{}
+
+		for _, key := range keySlice {
+			value, err := bscp.Get(appName, key, opts...)
+			if err != nil {
+				continue
+			}
+			result[key] = value
+		}
+
+		json.NewEncoder(os.Stdout).Encode(result) // nolint
 	}
 }
 
 type watcher struct {
-	bscp client.Client
-	app  string
+	bscp   client.Client
+	app    string
+	keyMap map[string]struct{}
 }
 
 // callback watch 回调函数
 func (w *watcher) callback(release *types.Release) error {
+	result := map[string]string{}
 
 	// kv 列表, 可以读取值
 	for _, item := range release.KvItems {
@@ -89,16 +133,29 @@ func (w *watcher) callback(release *types.Release) error {
 			continue
 		}
 		logs.Infof("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
+
+		// key匹配或者为空时，输出
+		if _, ok := w.keyMap[item.Key]; ok || len(keys) == 0 {
+			result[item.Key] = value
+		}
 	}
+
+	json.NewEncoder(os.Stdout).Encode(result) // nolint
 
 	return nil
 }
 
 // watchAppKV watch 服务版本
-func watchAppKV(bscp client.Client, app string, opts []option.AppOption) error {
+func watchAppKV(bscp client.Client, app string, keys []string, opts []option.AppOption) error {
+	keyMap := map[string]struct{}{}
+	for _, v := range keys {
+		keyMap[v] = struct{}{}
+	}
+
 	w := watcher{
-		bscp: bscp,
-		app:  app,
+		bscp:   bscp,
+		app:    app,
+		keyMap: keyMap,
 	}
 	err := bscp.AddWatcher(w.callback, app, opts...)
 	if err != nil {

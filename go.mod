@@ -72,4 +72,4 @@ require (
 	k8s.io/klog/v2 v2.100.1 // indirect
 )
 
-replace bscp.io => github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231209035018-dc424ab7702d
+replace bscp.io => github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231211134924-1689a2caa08a

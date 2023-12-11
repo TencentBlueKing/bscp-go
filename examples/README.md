@@ -2,6 +2,7 @@ bscp sdk examples
 ============
 
 ## 示例代码
+* [kv-ctl](./kv-ctl) - 拉取 kv 型配置命令行示例
 * [pull-file](./pull-file) - 拉取 file 型配置
 * [watch-file](./watch-file) - 拉取 file 型配置并监听配置变更
 * [pull-kv](./pull-kv) - 拉取 kv 型配置
@@ -19,6 +20,8 @@ export BSCP_TOKEN="xxx"
 export BSCP_BIZ="2"
 # 当前服务名称
 export BSCP_APP="app-test"
+# 当前实例标签, 灰度发布时使用
+export BSCP_LABELS='{"region": "sz"}'
 ```
 
 运行示例
