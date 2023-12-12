@@ -37,6 +37,7 @@ import (
 type Client interface {
 	// PullFiles pull files from remote
 	PullFiles(app string, opts ...option.AppOption) (*types.Release, error)
+	// Pull Key Value from remote
 	Get(app string, key string, opts ...option.AppOption) (string, error)
 	// AddWatcher add a watcher to client
 	AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error
@@ -227,8 +228,18 @@ func (c *client) Get(app string, key string, opts ...option.AppOption) (string, 
 	req := &pbfs.GetKvValueReq{
 		ApiVersion: sfs.CurrentAPIVersion,
 		BizId:      c.opts.BizID,
-		Token:      c.opts.Token,
-		Key:        key,
+		AppMeta: &pbfs.AppMeta{
+			App:    app,
+			Labels: c.opts.Labels,
+			Uid:    c.opts.UID,
+		},
+		Token: c.opts.Token,
+		Key:   key,
+	}
+	req.AppMeta.Labels = util.MergeLabels(c.opts.Labels, option.Labels)
+	// reset uid
+	if option.UID != "" {
+		req.AppMeta.Uid = option.UID
 	}
 	resp, err := c.upstream.GetKvValue(vas, req)
 	if err != nil {

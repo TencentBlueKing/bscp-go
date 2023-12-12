@@ -14,6 +14,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"strconv"
 	"strings"
@@ -36,16 +37,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	labelsStr := os.Getenv("BSCP_LABELS")
+	labels := map[string]string{}
+	if labelsStr != "" {
+		json.Unmarshal([]byte(labelsStr), &labels) // nolint
+	}
+
 	conf := &config.ClientConfig{
 		FeedAddrs: strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ","),
 		Biz:       uint32(biz),
 		Token:     os.Getenv("BSCP_TOKEN"),
+		Labels:    labels,
 	}
 
 	bscp, err := client.New(
 		option.FeedAddrs(conf.FeedAddrs),
 		option.BizID(conf.Biz),
 		option.Token(conf.Token),
+		option.Labels(conf.Labels),
 	)
 	if err != nil {
 		logs.Errorf(err.Error())
