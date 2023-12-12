@@ -22,6 +22,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 )
 
@@ -32,7 +33,7 @@ func main() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -48,14 +49,14 @@ func main() {
 		option.Token(conf.Token),
 	)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
 	if err = pullAppFiles(bscp, appName, opts); err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -69,7 +70,7 @@ func pullAppFiles(bscp client.Client, app string, opts []option.AppOption) error
 
 	// 文件列表, 可以自定义操作，如查看content, 写入文件等
 	for _, f := range release.FileItems {
-		logs.Infof("get event: %d, %v", release.ReleaseID, f)
+		logger.Info("get event: %d, %v", release.ReleaseID, f)
 	}
 
 	return nil

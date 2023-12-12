@@ -26,6 +26,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
@@ -37,7 +38,7 @@ func main() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -61,14 +62,14 @@ func main() {
 		option.Labels(conf.Labels),
 	)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
 	if err = watchAppKV(bscp, appName, opts); err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -85,10 +86,10 @@ func (w *watcher) callback(release *types.Release) error {
 	for _, item := range release.KvItems {
 		value, err := w.bscp.Get(w.app, item.Key)
 		if err != nil {
-			logs.Errorf("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
+			logger.Error("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
 			continue
 		}
-		logs.Infof("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
+		logger.Info("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
 	}
 
 	return nil

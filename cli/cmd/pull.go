@@ -20,13 +20,13 @@ import (
 	"time"
 
 	"bscp.io/pkg/dal/table"
-	"bscp.io/pkg/logs"
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
 )
@@ -44,14 +44,14 @@ var (
 // Pull executes the pull command.
 func Pull(cmd *cobra.Command, args []string) {
 	if err := initArgs(); err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
 	if conf.LabelsFile != "" {
 		labels, err := readLabelsFile(conf.LabelsFile)
 		if err != nil {
-			logs.Errorf("read labels file failed, err: %s", err.Error())
+			logger.Error("read labels file failed, err: %s", err.Error())
 			os.Exit(1)
 		}
 		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
@@ -64,7 +64,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		option.UID(conf.UID),
 	)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	for _, app := range conf.Apps {
@@ -76,7 +76,7 @@ func Pull(cmd *cobra.Command, args []string) {
 			tempDir = conf.TempDir
 		}
 		if err = pullAppFiles(bscp, tempDir, conf.Biz, app.Name, opts); err != nil {
-			logs.Errorf(err.Error())
+			logger.Error(err.Error())
 			os.Exit(1)
 		}
 	}
@@ -118,7 +118,7 @@ func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, op
 	if err := eventmeta.AppendMetadataToFile(appDir, metadata); err != nil {
 		return err
 	}
-	logs.Infof("pull files success, current releaseID: %d", release.ReleaseID)
+	logger.Info("pull files success, current releaseID: %d", release.ReleaseID)
 	return nil
 }
 

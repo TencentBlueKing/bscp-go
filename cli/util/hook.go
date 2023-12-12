@@ -19,8 +19,9 @@ import (
 	"path"
 
 	"bscp.io/pkg/dal/table"
-	"bscp.io/pkg/logs"
 	pbhook "bscp.io/pkg/protocol/core/hook"
+
+	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
 const (
@@ -46,7 +47,7 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	appTempDir := path.Join(tempDir, fmt.Sprintf("%d/%s", biz, app))
 	hookPath, err := saveContentToFile(appTempDir, hook, hookType)
 	if err != nil {
-		logs.Errorf("save hook content to file error: %s", err.Error())
+		logger.Error("save hook content to file error: %s", err.Error())
 		return err
 	}
 	var command string
@@ -71,14 +72,14 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	if err != nil {
 		return fmt.Errorf("exec %s error: %s, output: %s", hookType.String(), err.Error(), string(out))
 	}
-	logs.Infof("exec %s success, output: \n%s", hookType.String(), string(out))
+	logger.Info("exec %s success, output: \n%s", hookType.String(), string(out))
 	return nil
 }
 
 func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.HookType) (string, error) {
 	hookDir := path.Join(workspace, "hooks")
 	if err := os.MkdirAll(hookDir, os.ModePerm); err != nil {
-		logs.Errorf("mkdir hook dir %s error: %+v", hookDir, err)
+		logger.Error("mkdir hook dir %s error: %+v", hookDir, err)
 		return "", err
 	}
 	var filePath string
@@ -91,7 +92,7 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 		return "", fmt.Errorf("invalid hook type: %s", hook.Type)
 	}
 	if err := os.WriteFile(filePath, []byte(hook.Content), os.ModePerm); err != nil {
-		logs.Errorf("write hook file %s error: %s", filePath, err.Error())
+		logger.Error("write hook file %s error: %s", filePath, err.Error())
 		return "", err
 	}
 	return filePath, nil

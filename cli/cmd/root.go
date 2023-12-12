@@ -16,8 +16,9 @@ import (
 	"fmt"
 	"os"
 
-	"bscp.io/pkg/logs"
 	"github.com/spf13/cobra"
+
+	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
 var (
@@ -33,7 +34,7 @@ var (
 // Execute executes the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		logs.Errorf(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }

@@ -14,17 +14,17 @@
 package cache
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path"
 
-	"bscp.io/pkg/logs"
-	"bscp.io/pkg/runtime/jsoni"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
 
 	"github.com/TencentBlueKing/bscp-go/downloader"
+	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
 var defaultCachePath = "/tmp/bk-bscp"
@@ -58,20 +58,20 @@ func GetCache() *Cache {
 // OnReleaseChange is the callback to refresh cache when release change event was received.
 func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 	pl := new(sfs.ReleaseChangePayload)
-	if err := jsoni.Unmarshal(event.Payload, pl); err != nil {
-		logs.Errorf("decode release change event payload failed, skip the event, err: %s, rid: %s", err.Error(), event.Rid)
+	if err := json.Unmarshal(event.Payload, pl); err != nil {
+		logger.Error("decode release change event payload failed, skip the event, err: %s, rid: %s", err.Error(), event.Rid)
 		return
 	}
 
 	if err := os.MkdirAll(c.path, os.ModePerm); err != nil {
-		logs.Errorf("mkdir cache path %s failed, err: %s", c.path, err.Error())
+		logger.Error("mkdir cache path %s failed, err: %s", c.path, err.Error())
 		return
 	}
 
 	for _, ci := range pl.ReleaseMeta.CIMetas {
 		exists, err := c.checkFileCacheExists(ci)
 		if err != nil {
-			logs.Errorf("check config item exists failed, err: %s, rid: %s", err.Error(), event.Rid)
+			logger.Error("check config item exists failed, err: %s, rid: %s", err.Error(), event.Rid)
 			continue
 		}
 		if exists {
@@ -80,7 +80,7 @@ func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 		filePath := path.Join(c.path, ci.ContentSpec.Signature)
 		if err := downloader.GetDownloader().Download(ci.PbFileMeta(), ci.RepositoryPath, ci.ContentSpec.ByteSize,
 			downloader.DownloadToFile, nil, filePath); err != nil {
-			logs.Errorf("download file failed, err: %s, rid: %s", err.Error(), event.Rid)
+			logger.Error("download file failed, err: %s, rid: %s", err.Error(), event.Rid)
 			return
 		}
 	}
@@ -115,7 +115,7 @@ func (c *Cache) checkFileCacheExists(ci *sfs.ConfigItemMetaV1) (bool, error) {
 func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
-		logs.Errorf("check config item %s cache exists failed, err: %s", ci.ContentSpec.Signature, err.Error())
+		logger.Error("check config item %s cache exists failed, err: %s", ci.ContentSpec.Signature, err.Error())
 		return false, nil
 	}
 	if !exists {
@@ -124,7 +124,7 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 	filePath := path.Join(c.path, ci.ContentSpec.Signature)
 	bytes, err := os.ReadFile(filePath)
 	if err != nil {
-		logs.Errorf("read config item cache file %s failed, err: %s", filePath, err.Error())
+		logger.Error("read config item cache file %s failed, err: %s", filePath, err.Error())
 		return false, nil
 	}
 	return true, bytes
@@ -134,7 +134,7 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
-		logs.Warnf("check config item %s cache exists failed, err: %s", ci.ContentSpec.Signature, err.Error())
+		logger.Warn("check config item %s cache exists failed, err: %s", ci.ContentSpec.Signature, err.Error())
 		return false
 	}
 	if !exists {
@@ -143,18 +143,18 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	cacheFilePath := path.Join(c.path, ci.ContentSpec.Signature)
 	src, err := os.Open(cacheFilePath)
 	if err != nil {
-		logs.Errorf("open config item cache file %s failed, err: %s", cacheFilePath, err.Error())
+		logger.Error("open config item cache file %s failed, err: %s", cacheFilePath, err.Error())
 		return false
 	}
 	defer src.Close()
 	dst, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		logs.Errorf("open destination file %s failed, err: %s", filePath, err.Error())
+		logger.Error("open destination file %s failed, err: %s", filePath, err.Error())
 		return false
 	}
 	defer dst.Close()
 	if _, err := io.Copy(dst, src); err != nil {
-		logs.Errorf("copy config item cache file %s to destination file %s failed, err: %s",
+		logger.Error("copy config item cache file %s to destination file %s failed, err: %s",
 			cacheFilePath, filePath, err.Error())
 		return false
 	}
