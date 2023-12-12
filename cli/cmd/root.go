@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	logVerbosity uint
-	rootCmd      = &cobra.Command{
+	logFormat string
+	logLevel  string
+	rootCmd   = &cobra.Command{
 		Use:   "bscp",
 		Short: "bscp is a command line tool for blueking service config platform",
 		Long:  `bscp is a command line tool for blueking service config platform`,
@@ -46,7 +47,9 @@ func init() {
 	rootCmd.AddCommand(PullCmd)
 	rootCmd.AddCommand(WatchCmd)
 	rootCmd.AddCommand(VersionCmd)
-	rootCmd.PersistentFlags().UintVarP(&logVerbosity, "verbosity", "v", 0, "log verbosity")
+	rootCmd.PersistentFlags().StringVarP(&logFormat, "log.format", "", "logfmt",
+		"log format to use. possible options: logfmt or json.")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log.level", "", "info", "log filtering level.")
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file path")
 
 	for env, f := range rootEnvs {

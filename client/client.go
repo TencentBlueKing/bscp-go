@@ -23,6 +23,7 @@ import (
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	"bscp.io/pkg/runtime/jsoni"
 	sfs "bscp.io/pkg/sf-share"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/downloader"
@@ -51,6 +52,7 @@ type Client interface {
 
 // Client is the bscp client
 type client struct {
+	logger      *slog.Logger
 	pairs       map[string]string
 	opts        option.ClientOptions
 	fingerPrint sfs.FingerPrint

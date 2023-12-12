@@ -54,7 +54,8 @@ var (
 
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
-		"verbose": "verbosity",
+		"log.format": "log.format",
+		"log.level":  "log.level",
 	}
 
 	// commonEnvs variable definition

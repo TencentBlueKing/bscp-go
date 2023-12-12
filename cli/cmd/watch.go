@@ -79,7 +79,6 @@ func Watch(cmd *cobra.Command, args []string) {
 		option.Token(conf.Token),
 		option.Labels(confLabels),
 		option.UID(conf.UID),
-		option.LogVerbosity(logVerbosity),
 	)
 	if err != nil {
 		logs.Errorf(err.Error())

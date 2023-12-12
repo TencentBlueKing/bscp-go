@@ -62,7 +62,6 @@ func Pull(cmd *cobra.Command, args []string) {
 		option.Token(conf.Token),
 		option.Labels(conf.Labels),
 		option.UID(conf.UID),
-		option.LogVerbosity(logVerbosity),
 	)
 	if err != nil {
 		logs.Errorf(err.Error())
