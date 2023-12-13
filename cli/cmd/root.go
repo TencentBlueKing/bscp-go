@@ -16,13 +16,15 @@ import (
 	"fmt"
 	"os"
 
-	"bscp.io/pkg/logs"
 	"github.com/spf13/cobra"
+
+	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
 var (
-	logVerbosity uint
-	rootCmd      = &cobra.Command{
+	logFormat string
+	logLevel  string
+	rootCmd   = &cobra.Command{
 		Use:   "bscp",
 		Short: "bscp is a command line tool for blueking service config platform",
 		Long:  `bscp is a command line tool for blueking service config platform`,
@@ -32,7 +34,7 @@ var (
 // Execute executes the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		logs.Errorf(err.Error())
+		logger.Error("exec cmd", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 }
@@ -46,7 +48,9 @@ func init() {
 	rootCmd.AddCommand(PullCmd)
 	rootCmd.AddCommand(WatchCmd)
 	rootCmd.AddCommand(VersionCmd)
-	rootCmd.PersistentFlags().UintVarP(&logVerbosity, "verbosity", "v", 0, "log verbosity")
+	rootCmd.PersistentFlags().StringVarP(&logFormat, "log.format", "", "logfmt",
+		"log format to use. possible options: logfmt or json.")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log.level", "", "info", "log filtering level.")
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file path")
 
 	for env, f := range rootEnvs {

@@ -12,6 +12,8 @@
 
 package option
 
+import "golang.org/x/exp/slog"
+
 // ClientOptions options for bscp sdk client
 type ClientOptions struct {
 	// FeedAddr BSCP feed_server address
@@ -30,12 +32,12 @@ type ClientOptions struct {
 	UseFileCache bool
 	// FileCacheDir file cache directory
 	FileCacheDir string
-	// LogVerbosity log verbosity
-	LogVerbosity uint
 	// DialTimeoutMS dial upstream timeout in millisecond
 	DialTimeoutMS int64
 	// Token sdk token
 	Token string
+	// Logger sdk logger
+	Logger *slog.Logger
 }
 
 // ClientOption setter for bscp sdk options
@@ -106,10 +108,10 @@ func Token(token string) ClientOption {
 	}
 }
 
-// LogVerbosity set log verbosity
-func LogVerbosity(verbosity uint) ClientOption {
+// Logger set sdk logger
+func Logger(logger *slog.Logger) ClientOption {
 	return func(o *ClientOptions) error {
-		o.LogVerbosity = verbosity
+		o.Logger = logger
 		return nil
 	}
 }

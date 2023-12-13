@@ -22,11 +22,13 @@ import (
 	"strings"
 	"syscall"
 
-	"bscp.io/pkg/logs"
+	"golang.org/x/exp/slog"
+
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
@@ -40,14 +42,14 @@ var rootCmd = &cobra.Command{
 }
 
 var (
-	watchMode  bool
-	keys       string
-	logEnabled bool
+	watchMode bool
+	keys      string
+	logLevel  string
 )
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&watchMode, "watch", "w", false, "use watch mode")
-	rootCmd.PersistentFlags().BoolVarP(&logEnabled, "log.enabled", "", false, "enable log")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log.level", "", "warn", "log filtering level.")
 	rootCmd.PersistentFlags().StringVarP(&keys, "keys", "k", "", "use commas to separate, like key1,key2. (watch mode empty key will get all values)")
 }
 
@@ -56,15 +58,30 @@ func main() {
 }
 
 func execute() {
-	if logEnabled {
-		logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
+	level := slog.LevelInfo
+	switch logLevel {
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	case "info":
+		level = slog.LevelInfo
+	case "debug":
+		level = slog.LevelDebug
+	default:
+		level = slog.LevelWarn
 	}
+
+	// 设置日志自定义 Handler
+	logger.SetHandler(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	}))
 
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Error("parse BSCP_BIZ", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -88,7 +105,7 @@ func execute() {
 		option.Labels(conf.Labels),
 	)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -97,7 +114,7 @@ func execute() {
 	keySlice := strings.Split(keys, ",")
 	if watchMode {
 		if err = watchAppKV(bscp, appName, keySlice, opts); err != nil {
-			logs.Errorf(err.Error())
+			logger.Error("watch", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	} else {
@@ -129,10 +146,10 @@ func (w *watcher) callback(release *types.Release) error {
 	for _, item := range release.KvItems {
 		value, err := w.bscp.Get(w.app, item.Key)
 		if err != nil {
-			logs.Errorf("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
+			logger.Error("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
 			continue
 		}
-		logs.Infof("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
+		logger.Info("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
 
 		// key匹配或者为空时，输出
 		if _, ok := w.keyMap[item.Key]; ok || len(keys) == 0 {

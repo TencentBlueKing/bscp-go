@@ -22,12 +22,13 @@ import (
 	"reflect"
 	"strings"
 
-	"bscp.io/pkg/logs"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/util"
 )
 
@@ -54,7 +55,8 @@ var (
 
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
-		"verbose": "verbosity",
+		"log.format": "log.format",
+		"log.level":  "log.level",
 	}
 
 	// commonEnvs variable definition
@@ -210,9 +212,9 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 		for {
 			select {
 			case <-ctx.Done():
-				logs.Infof("watch labels file %s stoped because of %s", path, ctx.Err().Error())
+				logger.Info("watch labels file stoped because of ctx done", slog.String("file", path), logger.ErrAttr(ctx.Err()))
 				if err := watcher.Close(); err != nil {
-					logs.Warnf("close watcher failed, err: %s", err.Error())
+					logger.Warn("close watcher failed", logger.ErrAttr(err))
 				}
 				return
 			case event := <-watcher.Events:
@@ -223,7 +225,7 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 
 				absPath, err := filepath.Abs(event.Name)
 				if err != nil {
-					logs.Warnf("get labels file absPath failed, err: %s", err.Error())
+					logger.Warn("get labels file absPath failed", logger.ErrAttr(err))
 					continue
 				}
 				if absPath != path {
@@ -247,12 +249,13 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 					continue
 				}
 
-				logs.Infof("labels file %s changed, try reset labels, old: %s, new: %s", path, oldLabels, labels)
+				logger.Info("labels file changed, try reset labels",
+					slog.String("file", path), slog.Any("old", oldLabels), slog.Any("new", labels))
 				msg.Labels = labels
 				watchChan <- msg
 				oldLabels = labels
 			case err := <-watcher.Errors:
-				logs.Errorf("watcher error: %s", err.Error())
+				logger.Error("watcher error", logger.ErrAttr(err))
 			}
 		}
 	}()
@@ -265,7 +268,7 @@ func readLabelsFile(path string) (map[string]string, error) {
 	labels := make(map[string]string)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			logs.Warnf("labels file %s not exist, skip read", path)
+			logger.Warn("labels file not exist, skip read", slog.String("path", path))
 			return labels, nil
 		}
 		return nil, fmt.Errorf("stat labels file %s failed, err: %s", path, err.Error())

@@ -26,14 +26,15 @@ import (
 	"time"
 
 	"bscp.io/pkg/dal/table"
-	"bscp.io/pkg/logs"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
 	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
@@ -53,7 +54,7 @@ var (
 // Watch run as a daemon to watch the config changes.
 func Watch(cmd *cobra.Command, args []string) {
 	if err := initArgs(); err != nil {
-		logs.Errorf(err.Error())
+		logger.Error("init args", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -67,7 +68,7 @@ func Watch(cmd *cobra.Command, args []string) {
 	if conf.LabelsFile != "" {
 		r, err = refineLabelsFile(ctx, conf.LabelsFile, confLabels)
 		if err != nil {
-			logs.Errorf(err.Error())
+			logger.Error("refine labels file", logger.ErrAttr(err))
 			os.Exit(1) //nolint:gocritic
 		}
 		confLabels = r.mergeLabels
@@ -79,10 +80,9 @@ func Watch(cmd *cobra.Command, args []string) {
 		option.Token(conf.Token),
 		option.Labels(confLabels),
 		option.UID(conf.UID),
-		option.LogVerbosity(logVerbosity),
 	)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -100,12 +100,12 @@ func Watch(cmd *cobra.Command, args []string) {
 			AppTempDir: path.Join(tempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
-			logs.Errorf(err.Error())
+			logger.Error("add watch", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	}
 	if e := bscp.StartWatch(); e != nil {
-		logs.Errorf(e.Error())
+		logger.Error("start watch", logger.ErrAttr(e))
 		os.Exit(1)
 	}
 
@@ -116,11 +116,11 @@ func Watch(cmd *cobra.Command, args []string) {
 		for {
 			msg := <-r.reloadChan
 			if msg.Error != nil {
-				logs.Errorf("reset labels failed, err: %s", msg.Error.Error())
+				logger.Error("reset labels failed", logger.ErrAttr(msg.Error))
 				continue
 			}
 			bscp.ResetLabels(pkgutil.MergeLabels(conf.Labels, msg.Labels))
-			logs.Infof("reset labels success, will reload watch")
+			logger.Info("reset labels success, will reload watch")
 		}
 	}()
 
@@ -128,7 +128,7 @@ func Watch(cmd *cobra.Command, args []string) {
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 	if e := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil); e != nil {
-		logs.Errorf("start http server failed, err: %s", e.Error())
+		logger.Error("start http server failed", logger.ErrAttr(e))
 		os.Exit(1)
 	}
 }
@@ -172,7 +172,7 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 	if err != nil {
 		return nil, fmt.Errorf("watch labels file failed, err: %s", err.Error())
 	}
-	logs.Infof("watching labels file: %s", absPath)
+	logger.Info("watching labels file", slog.String("file", absPath))
 
 	mergeLabels := pkgutil.MergeLabels(confLabels, labelsFromFile)
 	r := &refinedLabelsFile{
@@ -189,34 +189,34 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 
 	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(w.AppTempDir)
 	if err != nil {
-		logs.Warnf("get latest release metadata failed, err: %s, maybe you should exec pull command first", err.Error())
+		logger.Warn("get latest release metadata failed, maybe you should exec pull command first", logger.ErrAttr(err))
 	} else if lastMetadata.ReleaseID == release.ReleaseID {
-		logs.Infof("current release is consistent with the received release %d, skip", release.ReleaseID)
+		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", release.ReleaseID))
 		return nil
 	}
 
 	// 1. execute pre hook
 	if release.PreHook != nil {
 		if err := util.ExecuteHook(release.PreHook, table.PreHook, w.TempDir, w.Biz, w.App); err != nil {
-			logs.Errorf(err.Error())
+			logger.Error("execute pre hook", logger.ErrAttr(err))
 			return err
 		}
 	}
 
 	filesDir := path.Join(w.AppTempDir, "files")
 	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
-		logs.Errorf(err.Error())
+		logger.Error("update files", logger.ErrAttr(err))
 		return err
 	}
 	// 4. clear old files
 	if err := clearOldFiles(filesDir, release.FileItems); err != nil {
-		logs.Errorf("clear old files failed, err: %s", err.Error())
+		logger.Error("clear old files failed", logger.ErrAttr(err))
 		return err
 	}
 	// 5. execute post hook
 	if release.PostHook != nil {
 		if err := util.ExecuteHook(release.PostHook, table.PostHook, w.TempDir, w.Biz, w.App); err != nil {
-			logs.Errorf(err.Error())
+			logger.Error("execute post hook", logger.ErrAttr(err))
 			return err
 		}
 	}
@@ -228,11 +228,11 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 		EventTime: time.Now().Format(time.RFC3339),
 	}
 	if err := eventmeta.AppendMetadataToFile(w.AppTempDir, metadata); err != nil {
-		logs.Errorf("append metadata to file failed, err: %s", err.Error())
+		logger.Error("append metadata to file failed", logger.ErrAttr(err))
 		return err
 	}
 	// TODO: 6.2 call the callback notify api
-	logs.Infof("watch release change success, current releaseID: %d", release.ReleaseID)
+	logger.Info("watch release change success", slog.Any("currentReleaseID", release.ReleaseID))
 	return nil
 }
 

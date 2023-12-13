@@ -15,17 +15,18 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"bscp.io/pkg/criteria/constant"
 	"bscp.io/pkg/kit"
-	"bscp.io/pkg/logs"
 	pbfs "bscp.io/pkg/protocol/feed-server"
-	"bscp.io/pkg/runtime/jsoni"
 	sfs "bscp.io/pkg/sf-share"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/downloader"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
@@ -65,7 +66,7 @@ func New(opts ...option.ClientOption) (Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())
 	}
-	logs.Infof("instance fingerprint: %s", fp.Encode())
+	logger.Info("instance fingerprint", slog.String("fingerprint", fp.Encode()))
 	clientOpt.Fingerprint = fp.Encode()
 	clientOpt.UID = clientOpt.Fingerprint
 	for _, opt := range opts {
@@ -82,7 +83,7 @@ func New(opts ...option.ClientOption) (Client, error) {
 		BizID:       clientOpt.BizID,
 		Fingerprint: clientOpt.Fingerprint,
 	}
-	mhBytes, err := jsoni.Marshal(mh)
+	mhBytes, err := json.Marshal(mh)
 	if err != nil {
 		return nil, fmt.Errorf("encode sidecar meta header failed, err: %s", err.Error())
 	}
@@ -115,7 +116,7 @@ func New(opts ...option.ClientOption) (Client, error) {
 		return nil, fmt.Errorf("handshake with upstream failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}
 	pl := &sfs.SidecarHandshakePayload{}
-	err = jsoni.Unmarshal(resp.Payload, pl)
+	err = json.Unmarshal(resp.Payload, pl)
 	if err != nil {
 		return nil, fmt.Errorf("decode handshake payload failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}

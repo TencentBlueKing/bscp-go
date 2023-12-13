@@ -14,14 +14,9 @@
 package main
 
 import (
-	"bscp.io/pkg/logs"
-
 	"github.com/TencentBlueKing/bscp-go/cli/cmd"
 )
 
 func main() {
-	// set to stdout
-	logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
-
 	cmd.Execute()
 }
