@@ -104,33 +104,32 @@ func SetHandler(handler slog.Handler) {
 
 // Debug logs at LevelDebug.
 func Debug(msg string, args ...any) {
-	getLogger().Debug(msg, args...)
+	_log(context.Background(), slog.LevelDebug, msg, args...)
 }
 
 // DebugContext logs at LevelDebug with the given context.
 func DebugContext(ctx context.Context, msg string, args ...any) {
-	getLogger().DebugContext(ctx, msg, args...)
+	_log(ctx, slog.LevelDebug, msg, args...)
 }
 
 // Info logs at LevelInfo.
 func Info(msg string, args ...any) {
 	_log(context.Background(), slog.LevelInfo, msg, args...)
-	// getLogger().Info(msg, args...)
 }
 
 // InfoContext logs at LevelInfo with the given context.
 func InfoContext(ctx context.Context, msg string, args ...any) {
-	getLogger().InfoContext(ctx, msg, args...)
+	_log(ctx, slog.LevelInfo, msg, args...)
 }
 
 // Warn logs at LevelWarn.
 func Warn(msg string, args ...any) {
-	getLogger().Warn(msg, args...)
+	_log(context.Background(), slog.LevelWarn, msg, args...)
 }
 
 // WarnContext logs at LevelWarn with the given context.
 func WarnContext(ctx context.Context, msg string, args ...any) {
-	getLogger().WarnContext(ctx, msg, args...)
+	_log(ctx, slog.LevelWarn, msg, args...)
 }
 
 // Error logs at LevelError.
@@ -140,7 +139,7 @@ func Error(msg string, args ...any) {
 
 // ErrorContext logs at LevelError with the given context.
 func ErrorContext(ctx context.Context, msg string, args ...any) {
-	getLogger().ErrorContext(ctx, msg, args...)
+	_log(ctx, slog.LevelError, msg, args...)
 }
 
 // With returns a Logger that includes the given attributes
