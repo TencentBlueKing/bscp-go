@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -213,7 +214,7 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 			case <-ctx.Done():
 				logger.Info("watch labels file %s stoped because of %s", path, ctx.Err().Error())
 				if err := watcher.Close(); err != nil {
-					logger.Warn("close watcher failed, err: %s", err.Error())
+					slog.Warn("close watcher failed", logger.ErrAttr(err))
 				}
 				return
 			case event := <-watcher.Events:
@@ -224,7 +225,7 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 
 				absPath, err := filepath.Abs(event.Name)
 				if err != nil {
-					logger.Warn("get labels file absPath failed, err: %s", err.Error())
+					slog.Warn("get labels file absPath failed", logger.ErrAttr(err))
 					continue
 				}
 				if absPath != path {
@@ -266,7 +267,7 @@ func readLabelsFile(path string) (map[string]string, error) {
 	labels := make(map[string]string)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			logger.Warn("labels file %s not exist, skip read", path)
+			slog.Warn("labels file not exist, skip read", slog.String("path", path))
 			return labels, nil
 		}
 		return nil, fmt.Errorf("stat labels file %s failed, err: %s", path, err.Error())

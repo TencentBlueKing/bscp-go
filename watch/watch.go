@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"reflect"
 	"strconv"
 	"time"
@@ -27,7 +28,6 @@ import (
 	"bscp.io/pkg/kit"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
-	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/cache"

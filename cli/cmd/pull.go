@@ -14,6 +14,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 	"strconv"
@@ -21,7 +22,6 @@ import (
 
 	"bscp.io/pkg/dal/table"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/eventmeta"

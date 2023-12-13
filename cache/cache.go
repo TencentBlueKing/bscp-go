@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 
@@ -134,7 +135,7 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
-		logger.Warn("check config item %s cache exists failed, err: %s", ci.ContentSpec.Signature, err.Error())
+		slog.Warn("check config item %s cache exists failed, err: %s", ci.ContentSpec.Signature, err.Error())
 		return false
 	}
 	if !exists {

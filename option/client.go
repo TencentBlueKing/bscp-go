@@ -12,7 +12,7 @@
 
 package option
 
-import "golang.org/x/exp/slog"
+import "log/slog"
 
 // ClientOptions options for bscp sdk client
 type ClientOptions struct {

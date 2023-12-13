@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -32,7 +33,6 @@ import (
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
-	"golang.org/x/exp/slog"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
@@ -107,20 +107,22 @@ func setupMaxHttpDownloadGoroutines() int64 {
 
 	weight, err := strconv.ParseInt(weightEnv, 10, 64)
 	if err != nil {
-		logger.Warn("invalid max http download groutines: %s, set to %d for now", weightEnv, defaultDownloadGroutines)
+		slog.Warn("invalid max http download groutines, set to default for now",
+			slog.String("groutines", weightEnv),
+			slog.Int("default", defaultDownloadGroutines))
 		return defaultDownloadGroutines
 	}
 
 	if weight < 1 {
-		logger.Warn("invalid max http download groutines: %d, should >= 1, set to 1 for now", weight)
+		slog.Warn("invalid max http download groutines, should >= 1, set to 1 for now", slog.Int64("groutines", weight))
 		return 1
 	}
 
 	if weight > 15 {
-		logger.Warn("invalid max http download groutines: %d, should <= 15, set to 1 for now", weight)
+		slog.Warn("invalid max http download groutines, should <= 15, set to 1 for now", slog.Int64("groutines", weight))
 	}
 
-	logger.Info("max http download groutines: %d", weight)
+	logger.Info("max http download groutines", slog.Int64("groutines", weight))
 
 	return weight
 }
@@ -236,7 +238,7 @@ func (exec *execDownload) do() error {
 
 	size, yes, err := exec.isProviderSupportRangeDownload()
 	if err != nil {
-		logger.Warn("check if provider support range download failed", slog.Any("err", err.Error()))
+		slog.Warn("check if provider support range download failed", slog.Any("err", err.Error()))
 	}
 
 	if yes {
@@ -251,7 +253,7 @@ func (exec *execDownload) do() error {
 		return nil
 	}
 
-	logger.Warn("provider does not support download with range policy, download directly now.")
+	slog.Warn("provider does not support download with range policy, download directly now.")
 
 	if err := exec.downloadDirectlyWithRetry(); err != nil {
 		return fmt.Errorf("download directly failed, err: %s", err.Error())

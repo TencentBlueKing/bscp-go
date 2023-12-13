@@ -34,6 +34,7 @@ linters:
     - revive
     - unconvert
     - unparam
+    - sloglint
 
 linters-settings:
   # 只开启特定的规则
@@ -54,6 +55,8 @@ linters-settings:
     min-complexity: 30 # 函数圈复杂度
   govet:
     check-shadowing: true
+  sloglint:
+    attr-only: true
   gci:
     sections:
       - standard

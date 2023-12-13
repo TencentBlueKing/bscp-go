@@ -14,12 +14,12 @@ package watch
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"bscp.io/pkg/kit"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
-	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/types"
@@ -75,7 +75,7 @@ func (w *Watcher) loopHeartbeat() error {
 				logger.Debug("stream will heartbeat, rid: %s", w.vas.Rid)
 
 				if err := w.heartbeatOnce(w.vas, heartbeatPayload.MessagingType(), payload); err != nil {
-					logger.Warn("stream heartbeat failed, notify reconnect upstream, err: %v, rid: %s", err, w.vas.Rid)
+					slog.Warn("stream heartbeat failed, notify reconnect upstream, err: %v, rid: %s", err, w.vas.Rid)
 
 					w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
 					return

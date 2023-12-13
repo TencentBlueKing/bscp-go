@@ -15,6 +15,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	_ "net/http/pprof" // nolint
 	"os"
@@ -67,7 +68,7 @@ func Watch(cmd *cobra.Command, args []string) {
 	if conf.LabelsFile != "" {
 		r, err = refineLabelsFile(ctx, conf.LabelsFile, confLabels)
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error("refine labels file", logger.ErrAttr(err))
 			os.Exit(1) //nolint:gocritic
 		}
 		confLabels = r.mergeLabels
@@ -81,7 +82,7 @@ func Watch(cmd *cobra.Command, args []string) {
 		option.UID(conf.UID),
 	)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -99,12 +100,12 @@ func Watch(cmd *cobra.Command, args []string) {
 			AppTempDir: path.Join(tempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
-			logger.Error(err.Error())
+			logger.Error("add watch", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	}
 	if e := bscp.StartWatch(); e != nil {
-		logger.Error(e.Error())
+		logger.Error("start watch", logger.ErrAttr(e))
 		os.Exit(1)
 	}
 
@@ -115,7 +116,7 @@ func Watch(cmd *cobra.Command, args []string) {
 		for {
 			msg := <-r.reloadChan
 			if msg.Error != nil {
-				logger.Error("reset labels failed, err: %s", msg.Error.Error())
+				logger.Error("reset labels failed", logger.ErrAttr(msg.Error))
 				continue
 			}
 			bscp.ResetLabels(pkgutil.MergeLabels(conf.Labels, msg.Labels))
@@ -127,7 +128,7 @@ func Watch(cmd *cobra.Command, args []string) {
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 	if e := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil); e != nil {
-		logger.Error("start http server failed, err: %s", e.Error())
+		logger.Error("start http server failed", logger.ErrAttr(e))
 		os.Exit(1)
 	}
 }
@@ -188,7 +189,7 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 
 	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(w.AppTempDir)
 	if err != nil {
-		logger.Warn("get latest release metadata failed, err: %s, maybe you should exec pull command first", err.Error())
+		slog.Warn("get latest release metadata failed, maybe you should exec pull command first", logger.ErrAttr(err))
 	} else if lastMetadata.ReleaseID == release.ReleaseID {
 		logger.Info("current release is consistent with the received release %d, skip", release.ReleaseID)
 		return nil

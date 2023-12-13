@@ -15,6 +15,7 @@ package types
 
 import (
 	"fmt"
+	"log/slog"
 
 	pbci "bscp.io/pkg/protocol/core/config-item"
 	pbhook "bscp.io/pkg/protocol/core/hook"
@@ -88,7 +89,7 @@ func (c *ConfigItemFile) SaveToFile(src string) error {
 	}
 	// 3. set file permission
 	if err := util.SetFilePermission(src, c.Permission); err != nil {
-		logger.Warn("set file permission for %s failed, err: %s", src, err.Error())
+		slog.Warn("set file permission for %s failed, err: %s", src, err.Error())
 	}
 
 	return nil

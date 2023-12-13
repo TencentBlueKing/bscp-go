@@ -22,7 +22,7 @@ import (
 	"strings"
 	"syscall"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"

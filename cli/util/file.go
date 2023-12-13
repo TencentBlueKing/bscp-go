@@ -16,6 +16,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 
@@ -64,7 +65,7 @@ func UpdateFiles(filesDir string, files []*types.ConfigItemFile) error {
 			}
 			// 3. set file permission
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
-				logger.Warn("set file permission for %s failed, err: %s", filePath, err.Error())
+				slog.Warn("set file permission for %s failed, err: %s", filePath, err.Error())
 			}
 			return nil
 		})

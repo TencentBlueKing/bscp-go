@@ -16,13 +16,12 @@ package logger
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sync/atomic"
 	"time"
-
-	"golang.org/x/exp/slog"
 )
 
 var defaultLogger atomic.Value

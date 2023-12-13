@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"os"
 	"os/signal"
 	"strconv"
@@ -23,7 +24,6 @@ import (
 	"syscall"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
