@@ -21,7 +21,6 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"golang.org/x/exp/slog"
 )
@@ -29,7 +28,7 @@ import (
 var defaultLogger atomic.Value
 
 const (
-	logoLevel = slog.Level(1)
+	bannerLevel = slog.Level(1)
 )
 
 func init() {
@@ -54,12 +53,12 @@ func init() {
 		TextHandler: textHandler,
 	})
 	defaultLogger.Store(logger)
-	logger.Log(context.Background(), logoLevel, logo)
+	logger.Log(context.Background(), bannerLevel, banner)
 }
 
 const (
-	// LOGO is bk bscp inner logo.
-	logo = `
+	// LOGO is bk bscp inner banner.
+	banner = `
 ===================================================================================
 oooooooooo   oooo    oooo         oooooooooo     oooooooo     oooooo    oooooooooo
  888     Y8b  888   8P             888     Y8b d8P      Y8  d8P    Y8b   888    Y88
@@ -71,26 +70,27 @@ o888bood8P   o888o  o888o         o888bood8P   88888888P     Y8bood8P   o888o
 ===================================================================================`
 )
 
-func _log(ctx context.Context, level slog.Level, msg string, args ...any) {
-	var pcs [1]uintptr
-	runtime.Callers(3, pcs[:]) // skip [Callers, Infof]
-	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
-	r.Add(args...)
-	_ = getLogger().Handler().Handle(ctx, r)
-}
-
 type handler struct {
 	*slog.TextHandler
 }
 
-// Handle ..
+// Handle 自定义Hanlde, 格式化source 为 dir/path:line, banner 处理
 func (h *handler) Handle(ctx context.Context, r slog.Record) error {
-	if r.Level == logoLevel {
-		fmt.Println(strings.TrimSpace(r.Message))
+	rr := &r
+
+	// pid := os.Getpid()
+	// rr.Add(slog.Int("pid", pid))
+
+	var pcs [1]uintptr
+	runtime.Callers(5, pcs[:]) // skip [Callers, Infof]
+	rr.PC = pcs[0]
+
+	if rr.Level == bannerLevel {
+		fmt.Println(strings.TrimSpace(rr.Message))
 		return nil
 	}
 
-	return h.TextHandler.Handle(ctx, r)
+	return h.TextHandler.Handle(ctx, *rr)
 }
 
 func getLogger() *slog.Logger {
@@ -104,42 +104,42 @@ func SetHandler(handler slog.Handler) {
 
 // Debug logs at LevelDebug.
 func Debug(msg string, args ...any) {
-	_log(context.Background(), slog.LevelDebug, msg, args...)
+	getLogger().Debug(msg, args...)
 }
 
 // DebugContext logs at LevelDebug with the given context.
 func DebugContext(ctx context.Context, msg string, args ...any) {
-	_log(ctx, slog.LevelDebug, msg, args...)
+	getLogger().DebugContext(ctx, msg, args...)
 }
 
 // Info logs at LevelInfo.
 func Info(msg string, args ...any) {
-	_log(context.Background(), slog.LevelInfo, msg, args...)
+	getLogger().Info(msg, args...)
 }
 
 // InfoContext logs at LevelInfo with the given context.
 func InfoContext(ctx context.Context, msg string, args ...any) {
-	_log(ctx, slog.LevelInfo, msg, args...)
+	getLogger().InfoContext(ctx, msg, args...)
 }
 
 // Warn logs at LevelWarn.
 func Warn(msg string, args ...any) {
-	_log(context.Background(), slog.LevelWarn, msg, args...)
+	getLogger().Warn(msg, args...)
 }
 
 // WarnContext logs at LevelWarn with the given context.
 func WarnContext(ctx context.Context, msg string, args ...any) {
-	_log(ctx, slog.LevelWarn, msg, args...)
+	getLogger().WarnContext(ctx, msg, args...)
 }
 
 // Error logs at LevelError.
 func Error(msg string, args ...any) {
-	_log(context.Background(), slog.LevelError, msg, args...)
+	getLogger().Error(msg, args...)
 }
 
 // ErrorContext logs at LevelError with the given context.
 func ErrorContext(ctx context.Context, msg string, args ...any) {
-	_log(ctx, slog.LevelError, msg, args...)
+	getLogger().ErrorContext(ctx, msg, args...)
 }
 
 // With returns a Logger that includes the given attributes
