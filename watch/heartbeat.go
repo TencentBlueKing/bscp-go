@@ -56,7 +56,7 @@ func (w *Watcher) loopHeartbeat() error {
 		return fmt.Errorf("encode heartbeat payload err, %s", err.Error())
 	}
 
-	logger.Info("stream start loop heartbeat", slog.Duration("interval", defaultHeartbeatInterval))
+	slog.Info("stream start loop heartbeat", slog.Duration("interval", defaultHeartbeatInterval))
 
 	w.vas.Wg.Add(1)
 	go func() {
@@ -68,7 +68,7 @@ func (w *Watcher) loopHeartbeat() error {
 		for {
 			select {
 			case <-w.vas.Ctx.Done():
-				logger.Info("stream heartbeat stoped because of %s", w.vas.Ctx.Err().Error())
+				slog.Info("stream heartbeat stoped because of ctx done", logger.ErrAttr(w.vas.Ctx.Err()))
 				return
 
 			case <-tick.C:

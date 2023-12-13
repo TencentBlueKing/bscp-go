@@ -120,7 +120,7 @@ func Watch(cmd *cobra.Command, args []string) {
 				continue
 			}
 			bscp.ResetLabels(pkgutil.MergeLabels(conf.Labels, msg.Labels))
-			logger.Info("reset labels success, will reload watch")
+			slog.Info("reset labels success, will reload watch")
 		}
 	}()
 
@@ -172,7 +172,7 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 	if err != nil {
 		return nil, fmt.Errorf("watch labels file failed, err: %s", err.Error())
 	}
-	logger.Info("watching labels file: %s", absPath)
+	slog.Info("watching labels file", slog.String("file", absPath))
 
 	mergeLabels := pkgutil.MergeLabels(confLabels, labelsFromFile)
 	r := &refinedLabelsFile{
@@ -191,7 +191,7 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 	if err != nil {
 		slog.Warn("get latest release metadata failed, maybe you should exec pull command first", logger.ErrAttr(err))
 	} else if lastMetadata.ReleaseID == release.ReleaseID {
-		logger.Info("current release is consistent with the received release %d, skip", release.ReleaseID)
+		slog.Info("current release is consistent with the received release, skip", slog.Any("releaseID", release.ReleaseID))
 		return nil
 	}
 
@@ -232,7 +232,7 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 		return err
 	}
 	// TODO: 6.2 call the callback notify api
-	logger.Info("watch release change success, current releaseID: %d", release.ReleaseID)
+	slog.Info("watch release change success", slog.Any("currentReleaseID", release.ReleaseID))
 	return nil
 }
 

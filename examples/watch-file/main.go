@@ -24,7 +24,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
-	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
@@ -69,7 +68,7 @@ func main() {
 func callback(release *types.Release) error {
 
 	// 文件列表, 可以自定义操作，如查看content, 写入文件等
-	logger.Info("get event: %d, %v", release.ReleaseID, release.FileItems)
+	slog.Info("get event: %d, %v", release.ReleaseID, release.FileItems)
 
 	return nil
 }

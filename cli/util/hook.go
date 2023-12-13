@@ -73,7 +73,7 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	if err != nil {
 		return fmt.Errorf("exec %s error: %s, output: %s", hookType.String(), err.Error(), string(out))
 	}
-	logger.Info("exec %s success, output: \n%s", hookType.String(), string(out))
+	slog.Info("exec hook success", slog.String("script", hookType.String()), slog.String("output", string(out)))
 	return nil
 }
 

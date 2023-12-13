@@ -139,7 +139,7 @@ func (w *Watcher) StopWatch() {
 	w.cancel()
 
 	w.vas.Wg.Wait()
-	logger.Info("stop watch done, rid: %s, duration: %s", w.vas.Rid, time.Since(st))
+	slog.Info("stop watch done", slog.String("rid", w.vas.Rid), slog.Duration("duration", time.Since(st)))
 }
 
 func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
@@ -154,7 +154,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 			event, err := wStream.Recv()
 			select {
 			case <-w.vas.Ctx.Done():
-				logger.Info("stop receive upstream event because of ctx is done", logger.ErrAttr(err))
+				slog.Info("stop receive upstream event because of ctx is done", logger.ErrAttr(err))
 				return
 			case resultChan <- RecvResult{event, err}:
 			}
@@ -170,7 +170,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 	for {
 		select {
 		case <-w.vas.Ctx.Done():
-			logger.Info("watch stream will closed because of %s", w.vas.Ctx.Err().Error())
+			slog.Info("watch stream will closed because of ctx done", logger.ErrAttr(w.vas.Ctx.Err()))
 			return
 
 		case result := <-resultChan:
@@ -189,7 +189,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 				return
 			}
 
-			logger.Info("received upstream event",
+			slog.Info("received upstream event",
 				slog.String("apiVersion", event.ApiVersion.Format()),
 				slog.Any("payload", event.Payload),
 				slog.String("rid", event.Rid))
@@ -205,12 +205,12 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 
 			switch sfs.FeedMessageType(event.Type) {
 			case sfs.Bounce:
-				logger.Info("received upstream bounce request, need to reconnect upstream server, rid: %s", event.Rid)
+				slog.Info("received upstream bounce request, need to reconnect upstream server", slog.String("rid", event.Rid))
 				w.NotifyReconnect(types.ReconnectSignal{Reason: "received bounce request"})
 				return
 
 			case sfs.PublishRelease:
-				logger.Info("received upstream publish release event", slog.String("rid", event.Rid))
+				slog.Info("received upstream publish release event", slog.String("rid", event.Rid))
 				change := &sfs.ReleaseChangeEvent{
 					Rid:        event.Rid,
 					APIVersion: event.ApiVersion,

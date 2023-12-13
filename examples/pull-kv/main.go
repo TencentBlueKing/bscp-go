@@ -22,7 +22,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
-	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 )
 
@@ -78,6 +77,6 @@ func pullAppKvs(bscp client.Client, app string, key string, opts []option.AppOpt
 		return err
 	}
 
-	logger.Info("get %s value %s", key, value)
+	slog.Info("get %s value %s", key, value)
 	return nil
 }

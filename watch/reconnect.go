@@ -28,7 +28,7 @@ func (w *Watcher) NotifyReconnect(signal types.ReconnectSignal) {
 	select {
 	case w.reconnectChan <- signal:
 	default:
-		logger.Info("reconnect signal channel size is full, skip this signal, reason: %s", signal.Reason)
+		slog.Info("reconnect signal channel size is full, skip this signal", slog.String("reason", signal.Reason))
 	}
 }
 
@@ -38,7 +38,7 @@ func (w *Watcher) waitForReconnectSignal() {
 		case <-w.vas.Ctx.Done():
 			return
 		case signal := <-w.reconnectChan:
-			logger.Info("received reconnect signal, reason: %s, rid: %s", signal.String(), w.vas.Rid)
+			slog.Info("received reconnect signal", slog.String("reason", signal.String()), slog.String("rid", w.vas.Rid))
 
 			// stop the previous watch stream before close conn.
 			w.StopWatch()
@@ -51,7 +51,7 @@ func (w *Watcher) waitForReconnectSignal() {
 // tryReconnect, Use NotifyReconnect method instead of direct call
 func (w *Watcher) tryReconnect(rid string) {
 	st := time.Now()
-	logger.Info("start to reconnect the upstream server, rid: %s", rid)
+	slog.Info("start to reconnect the upstream server", slog.String("rid", w.vas.Rid))
 
 	retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 	for {
@@ -63,7 +63,7 @@ func (w *Watcher) tryReconnect(rid string) {
 			continue
 		}
 
-		logger.Info("reconnect new upstream server success", slog.String("rid", subRid))
+		slog.Info("reconnect new upstream server success", slog.String("rid", subRid))
 		break
 	}
 
@@ -75,9 +75,10 @@ func (w *Watcher) tryReconnect(rid string) {
 			continue
 		}
 
-		logger.Info("re-watch stream success", slog.String("rid", subRid))
+		slog.Info("re-watch stream success", slog.String("rid", subRid))
 		break
 	}
 
-	logger.Info("reconnect and re-watch the upstream server done, rid: %s, duration: %s", rid, time.Since(st))
+	slog.Info("reconnect and re-watch the upstream server done",
+		slog.String("rid", rid), slog.Duration("duration", time.Since(st)))
 }

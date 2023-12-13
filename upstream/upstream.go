@@ -138,7 +138,7 @@ func (uc *upstreamClient) dial() error {
 		return fmt.Errorf("dial upstream grpc server failed, err: %s", err.Error())
 	}
 
-	logger.Info("dial upstream server success", slog.String("upstream", endpoint))
+	slog.Info("dial upstream server success", slog.String("upstream", endpoint))
 
 	uc.cancelCtx = cancel
 	uc.conn = conn

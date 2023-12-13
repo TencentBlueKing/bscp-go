@@ -119,7 +119,7 @@ func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, op
 	if err := eventmeta.AppendMetadataToFile(appDir, metadata); err != nil {
 		return err
 	}
-	logger.Info("pull files success", slog.Any("releaseID", release.ReleaseID))
+	slog.Info("pull files success", slog.Any("releaseID", release.ReleaseID))
 	return nil
 }
 

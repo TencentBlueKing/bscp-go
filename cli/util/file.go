@@ -61,7 +61,7 @@ func UpdateFiles(filesDir string, files []*types.ConfigItemFile) error {
 					return fmt.Errorf("download file failed, err: %s", err.Error())
 				}
 			} else {
-				logger.Info("file %s is already exists and has not been modified, skip download", filePath)
+				slog.Info("file is already exists and has not been modified, skip download", slog.String("file", filePath))
 			}
 			// 3. set file permission
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
@@ -92,8 +92,8 @@ func CheckFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
 	}
 
 	if sha != ci.ContentSpec.Signature {
-		logger.Info("configuration item's SHA256 is not match, local: %s, remote: %s, need to update",
-			sha, ci.ContentSpec.Signature)
+		slog.Info("configuration item's SHA256 is not match, need to update",
+			slog.String("localHash", sha), slog.String("remoteHash", ci.ContentSpec.Signature))
 		return false, nil
 	}
 

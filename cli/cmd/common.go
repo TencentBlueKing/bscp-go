@@ -212,7 +212,7 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 		for {
 			select {
 			case <-ctx.Done():
-				logger.Info("watch labels file %s stoped because of %s", path, ctx.Err().Error())
+				slog.Info("watch labels file stoped because of ctx done", slog.String("file", path), logger.ErrAttr(ctx.Err()))
 				if err := watcher.Close(); err != nil {
 					slog.Warn("close watcher failed", logger.ErrAttr(err))
 				}
@@ -249,7 +249,8 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 					continue
 				}
 
-				logger.Info("labels file %s changed, try reset labels, old: %s, new: %s", path, oldLabels, labels)
+				slog.Info("labels file changed, try reset labels",
+					slog.String("file", path), slog.Any("old", oldLabels), slog.Any("new", labels))
 				msg.Labels = labels
 				watchChan <- msg
 				oldLabels = labels

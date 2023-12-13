@@ -79,12 +79,12 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 func (c *ConfigItemFile) SaveToFile(src string) error {
 	// 1. check if cache hit, copy from cache
 	if cache.Enable && cache.GetCache().CopyToFile(c.FileMeta, src) {
-		logger.Info("copy file from cache success, file: %s", src)
+		slog.Info("copy file from cache success", slog.String("src", src))
 	} else {
 		// 2. if cache not hit, download file from remote
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 			c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, src); err != nil {
-			return fmt.Errorf("download file failed, err: %s", err.Error())
+			return fmt.Errorf("download file failed, err %s", err.Error())
 		}
 	}
 	// 3. set file permission

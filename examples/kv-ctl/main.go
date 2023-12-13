@@ -148,7 +148,7 @@ func (w *watcher) callback(release *types.Release) error {
 			slog.Error("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
 			continue
 		}
-		logger.Info("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
+		slog.Info("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
 
 		// key匹配或者为空时，输出
 		if _, ok := w.keyMap[item.Key]; ok || len(keys) == 0 {

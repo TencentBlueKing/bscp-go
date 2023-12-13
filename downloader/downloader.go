@@ -122,7 +122,7 @@ func setupMaxHttpDownloadGoroutines() int64 {
 		slog.Warn("invalid max http download groutines, should <= 15, set to 1 for now", slog.Int64("groutines", weight))
 	}
 
-	logger.Info("max http download groutines", slog.Int64("groutines", weight))
+	slog.Info("max http download groutines", slog.Int64("groutines", weight))
 
 	return weight
 }
@@ -354,16 +354,17 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 		return err
 	}
 
-	logger.Debug("file[%s], download directly success, cost: %s",
-		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name), time.Since(start).String())
+	logger.Debug("download directly success",
+		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+		slog.Duration("cost", time.Since(start)),
+	)
 
 	return nil
 }
 
 func (exec *execDownload) downloadWithRange() error {
-
-	logger.Info("start download file[%s] with range",
-		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name))
+	slog.Info("start download file with range",
+		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)))
 
 	var start, end uint64
 	batchSize := 2 * exec.dl.balanceDownloadByteSize

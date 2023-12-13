@@ -62,11 +62,11 @@ func (b *bounce) enableBounce() {
 	for {
 		intervalHour := b.intervalHour.Load()
 
-		logger.Info("start wait connect bounce, bounce interval: %d hour", intervalHour)
+		slog.Info("start wait connect bounce, bounce interval", slog.Any("intervalHour", intervalHour))
 
 		time.Sleep(time.Duration(intervalHour) * time.Hour)
 
-		logger.Info("reach the bounce time and start to reconnect stream server")
+		slog.Info("reach the bounce time and start to reconnect stream server")
 
 		retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 		for {
@@ -76,7 +76,7 @@ func (b *bounce) enableBounce() {
 				continue
 			}
 
-			logger.Info("reconnect new upstream server success.")
+			slog.Info("reconnect new upstream server success.")
 			break
 		}
 	}
