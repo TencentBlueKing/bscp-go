@@ -22,7 +22,7 @@ import (
 	"strings"
 	"syscall"
 
-	"bscp.io/pkg/logs"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
@@ -32,13 +32,14 @@ import (
 )
 
 func main() {
-	logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
+	// 设置日志自定义 Handler
+	// logger.SetHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
 
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("invalid BSCP_BIZ", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -62,7 +63,7 @@ func main() {
 		option.Labels(conf.Labels),
 	)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("init bscp client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -86,10 +87,10 @@ func (w *watcher) callback(release *types.Release) error {
 	for _, item := range release.KvItems {
 		value, err := w.bscp.Get(w.app, item.Key)
 		if err != nil {
-			logger.Error("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
+			logger.Error("get value failed", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key), logger.ErrAttr(err))
 			continue
 		}
-		logger.Info("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
+		logger.Info("get value success", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key), slog.String("value", value))
 	}
 
 	return nil

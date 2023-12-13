@@ -27,6 +27,7 @@ import (
 	"bscp.io/pkg/kit"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
+	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
@@ -188,8 +189,10 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 				return
 			}
 
-			logger.Info("received upstream event, apiVersion: %s, payload: %s, rid: %s", event.ApiVersion.Format(),
-				event.Payload, event.Rid)
+			logger.Info("received upstream event",
+				slog.String("apiVersion", event.ApiVersion.Format()),
+				slog.Any("payload", event.Payload),
+				slog.String("rid", event.Rid))
 
 			if !sfs.IsAPIVersionMatch(event.ApiVersion) {
 				// 此处是不是不应该做版本兼容的校验？
@@ -206,7 +209,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 				return
 
 			case sfs.PublishRelease:
-				logger.Info("received upstream publish release event, rid: %s", event.Rid)
+				logger.Info("received upstream publish release event", slog.String("rid", event.Rid))
 				change := &sfs.ReleaseChangeEvent{
 					Rid:        event.Rid,
 					APIVersion: event.ApiVersion,

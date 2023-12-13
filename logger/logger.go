@@ -53,12 +53,12 @@ func init() {
 		TextHandler: textHandler,
 	})
 	defaultLogger.Store(logger)
-	logger.Log(context.Background(), logoLevel, LOGO)
+	logger.Log(context.Background(), logoLevel, logo)
 }
 
 const (
 	// LOGO is bk bscp inner logo.
-	LOGO = `
+	logo = `
 ===================================================================================
 oooooooooo   oooo    oooo         oooooooooo     oooooooo     oooooo    oooooooooo
  888     Y8b  888   8P             888     Y8b d8P      Y8  d8P    Y8b   888    Y88
@@ -82,6 +82,7 @@ type handler struct {
 	*slog.TextHandler
 }
 
+// Handle ..
 func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 	if r.Level == logoLevel {
 		fmt.Println(r.Message)

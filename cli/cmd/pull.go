@@ -21,6 +21,7 @@ import (
 
 	"bscp.io/pkg/dal/table"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/constant"
 	"github.com/TencentBlueKing/bscp-go/cli/eventmeta"
@@ -44,14 +45,14 @@ var (
 // Pull executes the pull command.
 func Pull(cmd *cobra.Command, args []string) {
 	if err := initArgs(); err != nil {
-		logger.Error(err.Error())
+		logger.Error("init", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
 	if conf.LabelsFile != "" {
 		labels, err := readLabelsFile(conf.LabelsFile)
 		if err != nil {
-			logger.Error("read labels file failed, err: %s", err.Error())
+			logger.Error("read labels file failed", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
@@ -118,7 +119,7 @@ func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, op
 	if err := eventmeta.AppendMetadataToFile(appDir, metadata); err != nil {
 		return err
 	}
-	logger.Info("pull files success, current releaseID: %d", release.ReleaseID)
+	logger.Info("pull files success", slog.Any("releaseID", release.ReleaseID))
 	return nil
 }
 

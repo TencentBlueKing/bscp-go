@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -33,6 +32,7 @@ import (
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
+	"golang.org/x/exp/slog"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/TencentBlueKing/bscp-go/logger"

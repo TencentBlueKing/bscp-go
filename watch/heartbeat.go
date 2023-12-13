@@ -19,6 +19,7 @@ import (
 	"bscp.io/pkg/kit"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/types"
@@ -55,7 +56,7 @@ func (w *Watcher) loopHeartbeat() error {
 		return fmt.Errorf("encode heartbeat payload err, %s", err.Error())
 	}
 
-	logger.Info("stream start loop heartbeat, heartbeat interval: %v", defaultHeartbeatInterval)
+	logger.Info("stream start loop heartbeat", slog.Duration("interval", defaultHeartbeatInterval))
 
 	w.vas.Wg.Add(1)
 	go func() {
