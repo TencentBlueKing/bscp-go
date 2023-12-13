@@ -19,9 +19,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path"
+
+	"golang.org/x/exp/slog"
+
+	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
 // EventMeta defines release event meta that write to metadata.json
@@ -73,7 +76,7 @@ func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 	if _, err := metaFile.WriteString(compress.String() + "\n"); err != nil {
 		return fmt.Errorf("append metadata to metadata.json failed, err: %s", err.Error())
 	}
-	slog.Info("append event metadata to metadata.json success", slog.String("event", compress.String()))
+	logger.Info("append event metadata to metadata.json success", slog.String("event", compress.String()))
 
 	return nil
 }

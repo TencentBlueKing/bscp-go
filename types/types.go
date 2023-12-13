@@ -15,11 +15,11 @@ package types
 
 import (
 	"fmt"
-	"log/slog"
 
 	pbci "bscp.io/pkg/protocol/core/config-item"
 	pbhook "bscp.io/pkg/protocol/core/hook"
 	sfs "bscp.io/pkg/sf-share"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/downloader"
@@ -79,7 +79,7 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 func (c *ConfigItemFile) SaveToFile(src string) error {
 	// 1. check if cache hit, copy from cache
 	if cache.Enable && cache.GetCache().CopyToFile(c.FileMeta, src) {
-		slog.Info("copy file from cache success", slog.String("src", src))
+		logger.Info("copy file from cache success", slog.String("src", src))
 	} else {
 		// 2. if cache not hit, download file from remote
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
@@ -89,7 +89,7 @@ func (c *ConfigItemFile) SaveToFile(src string) error {
 	}
 	// 3. set file permission
 	if err := util.SetFilePermission(src, c.Permission); err != nil {
-		slog.Warn("set file permission failed", slog.String("file", src), logger.ErrAttr(err))
+		logger.Warn("set file permission failed", slog.String("file", src), logger.ErrAttr(err))
 	}
 
 	return nil

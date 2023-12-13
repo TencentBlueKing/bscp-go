@@ -22,7 +22,7 @@ import (
 	"strings"
 	"syscall"
 
-	"log/slog"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
@@ -39,7 +39,7 @@ func main() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		slog.Error("invalid BSCP_BIZ", logger.ErrAttr(err))
+		logger.Error("invalid BSCP_BIZ", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -63,14 +63,14 @@ func main() {
 		option.Labels(conf.Labels),
 	)
 	if err != nil {
-		slog.Error("init bscp client", logger.ErrAttr(err))
+		logger.Error("init bscp client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
 	if err = watchAppKV(bscp, appName, opts); err != nil {
-		slog.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -87,10 +87,10 @@ func (w *watcher) callback(release *types.Release) error {
 	for _, item := range release.KvItems {
 		value, err := w.bscp.Get(w.app, item.Key)
 		if err != nil {
-			slog.Error("get value failed", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key), logger.ErrAttr(err))
+			logger.Error("get value failed", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key), logger.ErrAttr(err))
 			continue
 		}
-		slog.Info("get value success", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key), slog.String("value", value))
+		logger.Info("get value success", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key), slog.String("value", value))
 	}
 
 	return nil

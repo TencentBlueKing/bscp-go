@@ -16,12 +16,12 @@ package util
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path"
 
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
+	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/TencentBlueKing/bscp-go/downloader"
@@ -61,11 +61,11 @@ func UpdateFiles(filesDir string, files []*types.ConfigItemFile) error {
 					return fmt.Errorf("download file failed, err: %s", err.Error())
 				}
 			} else {
-				slog.Info("file is already exists and has not been modified, skip download", slog.String("file", filePath))
+				logger.Info("file is already exists and has not been modified, skip download", slog.String("file", filePath))
 			}
 			// 3. set file permission
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
-				slog.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
+				logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
 			}
 			return nil
 		})
@@ -92,7 +92,7 @@ func CheckFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
 	}
 
 	if sha != ci.ContentSpec.Signature {
-		slog.Info("configuration item's SHA256 is not match, need to update",
+		logger.Info("configuration item's SHA256 is not match, need to update",
 			slog.String("localHash", sha), slog.String("remoteHash", ci.ContentSpec.Signature))
 		return false, nil
 	}

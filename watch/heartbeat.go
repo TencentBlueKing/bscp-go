@@ -14,12 +14,12 @@ package watch
 
 import (
 	"fmt"
-	"log/slog"
 	"time"
 
 	"bscp.io/pkg/kit"
 	sfs "bscp.io/pkg/sf-share"
 	"bscp.io/pkg/tools"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/types"
@@ -52,11 +52,11 @@ func (w *Watcher) loopHeartbeat() error {
 	}
 	payload, err := heartbeatPayload.Encode()
 	if err != nil {
-		slog.Error("stream start loop heartbeat failed by encode heartbeat payload", logger.ErrAttr(err))
+		logger.Error("stream start loop heartbeat failed by encode heartbeat payload", logger.ErrAttr(err))
 		return fmt.Errorf("encode heartbeat payload err, %s", err.Error())
 	}
 
-	slog.Info("stream start loop heartbeat", slog.Duration("interval", defaultHeartbeatInterval))
+	logger.Info("stream start loop heartbeat", slog.Duration("interval", defaultHeartbeatInterval))
 
 	w.vas.Wg.Add(1)
 	go func() {
@@ -68,19 +68,20 @@ func (w *Watcher) loopHeartbeat() error {
 		for {
 			select {
 			case <-w.vas.Ctx.Done():
-				slog.Info("stream heartbeat stoped because of ctx done", logger.ErrAttr(w.vas.Ctx.Err()))
+				logger.Info("stream heartbeat stoped because of ctx done", logger.ErrAttr(w.vas.Ctx.Err()))
 				return
 
 			case <-tick.C:
-				slog.Debug("stream will heartbeat", slog.String("rid", w.vas.Rid))
+				logger.Debug("stream will heartbeat", slog.String("rid", w.vas.Rid))
 
 				if err := w.heartbeatOnce(w.vas, heartbeatPayload.MessagingType(), payload); err != nil {
-					slog.Warn("stream heartbeat failed, notify reconnect upstream", logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
+					logger.Warn("stream heartbeat failed, notify reconnect upstream",
+						logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
 
 					w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
 					return
 				}
-				slog.Debug("stream heartbeat successfully", slog.String("rid", w.vas.Rid))
+				logger.Debug("stream heartbeat successfully", slog.String("rid", w.vas.Rid))
 			}
 		}
 	}()
@@ -105,7 +106,7 @@ func (w *Watcher) heartbeatOnce(vas *kit.Vas, msgType sfs.MessagingType, payload
 		}
 
 		if err := w.sendHeartbeatMessaging(vas, msgType, payload); err != nil {
-			slog.Error("send heartbeat message failed",
+			logger.Error("send heartbeat message failed",
 				slog.Any("retry_count", retry.RetryCount()), logger.ErrAttr(err), slog.String("rid", vas.Rid))
 			lastErr = err
 			retry.Sleep()

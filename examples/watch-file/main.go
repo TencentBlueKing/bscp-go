@@ -15,15 +15,17 @@ package main
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
 
+	"golang.org/x/exp/slog"
+
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
@@ -36,7 +38,7 @@ func main() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -52,14 +54,14 @@ func main() {
 		option.Token(conf.Token),
 	)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
 	if err = watchAppRelease(bscp, appName, opts); err != nil {
-		slog.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -67,7 +69,7 @@ func main() {
 // callback watch 回调函数
 func callback(release *types.Release) error {
 	// 文件列表, 可以自定义操作，如查看content, 写入文件等
-	slog.Info("get event done", slog.Any("releaseID", release.ReleaseID), slog.Any("items", release.FileItems))
+	logger.Info("get event done", slog.Any("releaseID", release.ReleaseID), slog.Any("items", release.FileItems))
 
 	return nil
 }

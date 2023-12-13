@@ -15,13 +15,15 @@ package main
 
 import (
 	"encoding/json"
-	"log/slog"
 	"os"
 	"strconv"
 	"strings"
 
+	"golang.org/x/exp/slog"
+
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 )
 
@@ -33,7 +35,7 @@ func main() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -57,7 +59,7 @@ func main() {
 		option.Labels(conf.Labels),
 	)
 	if err != nil {
-		slog.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -65,7 +67,7 @@ func main() {
 	opts := []option.AppOption{}
 	key := "key1"
 	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
-		slog.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -77,6 +79,6 @@ func pullAppKvs(bscp client.Client, app string, key string, opts []option.AppOpt
 		return err
 	}
 
-	slog.Info("get value done", slog.String("key", key), slog.String("value", value))
+	logger.Info("get value done", slog.String("key", key), slog.String("value", value))
 	return nil
 }

@@ -13,11 +13,11 @@
 package upstream
 
 import (
-	"log/slog"
 	"time"
 
 	"bscp.io/pkg/tools"
 	"go.uber.org/atomic"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
 )
@@ -53,7 +53,7 @@ func (b *bounce) updateInterval(intervalHour uint) {
 // with each call, reschedule bounce time.
 func (b *bounce) enableBounce() {
 	if b.st.Load() {
-		slog.Error("bounce is enabled state, unable to enable bounce again")
+		logger.Error("bounce is enabled state, unable to enable bounce again")
 		return
 	}
 
@@ -62,21 +62,21 @@ func (b *bounce) enableBounce() {
 	for {
 		intervalHour := b.intervalHour.Load()
 
-		slog.Info("start wait connect bounce, bounce interval", slog.Any("intervalHour", intervalHour))
+		logger.Info("start wait connect bounce, bounce interval", slog.Any("intervalHour", intervalHour))
 
 		time.Sleep(time.Duration(intervalHour) * time.Hour)
 
-		slog.Info("reach the bounce time and start to reconnect stream server")
+		logger.Info("reach the bounce time and start to reconnect stream server")
 
 		retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 		for {
 			if err := b.reconnectFunc(); err != nil {
-				slog.Error("reconnect upstream server failed", logger.ErrAttr(err))
+				logger.Error("reconnect upstream server failed", logger.ErrAttr(err))
 				retry.Sleep()
 				continue
 			}
 
-			slog.Info("reconnect new upstream server success.")
+			logger.Info("reconnect new upstream server success.")
 			break
 		}
 	}

@@ -15,13 +15,13 @@ package upstream
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"bscp.io/pkg/kit"
 	pbbase "bscp.io/pkg/protocol/core/base"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
+	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
@@ -122,7 +122,7 @@ func (uc *upstreamClient) dial() error {
 
 	if uc.conn != nil {
 		if err := uc.conn.Close(); err != nil {
-			slog.Error("close the previous connection failed", logger.ErrAttr(err))
+			logger.Error("close the previous connection failed", logger.ErrAttr(err))
 			// do not return here, the new connection will be established.
 		}
 	}
@@ -138,7 +138,7 @@ func (uc *upstreamClient) dial() error {
 		return fmt.Errorf("dial upstream grpc server failed, err: %s", err.Error())
 	}
 
-	slog.Info("dial upstream server success", slog.String("upstream", endpoint))
+	logger.Info("dial upstream server success", slog.String("upstream", endpoint))
 
 	uc.cancelCtx = cancel
 	uc.conn = conn
@@ -155,7 +155,7 @@ func (uc *upstreamClient) Version() *pbbase.Versioning {
 // ReconnectUpstreamServer blocks until the new connection is established with dial again.
 func (uc *upstreamClient) ReconnectUpstreamServer() error {
 	if !uc.wait.TryBlock() {
-		slog.Warn("received reconnect to upstream server request, but another reconnect is processing, ignore this")
+		logger.Warn("received reconnect to upstream server request, but another reconnect is processing, ignore this")
 		return nil
 	}
 	// got the block lock for now.

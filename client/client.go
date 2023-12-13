@@ -17,15 +17,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"bscp.io/pkg/criteria/constant"
 	"bscp.io/pkg/kit"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/downloader"
+	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
@@ -65,7 +66,7 @@ func New(opts ...option.ClientOption) (Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())
 	}
-	slog.Info("instance fingerprint", slog.String("fingerprint", fp.Encode()))
+	logger.Info("instance fingerprint", slog.String("fingerprint", fp.Encode()))
 	clientOpt.Fingerprint = fp.Encode()
 	clientOpt.UID = clientOpt.Fingerprint
 	for _, opt := range opts {
