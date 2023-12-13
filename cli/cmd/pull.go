@@ -76,7 +76,7 @@ func Pull(cmd *cobra.Command, args []string) {
 			tempDir = conf.TempDir
 		}
 		if err = pullAppFiles(bscp, tempDir, conf.Biz, app.Name, opts); err != nil {
-			logger.Error(err.Error())
+			logger.Error("pull files failed", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	}

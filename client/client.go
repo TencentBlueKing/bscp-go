@@ -17,12 +17,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"bscp.io/pkg/criteria/constant"
 	"bscp.io/pkg/kit"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
 	"github.com/TencentBlueKing/bscp-go/downloader"

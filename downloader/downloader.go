@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -235,7 +236,7 @@ func (exec *execDownload) do() error {
 
 	size, yes, err := exec.isProviderSupportRangeDownload()
 	if err != nil {
-		logger.Warn("check if provider support range download failed because of %s", err.Error())
+		logger.Warn("check if provider support range download failed", slog.Any("err", err.Error()))
 	}
 
 	if yes {

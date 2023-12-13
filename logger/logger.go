@@ -147,3 +147,8 @@ func ErrorContext(ctx context.Context, msg string, args ...any) {
 func With(args ...any) *slog.Logger {
 	return getLogger().With(args...)
 }
+
+// ErrAttr ..
+func ErrAttr(err error) slog.Attr {
+	return slog.String("err", err.Error())
+}
