@@ -65,7 +65,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		option.UID(conf.UID),
 	)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 	for _, app := range conf.Apps {

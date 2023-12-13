@@ -35,7 +35,7 @@ func main() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("parse BSCP_BIZ", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -59,7 +59,7 @@ func main() {
 		option.Labels(conf.Labels),
 	)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -67,7 +67,7 @@ func main() {
 	opts := []option.AppOption{}
 	key := "key1"
 	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
-		logger.Error(err.Error())
+		logger.Error("pull", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 }

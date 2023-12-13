@@ -39,7 +39,7 @@ func main() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logger.Error("invalid BSCP_BIZ", logger.ErrAttr(err))
+		logger.Error("parse BSCP_BIZ", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -70,7 +70,7 @@ func main() {
 	appName := os.Getenv("BSCP_APP")
 	opts := []option.AppOption{}
 	if err = watchAppKV(bscp, appName, opts); err != nil {
-		logger.Error(err.Error())
+		logger.Error("watch kv", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 }

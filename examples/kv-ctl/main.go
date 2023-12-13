@@ -81,7 +81,7 @@ func execute() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("parse BSCP_BIZ", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -105,7 +105,7 @@ func execute() {
 		option.Labels(conf.Labels),
 	)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -114,7 +114,7 @@ func execute() {
 	keySlice := strings.Split(keys, ",")
 	if watchMode {
 		if err = watchAppKV(bscp, appName, keySlice, opts); err != nil {
-			logger.Error(err.Error())
+			logger.Error("watch", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	} else {

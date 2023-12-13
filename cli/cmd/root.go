@@ -34,7 +34,7 @@ var (
 // Execute executes the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error(err.Error())
+		logger.Error("exec cmd", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 }

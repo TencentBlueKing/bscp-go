@@ -54,7 +54,7 @@ var (
 // Watch run as a daemon to watch the config changes.
 func Watch(cmd *cobra.Command, args []string) {
 	if err := initArgs(); err != nil {
-		logger.Error(err.Error())
+		logger.Error("init args", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 

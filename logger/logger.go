@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -85,7 +86,7 @@ type handler struct {
 // Handle ..
 func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 	if r.Level == logoLevel {
-		fmt.Println(r.Message)
+		fmt.Println(strings.TrimSpace(r.Message))
 		return nil
 	}
 
