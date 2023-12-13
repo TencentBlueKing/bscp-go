@@ -13,6 +13,7 @@
 package upstream
 
 import (
+	"log/slog"
 	"time"
 
 	"bscp.io/pkg/tools"
@@ -52,7 +53,7 @@ func (b *bounce) updateInterval(intervalHour uint) {
 // with each call, reschedule bounce time.
 func (b *bounce) enableBounce() {
 	if b.st.Load() {
-		logger.Error("bounce is enabled state, unable to enable bounce again")
+		slog.Error("bounce is enabled state, unable to enable bounce again")
 		return
 	}
 
@@ -70,7 +71,7 @@ func (b *bounce) enableBounce() {
 		retry := tools.NewRetryPolicy(5, [2]uint{500, 15000})
 		for {
 			if err := b.reconnectFunc(); err != nil {
-				logger.Error("reconnect upstream server failed, err: %s", err.Error())
+				slog.Error("reconnect upstream server failed", logger.ErrAttr(err))
 				retry.Sleep()
 				continue
 			}

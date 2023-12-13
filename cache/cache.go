@@ -60,19 +60,20 @@ func GetCache() *Cache {
 func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 	pl := new(sfs.ReleaseChangePayload)
 	if err := json.Unmarshal(event.Payload, pl); err != nil {
-		logger.Error("decode release change event payload failed, skip the event, err: %s, rid: %s", err.Error(), event.Rid)
+		slog.Error("decode release change event payload failed, skip the event",
+			logger.ErrAttr(err), slog.String("rid", event.Rid))
 		return
 	}
 
 	if err := os.MkdirAll(c.path, os.ModePerm); err != nil {
-		logger.Error("mkdir cache path %s failed, err: %s", c.path, err.Error())
+		slog.Error("mkdir cache path failed", slog.String("path", c.path), logger.ErrAttr(err))
 		return
 	}
 
 	for _, ci := range pl.ReleaseMeta.CIMetas {
 		exists, err := c.checkFileCacheExists(ci)
 		if err != nil {
-			logger.Error("check config item exists failed, err: %s, rid: %s", err.Error(), event.Rid)
+			slog.Error("check config item exists failed", logger.ErrAttr(err), slog.String("rid", event.Rid))
 			continue
 		}
 		if exists {
@@ -81,7 +82,7 @@ func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 		filePath := path.Join(c.path, ci.ContentSpec.Signature)
 		if err := downloader.GetDownloader().Download(ci.PbFileMeta(), ci.RepositoryPath, ci.ContentSpec.ByteSize,
 			downloader.DownloadToFile, nil, filePath); err != nil {
-			logger.Error("download file failed, err: %s, rid: %s", err.Error(), event.Rid)
+			slog.Error("download file failed", logger.ErrAttr(err), slog.String("rid", event.Rid))
 			return
 		}
 	}
@@ -116,7 +117,8 @@ func (c *Cache) checkFileCacheExists(ci *sfs.ConfigItemMetaV1) (bool, error) {
 func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
-		logger.Error("check config item %s cache exists failed, err: %s", ci.ContentSpec.Signature, err.Error())
+		slog.Error("check config item cache exists failed",
+			slog.String("item", ci.ContentSpec.Signature), logger.ErrAttr(err))
 		return false, nil
 	}
 	if !exists {
@@ -125,7 +127,8 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 	filePath := path.Join(c.path, ci.ContentSpec.Signature)
 	bytes, err := os.ReadFile(filePath)
 	if err != nil {
-		logger.Error("read config item cache file %s failed, err: %s", filePath, err.Error())
+		slog.Error("read config item cache file failed",
+			slog.String("file", filePath), logger.ErrAttr(err))
 		return false, nil
 	}
 	return true, bytes
@@ -135,7 +138,7 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
-		slog.Warn("check config item %s cache exists failed, err: %s", ci.ContentSpec.Signature, err.Error())
+		slog.Warn("check config item cache exists failed", slog.String("item", ci.ContentSpec.Signature), logger.ErrAttr(err))
 		return false
 	}
 	if !exists {
@@ -144,19 +147,19 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	cacheFilePath := path.Join(c.path, ci.ContentSpec.Signature)
 	src, err := os.Open(cacheFilePath)
 	if err != nil {
-		logger.Error("open config item cache file %s failed, err: %s", cacheFilePath, err.Error())
+		slog.Error("open config item cache file failed", slog.String("file", cacheFilePath), logger.ErrAttr(err))
 		return false
 	}
 	defer src.Close()
 	dst, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		logger.Error("open destination file %s failed, err: %s", filePath, err.Error())
+		slog.Error("open destination file failed", slog.String("file", filePath), logger.ErrAttr(err))
 		return false
 	}
 	defer dst.Close()
 	if _, err := io.Copy(dst, src); err != nil {
-		logger.Error("copy config item cache file %s to destination file %s failed, err: %s",
-			cacheFilePath, filePath, err.Error())
+		slog.Error("copy config item cache file to destination file failed",
+			slog.String("cache_file", cacheFilePath), slog.String("file", filePath), logger.ErrAttr(err))
 		return false
 	}
 	return true

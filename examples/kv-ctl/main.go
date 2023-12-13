@@ -80,7 +80,7 @@ func execute() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logger.Error(err.Error())
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -104,7 +104,7 @@ func execute() {
 		option.Labels(conf.Labels),
 	)
 	if err != nil {
-		logger.Error(err.Error())
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
@@ -113,7 +113,7 @@ func execute() {
 	keySlice := strings.Split(keys, ",")
 	if watchMode {
 		if err = watchAppKV(bscp, appName, keySlice, opts); err != nil {
-			logger.Error(err.Error())
+			slog.Error(err.Error())
 			os.Exit(1)
 		}
 	} else {
@@ -145,7 +145,7 @@ func (w *watcher) callback(release *types.Release) error {
 	for _, item := range release.KvItems {
 		value, err := w.bscp.Get(w.app, item.Key)
 		if err != nil {
-			logger.Error("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
+			slog.Error("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
 			continue
 		}
 		logger.Info("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)

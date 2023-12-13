@@ -14,6 +14,7 @@ package util
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path"
@@ -47,7 +48,7 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	appTempDir := path.Join(tempDir, fmt.Sprintf("%d/%s", biz, app))
 	hookPath, err := saveContentToFile(appTempDir, hook, hookType)
 	if err != nil {
-		logger.Error("save hook content to file error: %s", err.Error())
+		slog.Error("save hook content to file failed", logger.ErrAttr(err))
 		return err
 	}
 	var command string
@@ -79,7 +80,7 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.HookType) (string, error) {
 	hookDir := path.Join(workspace, "hooks")
 	if err := os.MkdirAll(hookDir, os.ModePerm); err != nil {
-		logger.Error("mkdir hook dir %s error: %+v", hookDir, err)
+		slog.Error("mkdir hook dir failed", slog.String("dir", hookDir), logger.ErrAttr(err))
 		return "", err
 	}
 	var filePath string
@@ -92,7 +93,7 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 		return "", fmt.Errorf("invalid hook type: %s", hook.Type)
 	}
 	if err := os.WriteFile(filePath, []byte(hook.Content), os.ModePerm); err != nil {
-		logger.Error("write hook file %s error: %s", filePath, err.Error())
+		slog.Error("write hook file failed", slog.String("file", filePath), logger.ErrAttr(err))
 		return "", err
 	}
 	return filePath, nil

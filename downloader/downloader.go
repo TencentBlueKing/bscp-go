@@ -325,7 +325,7 @@ func (exec *execDownload) downloadDirectlyWithRetry() error {
 			return fmt.Errorf("exec do download failed, retry count: %d", maxRetryCount)
 		}
 		if err := exec.downloadDirectly(requestAwaitResponseTimeoutSeconds); err != nil {
-			logger.Error("exec do download, err: %s, retry count: %d", err.Error(), retry.RetryCount())
+			slog.Error("exec do download failed", logger.ErrAttr(err), slog.Any("retry_count", retry.RetryCount()))
 			retry.Sleep()
 			continue
 		}
@@ -395,9 +395,11 @@ func (exec *execDownload) downloadWithRange() error {
 			start := time.Now()
 			if err := exec.downloadOneRangedPartWithRetry(from, to); err != nil {
 				hitError = err
-				logger.Error("download file[%s] part %d failed, start: %d, err: %s",
-					path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name),
-					pos, from, err.Error())
+				slog.Error("download file part failed",
+					slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+					slog.Int("part", pos),
+					slog.Uint64("start", from),
+					logger.ErrAttr(err))
 				return
 			}
 
@@ -428,7 +430,7 @@ func (exec *execDownload) downloadOneRangedPartWithRetry(start uint64, end uint6
 			return fmt.Errorf("download file part failed, retry count: %d", maxRetryCount)
 		}
 		if err := exec.downloadOneRangedPart(start, end); err != nil {
-			logger.Error("download file part failed, err: %s, retry count: %d", err.Error(), retry.RetryCount())
+			slog.Error("download file part failed", logger.ErrAttr(err), slog.Any("retry_count", retry.RetryCount()))
 			retry.Sleep()
 			continue
 		}

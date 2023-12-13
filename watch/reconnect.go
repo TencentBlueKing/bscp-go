@@ -13,6 +13,7 @@
 package watch
 
 import (
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -57,24 +58,24 @@ func (w *Watcher) tryReconnect(rid string) {
 		subRid := rid + strconv.FormatUint(uint64(retry.RetryCount()), 10)
 
 		if err := w.upstream.ReconnectUpstreamServer(); err != nil {
-			logger.Error("reconnect upstream server failed, err: %s, rid: %s", err.Error(), subRid)
+			slog.Error("reconnect upstream server failed", logger.ErrAttr(err), slog.String("rid", subRid))
 			retry.Sleep()
 			continue
 		}
 
-		logger.Info("reconnect new upstream server success. rid: %s", subRid)
+		logger.Info("reconnect new upstream server success", slog.String("rid", subRid))
 		break
 	}
 
 	for {
 		subRid := rid + strconv.FormatUint(uint64(retry.RetryCount()), 10)
 		if e := w.StartWatch(); e != nil {
-			logger.Error("re-watch stream failed, err: %s, rid: %s", e.Error(), subRid)
+			slog.Error("re-watch stream failed", logger.ErrAttr(e), slog.String("rid", subRid))
 			retry.Sleep()
 			continue
 		}
 
-		logger.Info("re-watch stream success, rid: %s", subRid)
+		logger.Info("re-watch stream success", slog.String("rid", subRid))
 		break
 	}
 

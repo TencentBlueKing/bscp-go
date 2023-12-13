@@ -45,14 +45,14 @@ var (
 // Pull executes the pull command.
 func Pull(cmd *cobra.Command, args []string) {
 	if err := initArgs(); err != nil {
-		logger.Error("init", logger.ErrAttr(err))
+		slog.Error("init", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
 	if conf.LabelsFile != "" {
 		labels, err := readLabelsFile(conf.LabelsFile)
 		if err != nil {
-			logger.Error("read labels file failed", logger.ErrAttr(err))
+			slog.Error("read labels file failed", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
@@ -65,7 +65,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		option.UID(conf.UID),
 	)
 	if err != nil {
-		logger.Error(err.Error())
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 	for _, app := range conf.Apps {
@@ -77,7 +77,7 @@ func Pull(cmd *cobra.Command, args []string) {
 			tempDir = conf.TempDir
 		}
 		if err = pullAppFiles(bscp, tempDir, conf.Biz, app.Name, opts); err != nil {
-			logger.Error("pull files failed", logger.ErrAttr(err))
+			slog.Error("pull files failed", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	}

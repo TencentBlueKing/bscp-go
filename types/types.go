@@ -89,7 +89,7 @@ func (c *ConfigItemFile) SaveToFile(src string) error {
 	}
 	// 3. set file permission
 	if err := util.SetFilePermission(src, c.Permission); err != nil {
-		slog.Warn("set file permission for %s failed, err: %s", src, err.Error())
+		slog.Warn("set file permission failed", slog.String("file", src), logger.ErrAttr(err))
 	}
 
 	return nil

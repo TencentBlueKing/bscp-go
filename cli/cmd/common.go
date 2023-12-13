@@ -254,7 +254,7 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 				watchChan <- msg
 				oldLabels = labels
 			case err := <-watcher.Errors:
-				logger.Error("watcher error: %s", err.Error())
+				slog.Error("watcher error", logger.ErrAttr(err))
 			}
 		}
 	}()

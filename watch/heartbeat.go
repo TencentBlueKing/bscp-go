@@ -52,7 +52,7 @@ func (w *Watcher) loopHeartbeat() error {
 	}
 	payload, err := heartbeatPayload.Encode()
 	if err != nil {
-		logger.Error("stream start loop heartbeat failed, encode heartbeat payload err, %s", err.Error())
+		slog.Error("stream start loop heartbeat failed by encode heartbeat payload", logger.ErrAttr(err))
 		return fmt.Errorf("encode heartbeat payload err, %s", err.Error())
 	}
 
@@ -75,7 +75,7 @@ func (w *Watcher) loopHeartbeat() error {
 				logger.Debug("stream will heartbeat, rid: %s", w.vas.Rid)
 
 				if err := w.heartbeatOnce(w.vas, heartbeatPayload.MessagingType(), payload); err != nil {
-					slog.Warn("stream heartbeat failed, notify reconnect upstream, err: %v, rid: %s", err, w.vas.Rid)
+					slog.Warn("stream heartbeat failed, notify reconnect upstream", logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
 
 					w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
 					return
@@ -105,8 +105,8 @@ func (w *Watcher) heartbeatOnce(vas *kit.Vas, msgType sfs.MessagingType, payload
 		}
 
 		if err := w.sendHeartbeatMessaging(vas, msgType, payload); err != nil {
-			logger.Error("send heartbeat message failed, retry count: %d, err: %v, rid: %s",
-				retry.RetryCount(), err, vas.Rid)
+			slog.Error("send heartbeat message failed",
+				slog.Any("retry_count", retry.RetryCount()), logger.ErrAttr(err), slog.String("rid", vas.Rid))
 			lastErr = err
 			retry.Sleep()
 			continue

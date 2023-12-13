@@ -65,7 +65,7 @@ func UpdateFiles(filesDir string, files []*types.ConfigItemFile) error {
 			}
 			// 3. set file permission
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
-				slog.Warn("set file permission for %s failed, err: %s", filePath, err.Error())
+				slog.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
 			}
 			return nil
 		})

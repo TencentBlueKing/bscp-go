@@ -122,7 +122,7 @@ func (uc *upstreamClient) dial() error {
 
 	if uc.conn != nil {
 		if err := uc.conn.Close(); err != nil {
-			logger.Error("close the previous connection failed, err: %s", err.Error())
+			slog.Error("close the previous connection failed", logger.ErrAttr(err))
 			// do not return here, the new connection will be established.
 		}
 	}
