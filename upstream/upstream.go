@@ -21,6 +21,7 @@ import (
 	pbbase "bscp.io/pkg/protocol/core/base"
 	pbfs "bscp.io/pkg/protocol/feed-server"
 	sfs "bscp.io/pkg/sf-share"
+	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
@@ -137,7 +138,7 @@ func (uc *upstreamClient) dial() error {
 		return fmt.Errorf("dial upstream grpc server failed, err: %s", err.Error())
 	}
 
-	logger.Info("dial upstream server %s success.", endpoint)
+	logger.Info("dial upstream server success", slog.String("upstream", endpoint))
 
 	uc.cancelCtx = cancel
 	uc.conn = conn

@@ -15,23 +15,89 @@ package logger
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"sync/atomic"
+	"time"
+
+	"golang.org/x/exp/slog"
 )
 
 var defaultLogger atomic.Value
 
+const (
+	logoLevel = slog.Level(1)
+)
+
 func init() {
-	defaultLogger.Store(slog.Default())
+	textHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     slog.LevelInfo,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.SourceKey {
+				source, ok := a.Value.Any().(*slog.Source)
+				if !ok {
+					return a
+				}
+				dir, file := filepath.Split(source.File)
+				source.File = filepath.Join(filepath.Base(dir), file)
+				return a
+			}
+
+			return a
+		},
+	})
+	logger := slog.New(&handler{
+		TextHandler: textHandler,
+	})
+	defaultLogger.Store(logger)
+	logger.Log(context.Background(), logoLevel, LOGO)
+}
+
+const (
+	// LOGO is bk bscp inner logo.
+	LOGO = `
+===================================================================================
+oooooooooo   oooo    oooo         oooooooooo     oooooooo     oooooo    oooooooooo
+ 888     Y8b  888   8P             888     Y8b d8P      Y8  d8P    Y8b   888    Y88
+ 888     888  888  d8              888     888 Y88bo       888           888    d88
+ 888oooo888   88888[      8888888  888oooo888     Y8888o   888           888ooo88P
+ 888     88b  888 88b              888     88b        Y88b 888           888
+ 888     88P  888   88b            888     88P oo      d8P  88b    ooo   888
+o888bood8P   o888o  o888o         o888bood8P   88888888P     Y8bood8P   o888o
+===================================================================================`
+)
+
+func _log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:]) // skip [Callers, Infof]
+	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	r.Add(args...)
+	_ = getLogger().Handler().Handle(ctx, r)
+}
+
+type handler struct {
+	*slog.TextHandler
+}
+
+func (h *handler) Handle(ctx context.Context, r slog.Record) error {
+	if r.Level == logoLevel {
+		fmt.Println(r.Message)
+		return nil
+	}
+
+	return h.TextHandler.Handle(ctx, r)
 }
 
 func getLogger() *slog.Logger {
 	return defaultLogger.Load().(*slog.Logger)
 }
 
-// SetLogger set logger
-func SetLogger(logger *slog.Logger) {
-	defaultLogger.Store(logger)
+// SetHandler set logger
+func SetHandler(handler slog.Handler) {
+	defaultLogger.Store(slog.New(handler))
 }
 
 // Debug logs at LevelDebug.
@@ -46,7 +112,8 @@ func DebugContext(ctx context.Context, msg string, args ...any) {
 
 // Info logs at LevelInfo.
 func Info(msg string, args ...any) {
-	getLogger().Info(msg, args...)
+	_log(context.Background(), slog.LevelInfo, msg, args...)
+	// getLogger().Info(msg, args...)
 }
 
 // InfoContext logs at LevelInfo with the given context.
@@ -66,31 +133,12 @@ func WarnContext(ctx context.Context, msg string, args ...any) {
 
 // Error logs at LevelError.
 func Error(msg string, args ...any) {
-	getLogger().Error(msg, args...)
+	_log(context.Background(), slog.LevelError, msg, args...)
 }
 
 // ErrorContext logs at LevelError with the given context.
 func ErrorContext(ctx context.Context, msg string, args ...any) {
 	getLogger().ErrorContext(ctx, msg, args...)
-}
-
-// Log emits a log record with the current time and the given level and message.
-// The Record's Attrs consist of the Logger's attributes followed by
-// the Attrs specified by args.
-//
-// The attribute arguments are processed as follows:
-//   - If an argument is an Attr, it is used as is.
-//   - If an argument is a string and this is not the last argument,
-//     the following argument is treated as the value and the two are combined
-//     into an Attr.
-//   - Otherwise, the argument is treated as a value with key "!BADKEY".
-func Log(ctx context.Context, level slog.Level, msg string, args ...any) {
-	getLogger().Log(ctx, level, msg, args...)
-}
-
-// LogAttrs is a more efficient version of [Logger.Log] that accepts only Attrs.
-func LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
-	getLogger().LogAttrs(ctx, level, msg, attrs...)
 }
 
 // With returns a Logger that includes the given attributes

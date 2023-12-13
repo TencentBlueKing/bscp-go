@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"bscp.io/pkg/criteria/constant"
 	"bscp.io/pkg/kit"
@@ -65,7 +66,7 @@ func New(opts ...option.ClientOption) (Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())
 	}
-	logger.Info("instance fingerprint: %s", fp.Encode())
+	logger.Info("instance fingerprint", slog.String("fingerprint", fp.Encode()))
 	clientOpt.Fingerprint = fp.Encode()
 	clientOpt.UID = clientOpt.Fingerprint
 	for _, opt := range opts {
