@@ -149,7 +149,7 @@ func With(args ...any) *slog.Logger {
 	return getLogger().With(args...)
 }
 
-// ErrAttr ..
+// ErrAttr 错误类型Attr
 func ErrAttr(err error) slog.Attr {
 	return slog.String("err", err.Error())
 }
