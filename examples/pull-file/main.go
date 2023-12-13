@@ -18,8 +18,6 @@ import (
 	"strconv"
 	"strings"
 
-	"bscp.io/pkg/logs"
-
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/logger"
@@ -27,7 +25,8 @@ import (
 )
 
 func main() {
-	logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
+	// 设置日志自定义 Handler
+	// logger.SetHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
 
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")

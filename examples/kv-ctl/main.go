@@ -22,8 +22,8 @@ import (
 	"strings"
 	"syscall"
 
-	"bscp.io/pkg/logs"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
@@ -41,14 +41,14 @@ var rootCmd = &cobra.Command{
 }
 
 var (
-	watchMode  bool
-	keys       string
-	logEnabled bool
+	watchMode bool
+	keys      string
+	logLevel  string
 )
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&watchMode, "watch", "w", false, "use watch mode")
-	rootCmd.PersistentFlags().BoolVarP(&logEnabled, "log.enabled", "", false, "enable log")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log.level", "", "warn", "log filtering level.")
 	rootCmd.PersistentFlags().StringVarP(&keys, "keys", "k", "", "use commas to separate, like key1,key2. (watch mode empty key will get all values)")
 }
 
@@ -57,9 +57,24 @@ func main() {
 }
 
 func execute() {
-	if logEnabled {
-		logs.InitLogger(logs.LogConfig{ToStdErr: true, LogLineMaxSize: 1000})
+	level := slog.LevelInfo
+	switch logLevel {
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	case "info":
+		level = slog.LevelInfo
+	case "debug":
+		level = slog.LevelDebug
+	default:
+		level = slog.LevelWarn
 	}
+
+	// 设置日志自定义 Handler
+	logger.SetHandler(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	}))
 
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
