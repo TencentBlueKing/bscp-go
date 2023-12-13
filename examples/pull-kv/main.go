@@ -77,6 +77,6 @@ func pullAppKvs(bscp client.Client, app string, key string, opts []option.AppOpt
 		return err
 	}
 
-	slog.Info("get %s value %s", key, value)
+	slog.Info("get value done", slog.String("key", key), slog.String("value", value))
 	return nil
 }

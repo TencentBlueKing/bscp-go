@@ -66,9 +66,8 @@ func main() {
 
 // callback watch 回调函数
 func callback(release *types.Release) error {
-
 	// 文件列表, 可以自定义操作，如查看content, 写入文件等
-	slog.Info("get event: %d, %v", release.ReleaseID, release.FileItems)
+	slog.Info("get event done", slog.Any("releaseID", release.ReleaseID), slog.Any("items", release.FileItems))
 
 	return nil
 }
