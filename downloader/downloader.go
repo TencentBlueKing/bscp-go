@@ -354,7 +354,7 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 		return err
 	}
 
-	logger.Debug("download directly success",
+	slog.Debug("download directly success",
 		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
 		slog.Duration("cost", time.Since(start)),
 	)
@@ -404,8 +404,12 @@ func (exec *execDownload) downloadWithRange() error {
 				return
 			}
 
-			logger.Debug("download file range part %d success, range [%d, %d], cost: %s", pos, from, to,
-				time.Since(start).String())
+			slog.Debug("download file range part success",
+				slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+				slog.Int("part", pos),
+				slog.Uint64("from", from),
+				slog.Uint64("to", to),
+				slog.Duration("cost", time.Since(start)))
 
 		}(part, start, end)
 
@@ -417,8 +421,8 @@ func (exec *execDownload) downloadWithRange() error {
 		return hitError
 	}
 
-	logger.Debug("download full file[%s] success",
-		path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name))
+	slog.Debug("download full file success",
+		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)))
 
 	return nil
 }

@@ -72,7 +72,7 @@ func (w *Watcher) loopHeartbeat() error {
 				return
 
 			case <-tick.C:
-				logger.Debug("stream will heartbeat, rid: %s", w.vas.Rid)
+				slog.Debug("stream will heartbeat", slog.String("rid", w.vas.Rid))
 
 				if err := w.heartbeatOnce(w.vas, heartbeatPayload.MessagingType(), payload); err != nil {
 					slog.Warn("stream heartbeat failed, notify reconnect upstream", logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
@@ -80,7 +80,7 @@ func (w *Watcher) loopHeartbeat() error {
 					w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
 					return
 				}
-				logger.Debug("stream heartbeat successfully, rid: %s", w.vas.Rid)
+				slog.Debug("stream heartbeat successfully", slog.String("rid", w.vas.Rid))
 			}
 		}
 	}()
