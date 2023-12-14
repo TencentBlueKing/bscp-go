@@ -30,7 +30,6 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/internal/watch"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
@@ -53,15 +52,15 @@ type Client interface {
 // Client is the bscp client
 type client struct {
 	pairs       map[string]string
-	opts        option.ClientOptions
+	opts        ClientOptions
 	fingerPrint sfs.FingerPrint
 	watcher     *watch.Watcher
 	upstream    upstream.Upstream
 }
 
 // New return a bscp client instance
-func New(opts ...option.ClientOption) (Client, error) {
-	clientOpt := &option.ClientOptions{}
+func New(opts ...ClientOption) (Client, error) {
+	clientOpt := &ClientOptions{}
 	fp, err := sfs.GetFingerPrint()
 	if err != nil {
 		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())

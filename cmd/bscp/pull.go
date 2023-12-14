@@ -29,7 +29,6 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/util"
 	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
@@ -59,11 +58,11 @@ func Pull(cmd *cobra.Command, args []string) {
 		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
 	}
 	bscp, err := client.New(
-		option.FeedAddrs(conf.FeedAddrs),
-		option.BizID(conf.Biz),
-		option.Token(conf.Token),
-		option.Labels(conf.Labels),
-		option.UID(conf.UID),
+		client.FeedAddrs(conf.FeedAddrs),
+		client.BizID(conf.Biz),
+		client.Token(conf.Token),
+		client.Labels(conf.Labels),
+		client.UID(conf.UID),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
