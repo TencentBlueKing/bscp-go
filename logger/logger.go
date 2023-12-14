@@ -116,13 +116,6 @@ func ErrorContext(ctx context.Context, msg string, args ...any) {
 	getLogger().ErrorContext(ctx, msg, args...)
 }
 
-// With returns a Logger that includes the given attributes
-// in each output operation. Arguments are converted to
-// attributes as if by [Logger.Log].
-func With(args ...any) *slog.Logger {
-	return getLogger().With(args...)
-}
-
 // ErrAttr 错误类型Attr
 func ErrAttr(err error) slog.Attr {
 	return slog.String("err", err.Error())
