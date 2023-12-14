@@ -128,7 +128,7 @@ func init() {
 	PullCmd.Flags().SortFlags = false
 
 	PullCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
-		"feed server address, eg: 'github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp:8080,github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp:8081'")
+		"feed server address, eg: 'bscp-feed.example.com:9510'")
 	PullCmd.Flags().IntVarP(&bizID, "biz", "b", 0, "biz id")
 	PullCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	PullCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")

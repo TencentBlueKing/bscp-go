@@ -279,7 +279,7 @@ func init() {
 	WatchCmd.Flags().SortFlags = false
 
 	WatchCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
-		"feed server address, eg: 'github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp:8080,github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp:8081'")
+		"feed server address, eg: 'bscp-feed.example.com:9510'")
 	WatchCmd.Flags().IntVarP(&bizID, "biz", "b", 0, "biz id")
 	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	WatchCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
