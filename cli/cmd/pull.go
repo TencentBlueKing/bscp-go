@@ -27,9 +27,9 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cli/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
+	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
-	pkgutil "github.com/TencentBlueKing/bscp-go/pkg/util"
 )
 
 var (
