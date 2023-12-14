@@ -12,8 +12,6 @@
 
 package option
 
-import "golang.org/x/exp/slog"
-
 // ClientOptions options for bscp sdk client
 type ClientOptions struct {
 	// FeedAddr BSCP feed_server address
@@ -36,8 +34,6 @@ type ClientOptions struct {
 	DialTimeoutMS int64
 	// Token sdk token
 	Token string
-	// Logger sdk logger
-	Logger *slog.Logger
 }
 
 // ClientOption setter for bscp sdk options
@@ -104,14 +100,6 @@ func WithDialTimeoutMS(timeout int64) ClientOption {
 func Token(token string) ClientOption {
 	return func(o *ClientOptions) error {
 		o.Token = token
-		return nil
-	}
-}
-
-// Logger set sdk logger
-func Logger(logger *slog.Logger) ClientOption {
-	return func(o *ClientOptions) error {
-		o.Logger = logger
 		return nil
 	}
 }
