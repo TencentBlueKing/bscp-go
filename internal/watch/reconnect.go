@@ -20,11 +20,10 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 // NotifyReconnect notify the watcher to reconnect the upstream server.
-func (w *Watcher) NotifyReconnect(signal types.ReconnectSignal) {
+func (w *Watcher) NotifyReconnect(signal ReconnectSignal) {
 	select {
 	case w.reconnectChan <- signal:
 	default:

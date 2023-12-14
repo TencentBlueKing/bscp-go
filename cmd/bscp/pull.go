@@ -30,6 +30,7 @@ import (
 	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
+	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 var (
@@ -69,10 +70,10 @@ func Pull(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	for _, app := range conf.Apps {
-		opts := []option.AppOption{}
-		opts = append(opts, option.WithKey("**"))
-		opts = append(opts, option.WithLabels(app.Labels))
-		opts = append(opts, option.WithUID(app.UID))
+		opts := []types.AppOption{}
+		opts = append(opts, types.WithAppKey("**"))
+		opts = append(opts, types.WithAppLabels(app.Labels))
+		opts = append(opts, types.WithAppUID(app.UID))
 		if conf.TempDir != "" {
 			tempDir = conf.TempDir
 		}
@@ -83,7 +84,7 @@ func Pull(cmd *cobra.Command, args []string) {
 	}
 }
 
-func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, opts []option.AppOption) error {
+func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, opts []types.AppOption) error {
 	// 1. prepare app workspace dir
 	appDir := path.Join(tempDir, strconv.Itoa(int(biz)), app)
 	if e := os.MkdirAll(appDir, os.ModePerm); e != nil {

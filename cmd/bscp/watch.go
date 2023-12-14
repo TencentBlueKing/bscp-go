@@ -236,10 +236,10 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 	return nil
 }
 
-func (w *WatchHandler) getSubscribeOptions() []option.AppOption {
-	options := []option.AppOption{}
-	options = append(options, option.WithLabels(w.Labels))
-	options = append(options, option.WithUID(w.UID))
+func (w *WatchHandler) getSubscribeOptions() []types.AppOption {
+	options := []types.AppOption{}
+	options = append(options, types.WithAppLabels(w.Labels))
+	options = append(options, types.WithAppUID(w.UID))
 	return options
 }
 

@@ -94,3 +94,6 @@ func (c *ConfigItemFile) SaveToFile(src string) error {
 
 	return nil
 }
+
+// Callback watch callback
+type Callback func(release *Release) error

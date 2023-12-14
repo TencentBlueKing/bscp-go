@@ -37,11 +37,11 @@ import (
 // Client bscp client method
 type Client interface {
 	// PullFiles pull files from remote
-	PullFiles(app string, opts ...option.AppOption) (*types.Release, error)
+	PullFiles(app string, opts ...types.AppOption) (*types.Release, error)
 	// Pull Key Value from remote
-	Get(app string, key string, opts ...option.AppOption) (string, error)
+	Get(app string, key string, opts ...types.AppOption) (string, error)
 	// AddWatcher add a watcher to client
-	AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error
+	AddWatcher(callback types.Callback, app string, opts ...types.AppOption) error
 	// StartWatch start watch
 	StartWatch() error
 	// StopWatch stop watch
@@ -140,7 +140,7 @@ func New(opts ...option.ClientOption) (Client, error) {
 }
 
 // AddWatcher add a watcher to client
-func (c *client) AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error {
+func (c *client) AddWatcher(callback types.Callback, app string, opts ...types.AppOption) error {
 	_ = c.watcher.Subscribe(callback, app, opts...)
 	return nil
 }
@@ -162,12 +162,12 @@ func (c *client) ResetLabels(labels map[string]string) {
 		subscriber.ResetLabels(labels)
 	}
 
-	c.watcher.NotifyReconnect(types.ReconnectSignal{Reason: "reset labels"})
+	c.watcher.NotifyReconnect(watch.ReconnectSignal{Reason: "reset labels"})
 }
 
 // PullFiles pull files from remote
-func (c *client) PullFiles(app string, opts ...option.AppOption) (*types.Release, error) {
-	option := &option.AppOptions{}
+func (c *client) PullFiles(app string, opts ...types.AppOption) (*types.Release, error) {
+	option := &types.AppOptions{}
 	for _, opt := range opts {
 		opt(option)
 	}
@@ -220,8 +220,8 @@ func (c *client) PullFiles(app string, opts ...option.AppOption) (*types.Release
 }
 
 // Get 读取 Key 的值
-func (c *client) Get(app string, key string, opts ...option.AppOption) (string, error) {
-	option := &option.AppOptions{}
+func (c *client) Get(app string, key string, opts ...types.AppOption) (string, error) {
+	option := &types.AppOptions{}
 	for _, opt := range opts {
 		opt(option)
 	}

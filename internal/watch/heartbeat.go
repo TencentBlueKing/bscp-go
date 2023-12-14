@@ -22,7 +22,6 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 const (
@@ -78,7 +77,7 @@ func (w *Watcher) loopHeartbeat() error {
 					logger.Warn("stream heartbeat failed, notify reconnect upstream",
 						logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
 
-					w.NotifyReconnect(types.ReconnectSignal{Reason: "stream heartbeat failed"})
+					w.NotifyReconnect(ReconnectSignal{Reason: "stream heartbeat failed"})
 					return
 				}
 				logger.Debug("stream heartbeat successfully", slog.String("rid", w.vas.Rid))

@@ -10,8 +10,7 @@
  * limitations under the License.
  */
 
-// Package option defines the common options.
-package option
+package types
 
 // AppOptions options for app pull and watch
 type AppOptions struct {
@@ -26,22 +25,22 @@ type AppOptions struct {
 // AppOption setter for app options
 type AppOption func(*AppOptions)
 
-// WithKey set watch config item key
-func WithKey(key string) AppOption {
+// WithAppKey set watch config item key
+func WithAppKey(key string) AppOption {
 	return func(o *AppOptions) {
 		o.Key = key
 	}
 }
 
-// WithLabels set watch labels
-func WithLabels(labels map[string]string) AppOption {
+// WithAppLabels set watch labels
+func WithAppLabels(labels map[string]string) AppOption {
 	return func(o *AppOptions) {
 		o.Labels = labels
 	}
 }
 
-// WithUID set watch uid
-func WithUID(uid string) AppOption {
+// WithAppUID set watch uid
+func WithAppUID(uid string) AppOption {
 	return func(o *AppOptions) {
 		o.UID = uid
 	}
