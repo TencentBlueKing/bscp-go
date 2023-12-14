@@ -1,4 +1,4 @@
-module github.com/TencentBlueKing/bscp-go/examples/pull-file
+module github.com/TencentBlueKing/bscp-go/examples
 
 go 1.20
 
