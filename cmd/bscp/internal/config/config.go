@@ -19,7 +19,7 @@ import (
 	// for unmarshal yaml config file
 	_ "gopkg.in/yaml.v2"
 
-	"github.com/TencentBlueKing/bscp-go/cli/constant"
+	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
 )
 
 // ClientConfig config for bscp-go when run as daemon

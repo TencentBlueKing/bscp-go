@@ -10,21 +10,23 @@
  * limitations under the License.
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
+	"strings"
+	_ "unsafe"
 
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
 var (
-	logFormat string
-	logLevel  string
-	rootCmd   = &cobra.Command{
+	logLevel string
+	rootCmd  = &cobra.Command{
 		Use:   "bscp",
 		Short: "bscp is a command line tool for blueking service config platform",
 		Long:  `bscp is a command line tool for blueking service config platform`,
@@ -33,6 +35,9 @@ var (
 
 // Execute executes the root command.
 func Execute() {
+	// print bscp banner
+	fmt.Println(strings.TrimSpace(version.GetStartInfo()))
+
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("exec cmd", logger.ErrAttr(err))
 		os.Exit(1)
@@ -48,8 +53,6 @@ func init() {
 	rootCmd.AddCommand(PullCmd)
 	rootCmd.AddCommand(WatchCmd)
 	rootCmd.AddCommand(VersionCmd)
-	rootCmd.PersistentFlags().StringVarP(&logFormat, "log.format", "", "logfmt",
-		"log format to use. possible options: logfmt or json.")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log.level", "", "info", "log filtering level.")
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file path")
 

@@ -21,7 +21,7 @@ import (
 	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
 	pbhook "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
 
-	"github.com/TencentBlueKing/bscp-go/cli/util"
+	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/util"
 )
 
 func TestExecuteShellHook(t *testing.T) {

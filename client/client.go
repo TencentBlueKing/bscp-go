@@ -24,14 +24,14 @@ import (
 	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/cache"
-	"github.com/TencentBlueKing/bscp-go/downloader"
+	"github.com/TencentBlueKing/bscp-go/internal/cache"
+	"github.com/TencentBlueKing/bscp-go/internal/downloader"
+	"github.com/TencentBlueKing/bscp-go/internal/upstream"
+	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/watch"
 	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
-	"github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
-	"github.com/TencentBlueKing/bscp-go/upstream"
-	"github.com/TencentBlueKing/bscp-go/watch"
 )
 
 // Client bscp client method

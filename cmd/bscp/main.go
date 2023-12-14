@@ -10,13 +10,9 @@
  * limitations under the License.
  */
 
-// Package main defines the bscp cli main entry.
+// program bscp defines the bscp cli main entry.
 package main
 
-import (
-	"github.com/TencentBlueKing/bscp-go/cli/cmd"
-)
-
 func main() {
-	cmd.Execute()
+	Execute()
 }

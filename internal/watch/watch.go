@@ -30,13 +30,13 @@ import (
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 
-	"github.com/TencentBlueKing/bscp-go/cache"
+	"github.com/TencentBlueKing/bscp-go/internal/cache"
+	"github.com/TencentBlueKing/bscp-go/internal/metrics"
+	"github.com/TencentBlueKing/bscp-go/internal/upstream"
+	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/metrics"
 	"github.com/TencentBlueKing/bscp-go/option"
-	"github.com/TencentBlueKing/bscp-go/pkg/util"
 	"github.com/TencentBlueKing/bscp-go/types"
-	"github.com/TencentBlueKing/bscp-go/upstream"
 )
 
 // Watcher is the main watch stream for instance

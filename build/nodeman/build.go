@@ -10,18 +10,17 @@
  * limitations under the License.
  */
 
-// Package main defines the bscp node manager plugin main entry.
+// program nodeman defines the bscp node manager plugin main entry.
 package main
 
 import (
 	"fmt"
 	"io"
 	"os"
+	_ "unsafe"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common"
 	"github.com/Tencent/bk-bcs/bcs-common/common/conf"
-
-	"github.com/TencentBlueKing/bscp-go/cli/cmd"
 )
 
 const (
@@ -93,5 +92,7 @@ func main() {
 		os.Args = append(os.Args, fmt.Sprintf("%s%s.yaml", configPath, pluginName))
 	}
 
-	cmd.Execute()
+	execute()
 }
+
+func execute() {}

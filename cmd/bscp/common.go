@@ -10,8 +10,7 @@
  * limitations under the License.
  */
 
-// Package cmd define the command line for bscp client.
-package cmd
+package main
 
 import (
 	"context"
@@ -26,10 +25,10 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/cli/config"
-	"github.com/TencentBlueKing/bscp-go/cli/constant"
+	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/config"
+	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
+	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/pkg/util"
 )
 
 var (
@@ -55,8 +54,7 @@ var (
 
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
-		"log.format": "log.format",
-		"log.level":  "log.level",
+		"log.level": "log.level",
 	}
 
 	// commonEnvs variable definition

@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-package cmd
+package main
 
 import (
 	bscpVersion "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version"
