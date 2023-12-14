@@ -27,17 +27,6 @@ import (
 	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
-// ReconnectSignal defines the signal information to tell the
-// watcher to reconnect the remote upstream server.
-type ReconnectSignal struct {
-	Reason string
-}
-
-// String format the reconnect signal to a string.
-func (rs ReconnectSignal) String() string {
-	return rs.Reason
-}
-
 // Release bscp 服务版本
 type Release struct {
 	ReleaseID uint32            `json:"release_id"`

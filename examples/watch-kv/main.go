@@ -26,7 +26,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
@@ -49,10 +48,10 @@ func main() {
 	}
 
 	bscp, err := client.New(
-		option.FeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
-		option.BizID(uint32(biz)),
-		option.Token(os.Getenv("BSCP_TOKEN")),
-		option.Labels(labels),
+		client.FeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
+		client.BizID(uint32(biz)),
+		client.Token(os.Getenv("BSCP_TOKEN")),
+		client.Labels(labels),
 	)
 	if err != nil {
 		logger.Error("init bscp client", logger.ErrAttr(err))
@@ -60,7 +59,7 @@ func main() {
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []option.AppOption{}
+	opts := []types.AppOption{}
 	if err = watchAppKV(bscp, appName, opts); err != nil {
 		logger.Error("watch kv", logger.ErrAttr(err))
 		os.Exit(1)
@@ -89,7 +88,7 @@ func (w *watcher) callback(release *types.Release) error {
 }
 
 // watchAppKV watch 服务版本
-func watchAppKV(bscp client.Client, app string, opts []option.AppOption) error {
+func watchAppKV(bscp client.Client, app string, opts []types.AppOption) error {
 	w := watcher{
 		bscp: bscp,
 		app:  app,
