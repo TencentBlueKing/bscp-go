@@ -15,32 +15,15 @@ package logger
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync/atomic"
 
 	"golang.org/x/exp/slog"
 )
 
 var defaultLogger atomic.Value
-
-const (
-	bannerLevel = slog.Level(1)
-	// banner is bk bscp inner logo.
-	banner = `
-	===================================================================================
-	oooooooooo   oooo    oooo         oooooooooo     oooooooo     oooooo    oooooooooo
-	 888     Y8b  888   8P             888     Y8b d8P      Y8  d8P    Y8b   888    Y88
-	 888     888  888  d8              888     888 Y88bo       888           888    d88
-	 888oooo888   88888[      8888888  888oooo888     Y8888o   888           888ooo88P
-	 888     88b  888 88b              888     88b        Y88b 888           888
-	 888     88P  888   88b            888     88P oo      d8P  88b    ooo   888
-	o888bood8P   o888o  o888o         o888bood8P   88888888P     Y8bood8P   o888o
-	===================================================================================`
-)
 
 func init() {
 	textHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -64,7 +47,6 @@ func init() {
 		TextHandler: textHandler,
 	})
 	defaultLogger.Store(logger)
-	logger.Log(context.Background(), bannerLevel, banner)
 }
 
 type handler struct {
@@ -81,11 +63,6 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 	var pcs [1]uintptr
 	runtime.Callers(5, pcs[:]) // skip [Callers, Infof]
 	rr.PC = pcs[0]
-
-	if rr.Level == bannerLevel {
-		fmt.Println(strings.TrimSpace(rr.Message))
-		return nil
-	}
 
 	return h.TextHandler.Handle(ctx, *rr)
 }
