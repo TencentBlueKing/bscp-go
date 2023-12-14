@@ -24,8 +24,6 @@ import (
 	"github.com/TencentBlueKing/bscp-go/logger"
 )
 
-//go:linkname Execute github.com/TencentBlueKing/bscp-go/build/nodeman.execute
-
 var (
 	logLevel string
 	rootCmd  = &cobra.Command{

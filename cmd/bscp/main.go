@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-// Package main defines the bscp cli main entry.
+// program bscp defines the bscp cli main entry.
 package main
 
 func main() {

@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-// Package main defines the bscp node manager plugin main entry.
+// program nodeman defines the bscp node manager plugin main entry.
 package main
 
 import (

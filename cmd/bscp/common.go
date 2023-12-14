@@ -10,7 +10,6 @@
  * limitations under the License.
  */
 
-// Package cmd define the command line for bscp client.
 package main
 
 import (

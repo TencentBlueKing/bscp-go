@@ -24,7 +24,6 @@ import (
 
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/cli/config"
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/logger"
 	"github.com/TencentBlueKing/bscp-go/option"
@@ -49,18 +48,11 @@ func main() {
 		json.Unmarshal([]byte(labelsStr), &labels) // nolint
 	}
 
-	conf := &config.ClientConfig{
-		FeedAddrs: strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ","),
-		Biz:       uint32(biz),
-		Token:     os.Getenv("BSCP_TOKEN"),
-		Labels:    labels,
-	}
-
 	bscp, err := client.New(
-		option.FeedAddrs(conf.FeedAddrs),
-		option.BizID(conf.Biz),
-		option.Token(conf.Token),
-		option.Labels(conf.Labels),
+		option.FeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
+		option.BizID(uint32(biz)),
+		option.Token(os.Getenv("BSCP_TOKEN")),
+		option.Labels(labels),
 	)
 	if err != nil {
 		logger.Error("init bscp client", logger.ErrAttr(err))
