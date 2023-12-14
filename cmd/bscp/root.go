@@ -10,18 +10,21 @@
  * limitations under the License.
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
 	"strings"
+	_ "unsafe"
 
 	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/logger"
 )
+
+//go:linkname Execute github.com/TencentBlueKing/bscp-go/build/nodeman.execute
 
 var (
 	logLevel string

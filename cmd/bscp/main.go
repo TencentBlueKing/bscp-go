@@ -13,10 +13,6 @@
 // Package main defines the bscp cli main entry.
 package main
 
-import (
-	"github.com/TencentBlueKing/bscp-go/cli/cmd"
-)
-
 func main() {
-	cmd.Execute()
+	Execute()
 }

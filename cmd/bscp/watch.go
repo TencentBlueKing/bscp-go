@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-package cmd
+package main
 
 import (
 	"context"
@@ -30,10 +30,10 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/cli/constant"
-	"github.com/TencentBlueKing/bscp-go/cli/eventmeta"
-	"github.com/TencentBlueKing/bscp-go/cli/util"
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
+	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/eventmeta"
+	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/util"
 	"github.com/TencentBlueKing/bscp-go/internal/metrics"
 	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"

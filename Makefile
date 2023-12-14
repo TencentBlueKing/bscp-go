@@ -31,11 +31,11 @@ lint:
 
 .PHONY: build_initContainer
 build_initContainer:
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/initContainer/bscp cli/main.go
+	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/initContainer/bscp cmd/bscp/*.go
 
 .PHONY: build_sidecar
 build_sidecar:
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/sidecar/bscp cli/main.go
+	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/sidecar/bscp cmd/bscp/*.go
 
 .PHONY: build_docker
 build_docker: build_initContainer build_sidecar
@@ -44,7 +44,7 @@ build_docker: build_initContainer build_sidecar
 
 .PHONY: build
 build:
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o ${BIN_NAME} cli/main.go
+	${GOBUILD} -ldflags ${LDVersionFLAG} -o ${BIN_NAME} cmd/bscp/*.go
 
 .PHONY: test
 test:
