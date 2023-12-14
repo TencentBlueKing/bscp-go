@@ -3,12 +3,13 @@ module github.com/TencentBlueKing/bscp-go/examples/watch-file
 go 1.20
 
 require (
-	bscp.io v0.0.0-00010101000000-000000000000
 	github.com/TencentBlueKing/bscp-go v1.0.5
+	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
 )
 
 require (
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5 // indirect
+	github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231214065939-13b7424ac2c9 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
@@ -58,7 +59,7 @@ require (
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
@@ -70,7 +71,4 @@ require (
 	k8s.io/klog/v2 v2.100.1 // indirect
 )
 
-replace (
-	bscp.io => github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231023061744-043bdae0b61e
-	github.com/TencentBlueKing/bscp-go => ../../
-)
+replace github.com/TencentBlueKing/bscp-go => ../../

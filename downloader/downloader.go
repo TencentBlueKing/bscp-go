@@ -28,10 +28,10 @@ import (
 	"sync"
 	"time"
 
-	"bscp.io/pkg/kit"
-	pbfs "bscp.io/pkg/protocol/feed-server"
-	sfs "bscp.io/pkg/sf-share"
-	"bscp.io/pkg/tools"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
+	pbfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
+	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 	"golang.org/x/exp/slog"
 	"golang.org/x/sync/semaphore"
 

@@ -13,7 +13,7 @@
 package cmd
 
 import (
-	bscpVersion "bscp.io/pkg/version"
+	bscpVersion "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/spf13/cobra"
 )
 

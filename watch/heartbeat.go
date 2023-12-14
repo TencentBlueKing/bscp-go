@@ -16,9 +16,9 @@ import (
 	"fmt"
 	"time"
 
-	"bscp.io/pkg/kit"
-	sfs "bscp.io/pkg/sf-share"
-	"bscp.io/pkg/tools"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
+	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/logger"

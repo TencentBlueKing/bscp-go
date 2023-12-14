@@ -3,8 +3,8 @@ module github.com/TencentBlueKing/bscp-go
 go 1.20
 
 require (
-	bscp.io v0.0.0-00010101000000-000000000000
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5
+	github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231214065939-13b7424ac2c9
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/spf13/cobra v1.7.0
@@ -63,7 +63,7 @@ require (
 	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
@@ -72,5 +72,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 )
-
-replace bscp.io => github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231211134924-1689a2caa08a

@@ -15,7 +15,7 @@ package upstream
 import (
 	"time"
 
-	"bscp.io/pkg/tools"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 	"go.uber.org/atomic"
 	"golang.org/x/exp/slog"
 

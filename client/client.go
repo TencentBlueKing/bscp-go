@@ -18,10 +18,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"bscp.io/pkg/criteria/constant"
-	"bscp.io/pkg/kit"
-	pbfs "bscp.io/pkg/protocol/feed-server"
-	sfs "bscp.io/pkg/sf-share"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/criteria/constant"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
+	pbfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
+	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cache"
