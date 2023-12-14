@@ -1,9 +1,10 @@
-module github.com/TencentBlueKing/bscp-go/examples/watch-file
+module github.com/TencentBlueKing/bscp-go/examples/pull-file
 
 go 1.20
 
 require (
 	github.com/TencentBlueKing/bscp-go v1.0.5
+	github.com/spf13/cobra v1.7.0
 	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
 )
 
@@ -25,6 +26,7 @@ require (
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
@@ -71,4 +73,4 @@ require (
 	k8s.io/klog/v2 v2.100.1 // indirect
 )
 
-replace github.com/TencentBlueKing/bscp-go => ../../
+replace github.com/TencentBlueKing/bscp-go => ../
