@@ -16,9 +16,9 @@ package types
 import (
 	"fmt"
 
-	pbci "bscp.io/pkg/protocol/core/config-item"
-	pbhook "bscp.io/pkg/protocol/core/hook"
-	sfs "bscp.io/pkg/sf-share"
+	pbci "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/config-item"
+	pbhook "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
+	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cache"

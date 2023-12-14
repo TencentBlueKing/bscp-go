@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"bscp.io/pkg/dal/table"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
@@ -279,7 +279,7 @@ func init() {
 	WatchCmd.Flags().SortFlags = false
 
 	WatchCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
-		"feed server address, eg: 'bscp.io:8080,bscp.io:8081'")
+		"feed server address, eg: 'bscp-feed.example.com:9510'")
 	WatchCmd.Flags().IntVarP(&bizID, "biz", "b", 0, "biz id")
 	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	WatchCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")

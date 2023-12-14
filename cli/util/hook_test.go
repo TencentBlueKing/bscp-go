@@ -18,8 +18,8 @@ import (
 	"strconv"
 	"testing"
 
-	"bscp.io/pkg/dal/table"
-	pbhook "bscp.io/pkg/protocol/core/hook"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
+	pbhook "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
 
 	"github.com/TencentBlueKing/bscp-go/cli/util"
 )

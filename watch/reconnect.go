@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"time"
 
-	"bscp.io/pkg/tools"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/logger"

@@ -19,8 +19,8 @@ import (
 	"os"
 	"path"
 
-	sfs "bscp.io/pkg/sf-share"
-	"bscp.io/pkg/tools"
+	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 
