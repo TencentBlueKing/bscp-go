@@ -35,9 +35,22 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
+
+// WatchOptions options for watch bscp config items
+type WatchOptions struct {
+	// FeedAddrs bscp feed server addresses
+	FeedAddrs []string
+	// DialTimeoutMS dial timeout milliseconds
+	DialTimeoutMS int64
+	// Fingerprint watch fingerprint
+	Fingerprint string
+	// Labels watch labels
+	Labels map[string]string
+	// BizID watch biz id
+	BizID uint32
+}
 
 // ReconnectSignal defines the signal information to tell the
 // watcher to reconnect the remote upstream server.
@@ -55,7 +68,7 @@ type Watcher struct {
 	subscribers     []*Subscriber
 	vas             *kit.Vas
 	cancel          context.CancelFunc
-	opts            option.WatchOptions
+	opts            WatchOptions
 	metaHeaderValue string
 	reconnectChan   chan ReconnectSignal
 	Conn            *grpc.ClientConn
@@ -76,7 +89,7 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 }
 
 // New return a Watcher
-func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
+func New(u upstream.Upstream, opts WatchOptions) (*Watcher, error) {
 	w := &Watcher{
 		opts:     opts,
 		upstream: u,
