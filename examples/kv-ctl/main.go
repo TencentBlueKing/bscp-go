@@ -27,7 +27,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 var rootCmd = &cobra.Command{
@@ -100,7 +99,7 @@ func execute() {
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []types.AppOption{}
+	opts := []client.AppOption{}
 	keySlice := strings.Split(keys, ",")
 	if watchMode {
 		if err = watchAppKV(bscp, appName, keySlice, opts); err != nil {
@@ -129,7 +128,7 @@ type watcher struct {
 }
 
 // callback watch 回调函数
-func (w *watcher) callback(release *types.Release) error {
+func (w *watcher) callback(release *client.Release) error {
 	result := map[string]string{}
 
 	// kv 列表, 可以读取值
@@ -153,7 +152,7 @@ func (w *watcher) callback(release *types.Release) error {
 }
 
 // watchAppKV watch 服务版本
-func watchAppKV(bscp client.Client, app string, keys []string, opts []types.AppOption) error {
+func watchAppKV(bscp client.Client, app string, keys []string, opts []client.AppOption) error {
 	keyMap := map[string]struct{}{}
 	for _, v := range keys {
 		keyMap[v] = struct{}{}

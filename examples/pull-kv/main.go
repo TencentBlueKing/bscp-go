@@ -22,7 +22,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 func main() {
@@ -55,7 +54,7 @@ func main() {
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []types.AppOption{}
+	opts := []client.AppOption{}
 	key := "key1"
 	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
 		logger.Error("pull", logger.ErrAttr(err))
@@ -64,7 +63,7 @@ func main() {
 }
 
 // pullAppKvs 拉取 key 的值
-func pullAppKvs(bscp client.Client, app string, key string, opts []types.AppOption) error {
+func pullAppKvs(bscp client.Client, app string, key string, opts []client.AppOption) error {
 	value, err := bscp.Get(app, key, opts...)
 	if err != nil {
 		return err
