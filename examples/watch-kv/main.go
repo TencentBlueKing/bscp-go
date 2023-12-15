@@ -25,7 +25,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 func main() {
@@ -58,7 +57,7 @@ func main() {
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []types.AppOption{}
+	opts := []client.AppOption{}
 	if err = watchAppKV(bscp, appName, opts); err != nil {
 		logger.Error("watch kv", logger.ErrAttr(err))
 		os.Exit(1)
@@ -71,7 +70,7 @@ type watcher struct {
 }
 
 // callback watch 回调函数
-func (w *watcher) callback(release *types.Release) error {
+func (w *watcher) callback(release *client.Release) error {
 
 	// kv 列表, 可以读取值
 	for _, item := range release.KvItems {
@@ -87,7 +86,7 @@ func (w *watcher) callback(release *types.Release) error {
 }
 
 // watchAppKV watch 服务版本
-func watchAppKV(bscp client.Client, app string, opts []types.AppOption) error {
+func watchAppKV(bscp client.Client, app string, opts []client.AppOption) error {
 	w := watcher{
 		bscp: bscp,
 		app:  app,

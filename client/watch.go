@@ -11,7 +11,7 @@
  */
 
 // Package watch defines the watcher client.
-package watch
+package client
 
 import (
 	"context"
@@ -35,7 +35,6 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
-	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 // Options options for watch bscp config items
@@ -89,7 +88,7 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 }
 
 // New return a Watcher
-func New(u upstream.Upstream, opts Options) (*Watcher, error) {
+func newWatcher(u upstream.Upstream, opts Options) (*Watcher, error) {
 	w := &Watcher{
 		opts:     opts,
 		upstream: u,
@@ -278,9 +277,9 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 			// if subscriber.CheckConfigItemsChanged(pl.ReleaseMeta.CIMetas) {
 			subscriber.ResetConfigItems(pl.ReleaseMeta.CIMetas)
 			// TODO: filter config items by subscriber options
-			configItemFiles := []*types.ConfigItemFile{}
+			configItemFiles := []*ConfigItemFile{}
 			for _, ci := range pl.ReleaseMeta.CIMetas {
-				configItemFiles = append(configItemFiles, &types.ConfigItemFile{
+				configItemFiles = append(configItemFiles, &ConfigItemFile{
 					Name:       ci.ConfigItemSpec.Name,
 					Path:       ci.ConfigItemSpec.Path,
 					Permission: ci.ConfigItemSpec.Permission,
@@ -288,7 +287,7 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 				})
 			}
 
-			release := &types.Release{
+			release := &Release{
 				ReleaseID: pl.ReleaseMeta.ReleaseID,
 				FileItems: configItemFiles,
 				KvItems:   pl.ReleaseMeta.KvMetas,
@@ -308,8 +307,8 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 }
 
 // Subscribe subscribe the instance release change event
-func (w *Watcher) Subscribe(callback types.Callback, app string, opts ...types.AppOption) *Subscriber {
-	options := &types.AppOptions{}
+func (w *Watcher) Subscribe(callback Callback, app string, opts ...AppOption) *Subscriber {
+	options := &AppOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
@@ -336,10 +335,10 @@ func (w *Watcher) Subscribers() []*Subscriber {
 
 // Subscriber is the subscriber of the instance
 type Subscriber struct {
-	Opts *types.AppOptions
+	Opts *AppOptions
 	App  string
 	// Callback is the callback function when the watched items are changed
-	Callback types.Callback
+	Callback Callback
 	// CurrentReleaseID is the current release id of the subscriber
 	CurrentReleaseID uint32
 	// Labels is the labels of the subscriber

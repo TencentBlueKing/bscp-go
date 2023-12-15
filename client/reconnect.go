@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-package watch
+package client
 
 import (
 	"strconv"
