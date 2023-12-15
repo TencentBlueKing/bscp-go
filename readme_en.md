@@ -25,6 +25,21 @@ bscp-go is an official command-line tool provided by BlueKing Basic Configuratio
 - [Containerized Access](./docs/usage.md)
 - [SDK Examples](./examples/README.md)
 
+## Install bscp cmd
+Method 1, with golang environment, you can install it directly
+```
+go install github.com/TencentBlueKing/bscp-go/cmd/bscp@latest
+bscp version
+```
+
+Method 2, install the compiled binary, support linux/mac/windows, take linux as an example
+```
+wget https://github.com/TencentBlueKing/bscp-go/releases/download/v1.0.5/bscp-v1.0.5-linux-amd64.tar.gz
+tar -xf bscp-v1.0.5-linux-amd64.tar.gz
+cp bscp /usr/local/bin/
+bscp version
+```
+
 ## Support
 
 - [bk forum](https://bk.tencent.com/s-mart/community)

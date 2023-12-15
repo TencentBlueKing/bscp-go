@@ -18,14 +18,12 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
@@ -42,9 +40,9 @@ func main() {
 	}
 
 	bscp, err := client.New(
-		option.FeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
-		option.BizID(uint32(biz)),
-		option.Token(os.Getenv("BSCP_TOKEN")),
+		client.WithFeedAddr(os.Getenv("BSCP_FEED_ADDR")),
+		client.WithBizID(uint32(biz)),
+		client.WithToken(os.Getenv("BSCP_TOKEN")),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -52,7 +50,7 @@ func main() {
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []option.AppOption{}
+	opts := []types.AppOption{}
 	if err = watchAppRelease(bscp, appName, opts); err != nil {
 		logger.Error("watch", logger.ErrAttr(err))
 		os.Exit(1)
@@ -68,7 +66,7 @@ func callback(release *types.Release) error {
 }
 
 // watchAppRelease watch 服务版本
-func watchAppRelease(bscp client.Client, app string, opts []option.AppOption) error {
+func watchAppRelease(bscp client.Client, app string, opts []types.AppOption) error {
 	err := bscp.AddWatcher(callback, app, opts...)
 	if err != nil {
 		return err

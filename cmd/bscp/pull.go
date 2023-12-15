@@ -29,7 +29,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/util"
 	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
+	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 var (
@@ -58,21 +58,21 @@ func Pull(cmd *cobra.Command, args []string) {
 		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
 	}
 	bscp, err := client.New(
-		option.FeedAddrs(conf.FeedAddrs),
-		option.BizID(conf.Biz),
-		option.Token(conf.Token),
-		option.Labels(conf.Labels),
-		option.UID(conf.UID),
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
+		client.WithLabels(conf.Labels),
+		client.WithUID(conf.UID),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 	for _, app := range conf.Apps {
-		opts := []option.AppOption{}
-		opts = append(opts, option.WithKey("**"))
-		opts = append(opts, option.WithLabels(app.Labels))
-		opts = append(opts, option.WithUID(app.UID))
+		opts := []types.AppOption{}
+		opts = append(opts, types.WithAppKey("**"))
+		opts = append(opts, types.WithAppLabels(app.Labels))
+		opts = append(opts, types.WithAppUID(app.UID))
 		if conf.TempDir != "" {
 			tempDir = conf.TempDir
 		}
@@ -83,7 +83,7 @@ func Pull(cmd *cobra.Command, args []string) {
 	}
 }
 
-func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, opts []option.AppOption) error {
+func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, opts []types.AppOption) error {
 	// 1. prepare app workspace dir
 	appDir := path.Join(tempDir, strconv.Itoa(int(biz)), app)
 	if e := os.MkdirAll(appDir, os.ModePerm); e != nil {

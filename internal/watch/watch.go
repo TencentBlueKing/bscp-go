@@ -35,18 +35,42 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
+
+// Options options for watch bscp config items
+type Options struct {
+	// FeedAddrs bscp feed server addresses
+	FeedAddrs []string
+	// DialTimeoutMS dial timeout milliseconds
+	DialTimeoutMS int64
+	// Fingerprint watch fingerprint
+	Fingerprint string
+	// Labels watch labels
+	Labels map[string]string
+	// BizID watch biz id
+	BizID uint32
+}
+
+// ReconnectSignal defines the signal information to tell the
+// watcher to reconnect the remote upstream server.
+type ReconnectSignal struct {
+	Reason string
+}
+
+// String format the reconnect signal to a string.
+func (rs ReconnectSignal) String() string {
+	return rs.Reason
+}
 
 // Watcher is the main watch stream for instance
 type Watcher struct {
 	subscribers     []*Subscriber
 	vas             *kit.Vas
 	cancel          context.CancelFunc
-	opts            option.WatchOptions
+	opts            Options
 	metaHeaderValue string
-	reconnectChan   chan types.ReconnectSignal
+	reconnectChan   chan ReconnectSignal
 	Conn            *grpc.ClientConn
 	upstream        upstream.Upstream
 }
@@ -65,12 +89,12 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 }
 
 // New return a Watcher
-func New(u upstream.Upstream, opts option.WatchOptions) (*Watcher, error) {
+func New(u upstream.Upstream, opts Options) (*Watcher, error) {
 	w := &Watcher{
 		opts:     opts,
 		upstream: u,
 		// 重启按原子顺序, 添加一个buff, 对labelfile watch的场景，保留一个重启次数
-		reconnectChan: make(chan types.ReconnectSignal, 1),
+		reconnectChan: make(chan ReconnectSignal, 1),
 	}
 
 	mh := sfs.SidecarMetaHeader{
@@ -179,13 +203,13 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					logger.Error("watch stream has been closed by remote upstream stream server, need to re-connect again")
-					w.NotifyReconnect(types.ReconnectSignal{Reason: "connection is closed " +
+					w.NotifyReconnect(ReconnectSignal{Reason: "connection is closed " +
 						"by remote upstream server"})
 					return
 				}
 
 				logger.Error("watch stream is corrupted", logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
-				w.NotifyReconnect(types.ReconnectSignal{Reason: "watch stream corrupted"})
+				w.NotifyReconnect(ReconnectSignal{Reason: "watch stream corrupted"})
 				return
 			}
 
@@ -206,7 +230,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 			switch sfs.FeedMessageType(event.Type) {
 			case sfs.Bounce:
 				logger.Info("received upstream bounce request, need to reconnect upstream server", slog.String("rid", event.Rid))
-				w.NotifyReconnect(types.ReconnectSignal{Reason: "received bounce request"})
+				w.NotifyReconnect(ReconnectSignal{Reason: "received bounce request"})
 				return
 
 			case sfs.PublishRelease:
@@ -284,8 +308,8 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 }
 
 // Subscribe subscribe the instance release change event
-func (w *Watcher) Subscribe(callback option.Callback, app string, opts ...option.AppOption) *Subscriber {
-	options := &option.AppOptions{}
+func (w *Watcher) Subscribe(callback types.Callback, app string, opts ...types.AppOption) *Subscriber {
+	options := &types.AppOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
@@ -312,10 +336,10 @@ func (w *Watcher) Subscribers() []*Subscriber {
 
 // Subscriber is the subscriber of the instance
 type Subscriber struct {
-	Opts *option.AppOptions
+	Opts *types.AppOptions
 	App  string
 	// Callback is the callback function when the watched items are changed
-	Callback option.Callback
+	Callback types.Callback
 	// CurrentReleaseID is the current release id of the subscriber
 	CurrentReleaseID uint32
 	// Labels is the labels of the subscriber

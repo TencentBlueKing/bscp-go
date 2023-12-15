@@ -1,4 +1,4 @@
-module github.com/TencentBlueKing/bscp-go/examples/pull-file
+module github.com/TencentBlueKing/bscp-go/examples
 
 go 1.20
 
@@ -68,7 +68,6 @@ require (
 	google.golang.org/grpc v1.57.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 )

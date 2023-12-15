@@ -30,18 +30,17 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/internal/watch"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 // Client bscp client method
 type Client interface {
 	// PullFiles pull files from remote
-	PullFiles(app string, opts ...option.AppOption) (*types.Release, error)
+	PullFiles(app string, opts ...types.AppOption) (*types.Release, error)
 	// Pull Key Value from remote
-	Get(app string, key string, opts ...option.AppOption) (string, error)
+	Get(app string, key string, opts ...types.AppOption) (string, error)
 	// AddWatcher add a watcher to client
-	AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error
+	AddWatcher(callback types.Callback, app string, opts ...types.AppOption) error
 	// StartWatch start watch
 	StartWatch() error
 	// StopWatch stop watch
@@ -53,22 +52,22 @@ type Client interface {
 // Client is the bscp client
 type client struct {
 	pairs       map[string]string
-	opts        option.ClientOptions
+	opts        options
 	fingerPrint sfs.FingerPrint
 	watcher     *watch.Watcher
 	upstream    upstream.Upstream
 }
 
 // New return a bscp client instance
-func New(opts ...option.ClientOption) (Client, error) {
-	clientOpt := &option.ClientOptions{}
+func New(opts ...Option) (Client, error) {
+	clientOpt := &options{}
 	fp, err := sfs.GetFingerPrint()
 	if err != nil {
 		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())
 	}
 	logger.Info("instance fingerprint", slog.String("fingerprint", fp.Encode()))
-	clientOpt.Fingerprint = fp.Encode()
-	clientOpt.UID = clientOpt.Fingerprint
+	clientOpt.fingerprint = fp.Encode()
+	clientOpt.uid = clientOpt.fingerprint
 	for _, opt := range opts {
 		if e := opt(clientOpt); e != nil {
 			return nil, e
@@ -80,8 +79,8 @@ func New(opts ...option.ClientOption) (Client, error) {
 	pairs[constant.SideUserKey] = "TODO-USER"
 	// add finger printer
 	mh := sfs.SidecarMetaHeader{
-		BizID:       clientOpt.BizID,
-		Fingerprint: clientOpt.Fingerprint,
+		BizID:       clientOpt.bizID,
+		Fingerprint: clientOpt.fingerprint,
 	}
 	mhBytes, err := json.Marshal(mh)
 	if err != nil {
@@ -90,9 +89,9 @@ func New(opts ...option.ClientOption) (Client, error) {
 	pairs[constant.SidecarMetaKey] = string(mhBytes)
 	// prepare upstream
 	u, err := upstream.New(
-		upstream.WithFeedAddrs(clientOpt.FeedAddrs),
-		upstream.WithDialTimeoutMS(clientOpt.DialTimeoutMS),
-		upstream.WithBizID(clientOpt.BizID))
+		upstream.WithFeedAddrs(clientOpt.feedAddrs),
+		upstream.WithDialTimeoutMS(clientOpt.dialTimeoutMS),
+		upstream.WithBizID(clientOpt.bizID))
 	if err != nil {
 		return nil, fmt.Errorf("init upstream client failed, err: %s", err.Error())
 	}
@@ -107,7 +106,7 @@ func New(opts ...option.ClientOption) (Client, error) {
 	msg := &pbfs.HandshakeMessage{
 		ApiVersion: sfs.CurrentAPIVersion,
 		Spec: &pbfs.SidecarSpec{
-			BizId:   clientOpt.BizID,
+			BizId:   clientOpt.bizID,
 			Version: c.upstream.Version(),
 		},
 	}
@@ -120,16 +119,16 @@ func New(opts ...option.ClientOption) (Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("decode handshake payload failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}
-	err = downloader.Init(vas, clientOpt.BizID, clientOpt.Token, u, pl.RuntimeOption.RepositoryTLS)
+	err = downloader.Init(vas, clientOpt.bizID, clientOpt.token, u, pl.RuntimeOption.RepositoryTLS)
 	if err != nil {
 		return nil, fmt.Errorf("init downloader failed, err: %s", err.Error())
 	}
-	if clientOpt.UseFileCache {
-		cache.Init(true, clientOpt.FileCacheDir)
+	if clientOpt.useFileCache {
+		cache.Init(true, clientOpt.fileCacheDir)
 	}
-	watcher, err := watch.New(u, option.WatchOptions{
-		BizID:       clientOpt.BizID,
-		Labels:      clientOpt.Labels,
+	watcher, err := watch.New(u, watch.Options{
+		BizID:       clientOpt.bizID,
+		Labels:      clientOpt.labels,
 		Fingerprint: fp.Encode(),
 	})
 	if err != nil {
@@ -140,7 +139,7 @@ func New(opts ...option.ClientOption) (Client, error) {
 }
 
 // AddWatcher add a watcher to client
-func (c *client) AddWatcher(callback option.Callback, app string, opts ...option.AppOption) error {
+func (c *client) AddWatcher(callback types.Callback, app string, opts ...types.AppOption) error {
 	_ = c.watcher.Subscribe(callback, app, opts...)
 	return nil
 }
@@ -157,34 +156,34 @@ func (c *client) StopWatch() {
 
 // ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
 func (c *client) ResetLabels(labels map[string]string) {
-	c.opts.Labels = labels
+	c.opts.labels = labels
 	for _, subscriber := range c.watcher.Subscribers() {
 		subscriber.ResetLabels(labels)
 	}
 
-	c.watcher.NotifyReconnect(types.ReconnectSignal{Reason: "reset labels"})
+	c.watcher.NotifyReconnect(watch.ReconnectSignal{Reason: "reset labels"})
 }
 
 // PullFiles pull files from remote
-func (c *client) PullFiles(app string, opts ...option.AppOption) (*types.Release, error) {
-	option := &option.AppOptions{}
+func (c *client) PullFiles(app string, opts ...types.AppOption) (*types.Release, error) {
+	option := &types.AppOptions{}
 	for _, opt := range opts {
 		opt(option)
 	}
 	vas, _ := c.buildVas()
 	req := &pbfs.PullAppFileMetaReq{
 		ApiVersion: sfs.CurrentAPIVersion,
-		BizId:      c.opts.BizID,
+		BizId:      c.opts.bizID,
 		AppMeta: &pbfs.AppMeta{
 			App:    app,
-			Labels: c.opts.Labels,
-			Uid:    c.opts.UID,
+			Labels: c.opts.labels,
+			Uid:    c.opts.uid,
 		},
-		Token: c.opts.Token,
+		Token: c.opts.token,
 		Key:   option.Key,
 	}
 	// merge labels, if key conflict, app value will overwrite client value
-	req.AppMeta.Labels = util.MergeLabels(c.opts.Labels, option.Labels)
+	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
 	// reset uid
 	if option.UID != "" {
 		req.AppMeta.Uid = option.UID
@@ -220,24 +219,24 @@ func (c *client) PullFiles(app string, opts ...option.AppOption) (*types.Release
 }
 
 // Get 读取 Key 的值
-func (c *client) Get(app string, key string, opts ...option.AppOption) (string, error) {
-	option := &option.AppOptions{}
+func (c *client) Get(app string, key string, opts ...types.AppOption) (string, error) {
+	option := &types.AppOptions{}
 	for _, opt := range opts {
 		opt(option)
 	}
 	vas, _ := c.buildVas()
 	req := &pbfs.GetKvValueReq{
 		ApiVersion: sfs.CurrentAPIVersion,
-		BizId:      c.opts.BizID,
+		BizId:      c.opts.bizID,
 		AppMeta: &pbfs.AppMeta{
 			App:    app,
-			Labels: c.opts.Labels,
-			Uid:    c.opts.UID,
+			Labels: c.opts.labels,
+			Uid:    c.opts.uid,
 		},
-		Token: c.opts.Token,
+		Token: c.opts.token,
 		Key:   key,
 	}
-	req.AppMeta.Labels = util.MergeLabels(c.opts.Labels, option.Labels)
+	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
 	// reset uid
 	if option.UID != "" {
 		req.AppMeta.Uid = option.UID

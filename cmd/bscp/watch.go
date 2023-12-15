@@ -37,7 +37,6 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/metrics"
 	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
@@ -75,11 +74,11 @@ func Watch(cmd *cobra.Command, args []string) {
 	}
 
 	bscp, err := client.New(
-		option.FeedAddrs(conf.FeedAddrs),
-		option.BizID(conf.Biz),
-		option.Token(conf.Token),
-		option.Labels(confLabels),
-		option.UID(conf.UID),
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
+		client.WithLabels(confLabels),
+		client.WithUID(conf.UID),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -236,10 +235,10 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 	return nil
 }
 
-func (w *WatchHandler) getSubscribeOptions() []option.AppOption {
-	options := []option.AppOption{}
-	options = append(options, option.WithLabels(w.Labels))
-	options = append(options, option.WithUID(w.UID))
+func (w *WatchHandler) getSubscribeOptions() []types.AppOption {
+	options := []types.AppOption{}
+	options = append(options, types.WithAppLabels(w.Labels))
+	options = append(options, types.WithAppUID(w.UID))
 	return options
 }
 

@@ -108,6 +108,6 @@ linters-settings:
       - name: range
       - name: receiver-naming
       - name: time-naming
-      # - name: unexported-return
+      - name: unexported-return
       - name: var-declaration
       # - name: var-naming

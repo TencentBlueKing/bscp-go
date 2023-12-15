@@ -16,13 +16,12 @@ package main
 import (
 	"os"
 	"strconv"
-	"strings"
 
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
+	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 func main() {
@@ -33,30 +32,30 @@ func main() {
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
 	if err != nil {
-		logger.Error("parse BSCP_BIZ", logger.ErrAttr(err))
+		slog.Error("parse BSCP_BIZ", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
 	bscp, err := client.New(
-		option.FeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
-		option.BizID(uint32(biz)),
-		option.Token(os.Getenv("BSCP_TOKEN")),
+		client.WithFeedAddr(os.Getenv("BSCP_FEED_ADDRS")),
+		client.WithBizID(uint32(biz)),
+		client.WithToken(os.Getenv("BSCP_TOKEN")),
 	)
 	if err != nil {
-		logger.Error("init client", logger.ErrAttr(err))
+		slog.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []option.AppOption{}
+	opts := []types.AppOption{}
 	if err = pullAppFiles(bscp, appName, opts); err != nil {
-		logger.Error("pull", logger.ErrAttr(err))
+		slog.Error("pull", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 }
 
 // pullAppFiles 拉取服务文件
-func pullAppFiles(bscp client.Client, app string, opts []option.AppOption) error {
+func pullAppFiles(bscp client.Client, app string, opts []types.AppOption) error {
 	release, err := bscp.PullFiles(app, opts...)
 	if err != nil {
 		return err

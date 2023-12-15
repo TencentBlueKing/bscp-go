@@ -10,25 +10,38 @@
  * limitations under the License.
  */
 
-package option
+package types
 
-import (
-	"github.com/TencentBlueKing/bscp-go/types"
-)
-
-// WatchOptions options for watch bscp config items
-type WatchOptions struct {
-	// FeedAddrs bscp feed server addresses
-	FeedAddrs []string
-	// DialTimeoutMS dial timeout milliseconds
-	DialTimeoutMS int64
-	// Fingerprint watch fingerprint
-	Fingerprint string
-	// Labels watch labels
+// AppOptions options for app pull and watch
+type AppOptions struct {
+	// Key watch config item key
+	Key string
+	// Labels instance labels
 	Labels map[string]string
-	// BizID watch biz id
-	BizID uint32
+	// UID instance unique uid
+	UID string
 }
 
-// Callback watch callback
-type Callback func(release *types.Release) error
+// AppOption setter for app options
+type AppOption func(*AppOptions)
+
+// WithAppKey set watch config item key
+func WithAppKey(key string) AppOption {
+	return func(o *AppOptions) {
+		o.Key = key
+	}
+}
+
+// WithAppLabels set watch labels
+func WithAppLabels(labels map[string]string) AppOption {
+	return func(o *AppOptions) {
+		o.Labels = labels
+	}
+}
+
+// WithAppUID set watch uid
+func WithAppUID(uid string) AppOption {
+	return func(o *AppOptions) {
+		o.UID = uid
+	}
+}

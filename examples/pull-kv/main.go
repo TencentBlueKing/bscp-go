@@ -17,13 +17,12 @@ import (
 	"encoding/json"
 	"os"
 	"strconv"
-	"strings"
 
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/option"
+	"github.com/TencentBlueKing/bscp-go/types"
 )
 
 func main() {
@@ -45,10 +44,10 @@ func main() {
 	}
 
 	bscp, err := client.New(
-		option.FeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
-		option.BizID(uint32(biz)),
-		option.Token(os.Getenv("BSCP_TOKEN")),
-		option.Labels(labels),
+		client.WithFeedAddr(os.Getenv("BSCP_FEED_ADDRS")),
+		client.WithBizID(uint32(biz)),
+		client.WithToken(os.Getenv("BSCP_TOKEN")),
+		client.WithLabels(labels),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -56,7 +55,7 @@ func main() {
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []option.AppOption{}
+	opts := []types.AppOption{}
 	key := "key1"
 	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
 		logger.Error("pull", logger.ErrAttr(err))
@@ -65,7 +64,7 @@ func main() {
 }
 
 // pullAppKvs 拉取 key 的值
-func pullAppKvs(bscp client.Client, app string, key string, opts []option.AppOption) error {
+func pullAppKvs(bscp client.Client, app string, key string, opts []types.AppOption) error {
 	value, err := bscp.Get(app, key, opts...)
 	if err != nil {
 		return err
