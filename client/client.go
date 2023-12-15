@@ -52,7 +52,7 @@ type Client interface {
 // Client is the bscp client
 type client struct {
 	pairs       map[string]string
-	opts        Options
+	opts        options
 	fingerPrint sfs.FingerPrint
 	watcher     *watch.Watcher
 	upstream    upstream.Upstream
@@ -60,7 +60,7 @@ type client struct {
 
 // New return a bscp client instance
 func New(opts ...Option) (Client, error) {
-	clientOpt := &Options{}
+	clientOpt := &options{}
 	fp, err := sfs.GetFingerPrint()
 	if err != nil {
 		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())

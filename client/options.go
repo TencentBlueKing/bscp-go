@@ -12,8 +12,8 @@
 
 package client
 
-// Options options for bscp sdk client
-type Options struct {
+// options options for bscp sdk client
+type options struct {
 	// FeedAddr BSCP feed_server address
 	feedAddrs []string
 	// BizID BSCP business id
@@ -35,12 +35,12 @@ type Options struct {
 }
 
 // Option setter for bscp sdk options
-type Option func(*Options) error
+type Option func(*options) error
 
 // WithFeedAddrs set feed_server addresses
 func WithFeedAddrs(addrs []string) Option {
 	// TODO: validate Address
-	return func(o *Options) error {
+	return func(o *options) error {
 		o.feedAddrs = addrs
 		return nil
 	}
@@ -49,7 +49,7 @@ func WithFeedAddrs(addrs []string) Option {
 // WithFeedAddr set feed_server addresse
 func WithFeedAddr(addr string) Option {
 	// TODO: validate Address
-	return func(o *Options) error {
+	return func(o *options) error {
 		o.feedAddrs = []string{addr}
 		return nil
 	}
@@ -57,7 +57,7 @@ func WithFeedAddr(addr string) Option {
 
 // WithBizID set bscp business id
 func WithBizID(id uint32) Option {
-	return func(o *Options) error {
+	return func(o *options) error {
 		o.bizID = id
 		return nil
 	}
@@ -65,7 +65,7 @@ func WithBizID(id uint32) Option {
 
 // WithLabels set instance labels
 func WithLabels(labels map[string]string) Option {
-	return func(o *Options) error {
+	return func(o *options) error {
 		o.labels = labels
 		return nil
 	}
@@ -73,7 +73,7 @@ func WithLabels(labels map[string]string) Option {
 
 // WithUID set sdk uid
 func WithUID(uid string) Option {
-	return func(o *Options) error {
+	return func(o *options) error {
 		o.uid = uid
 		return nil
 	}
@@ -81,7 +81,7 @@ func WithUID(uid string) Option {
 
 // WithToken set sdk token
 func WithToken(token string) Option {
-	return func(o *Options) error {
+	return func(o *options) error {
 		o.token = token
 		return nil
 	}
