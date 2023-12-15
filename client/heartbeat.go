@@ -34,7 +34,7 @@ const (
 	maxHeartbeatRetryCount = 3
 )
 
-func (w *Watcher) loopHeartbeat() error {
+func (w *watcher) loopHeartbeat() error {
 
 	apps := make([]sfs.SideAppMeta, 0, len(w.subscribers))
 	for _, subscriber := range w.subscribers {
@@ -46,7 +46,7 @@ func (w *Watcher) loopHeartbeat() error {
 		})
 	}
 	heartbeatPayload := sfs.HeartbeatPayload{
-		FingerPrint:  w.opts.Fingerprint,
+		FingerPrint:  w.opts.fingerprint,
 		Applications: apps,
 	}
 	payload, err := heartbeatPayload.Encode()
@@ -77,7 +77,7 @@ func (w *Watcher) loopHeartbeat() error {
 					logger.Warn("stream heartbeat failed, notify reconnect upstream",
 						logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
 
-					w.NotifyReconnect(ReconnectSignal{Reason: "stream heartbeat failed"})
+					w.NotifyReconnect(reconnectSignal{Reason: "stream heartbeat failed"})
 					return
 				}
 				logger.Debug("stream heartbeat successfully", slog.String("rid", w.vas.Rid))
@@ -89,7 +89,7 @@ func (w *Watcher) loopHeartbeat() error {
 }
 
 // heartbeatOnce send heartbeat to upstream server, if failed maxHeartbeatRetryCount count, return error.
-func (w *Watcher) heartbeatOnce(vas *kit.Vas, msgType sfs.MessagingType, payload []byte) error {
+func (w *watcher) heartbeatOnce(vas *kit.Vas, msgType sfs.MessagingType, payload []byte) error {
 	retry := tools.NewRetryPolicy(maxHeartbeatRetryCount, [2]uint{1000, 3000})
 
 	var lastErr error
@@ -117,7 +117,7 @@ func (w *Watcher) heartbeatOnce(vas *kit.Vas, msgType sfs.MessagingType, payload
 }
 
 // sendHeartbeatMessaging send heartbeat message to upstream server.
-func (w *Watcher) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType, payload []byte) error {
+func (w *watcher) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType, payload []byte) error {
 	timeoutVas, cancel := vas.WithTimeout(defaultHeartbeatTimeout)
 	defer cancel()
 

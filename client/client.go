@@ -52,7 +52,7 @@ type client struct {
 	pairs       map[string]string
 	opts        options
 	fingerPrint sfs.FingerPrint
-	watcher     *Watcher
+	watcher     *watcher
 	upstream    upstream.Upstream
 }
 
@@ -124,11 +124,7 @@ func New(opts ...Option) (Client, error) {
 	if clientOpt.useFileCache {
 		cache.Init(true, clientOpt.fileCacheDir)
 	}
-	watcher, err := newWatcher(u, Options{
-		BizID:       clientOpt.bizID,
-		Labels:      clientOpt.labels,
-		Fingerprint: fp.Encode(),
-	})
+	watcher, err := newWatcher(u, clientOpt)
 	if err != nil {
 		return nil, fmt.Errorf("init watcher failed, err: %s", err.Error())
 	}
@@ -159,7 +155,7 @@ func (c *client) ResetLabels(labels map[string]string) {
 		subscriber.ResetLabels(labels)
 	}
 
-	c.watcher.NotifyReconnect(ReconnectSignal{Reason: "reset labels"})
+	c.watcher.NotifyReconnect(reconnectSignal{Reason: "reset labels"})
 }
 
 // PullFiles pull files from remote

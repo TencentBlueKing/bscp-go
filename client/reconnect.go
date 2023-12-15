@@ -23,7 +23,7 @@ import (
 )
 
 // NotifyReconnect notify the watcher to reconnect the upstream server.
-func (w *Watcher) NotifyReconnect(signal ReconnectSignal) {
+func (w *watcher) NotifyReconnect(signal reconnectSignal) {
 	select {
 	case w.reconnectChan <- signal:
 	default:
@@ -31,7 +31,7 @@ func (w *Watcher) NotifyReconnect(signal ReconnectSignal) {
 	}
 }
 
-func (w *Watcher) waitForReconnectSignal() {
+func (w *watcher) waitForReconnectSignal() {
 	for {
 		select {
 		case <-w.vas.Ctx.Done():
@@ -48,7 +48,7 @@ func (w *Watcher) waitForReconnectSignal() {
 }
 
 // tryReconnect, Use NotifyReconnect method instead of direct call
-func (w *Watcher) tryReconnect(rid string) {
+func (w *watcher) tryReconnect(rid string) {
 	st := time.Now()
 	logger.Info("start to reconnect the upstream server", slog.String("rid", w.vas.Rid))
 

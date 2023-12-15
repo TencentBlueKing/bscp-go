@@ -86,3 +86,37 @@ func WithToken(token string) Option {
 		return nil
 	}
 }
+
+// AppOptions options for app pull and watch
+type AppOptions struct {
+	// Key watch config item key
+	Key string
+	// Labels instance labels
+	Labels map[string]string
+	// UID instance unique uid
+	UID string
+}
+
+// AppOption setter for app options
+type AppOption func(*AppOptions)
+
+// WithAppKey set watch config item key
+func WithAppKey(key string) AppOption {
+	return func(o *AppOptions) {
+		o.Key = key
+	}
+}
+
+// WithAppLabels set watch labels
+func WithAppLabels(labels map[string]string) AppOption {
+	return func(o *AppOptions) {
+		o.Labels = labels
+	}
+}
+
+// WithAppUID set watch uid
+func WithAppUID(uid string) AppOption {
+	return func(o *AppOptions) {
+		o.UID = uid
+	}
+}
