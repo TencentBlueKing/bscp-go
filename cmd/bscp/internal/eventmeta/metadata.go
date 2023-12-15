@@ -24,7 +24,7 @@ import (
 
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 // EventMeta defines release event meta that write to metadata.json

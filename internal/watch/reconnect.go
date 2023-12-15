@@ -19,7 +19,7 @@ import (
 	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 // NotifyReconnect notify the watcher to reconnect the upstream server.

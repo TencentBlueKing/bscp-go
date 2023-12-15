@@ -28,7 +28,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/config"
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var (

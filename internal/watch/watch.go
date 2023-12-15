@@ -31,10 +31,10 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
-	"github.com/TencentBlueKing/bscp-go/internal/metrics"
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
