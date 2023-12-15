@@ -27,6 +27,10 @@ func main() {
 	// 设置日志自定义 Handler
 	// logger.SetHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
 
+	// 在线服务, 可设置 metrics
+	// metrics.RegisterMetrics()
+	// http.Handle("/metrics", promhttp.Handler())
+
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
 	biz, err := strconv.ParseInt(bizStr, 10, 64)
