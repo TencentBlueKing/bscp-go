@@ -45,10 +45,10 @@ func main() {
 	}
 
 	bscp, err := client.New(
-		client.FeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
-		client.BizID(uint32(biz)),
-		client.Token(os.Getenv("BSCP_TOKEN")),
-		client.Labels(labels),
+		client.WithFeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
+		client.WithBizID(uint32(biz)),
+		client.WithToken(os.Getenv("BSCP_TOKEN")),
+		client.WithLabels(labels),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))

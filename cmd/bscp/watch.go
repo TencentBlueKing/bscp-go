@@ -74,11 +74,11 @@ func Watch(cmd *cobra.Command, args []string) {
 	}
 
 	bscp, err := client.New(
-		client.FeedAddrs(conf.FeedAddrs),
-		client.BizID(conf.Biz),
-		client.Token(conf.Token),
-		client.Labels(confLabels),
-		client.UID(conf.UID),
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
+		client.WithLabels(confLabels),
+		client.WithUID(conf.UID),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))

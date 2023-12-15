@@ -12,94 +12,77 @@
 
 package client
 
-// ClientOptions options for bscp sdk client
-type ClientOptions struct {
+// Options options for bscp sdk
+type Options struct {
 	// FeedAddr BSCP feed_server address
-	FeedAddrs []string
+	feedAddrs []string
 	// BizID BSCP business id
-	BizID uint32
+	bizID uint32
 	// Labels instance labels
-	Labels map[string]string
-	// Version SDK version
-	Version string
+	labels map[string]string
 	// Fingerprint sdk fingerprint
-	Fingerprint string
+	fingerprint string
 	// UID sdk uid
-	UID string
+	uid string
 	// UseFileCache use file cache
-	UseFileCache bool
+	useFileCache bool
 	// FileCacheDir file cache directory
-	FileCacheDir string
+	fileCacheDir string
 	// DialTimeoutMS dial upstream timeout in millisecond
-	DialTimeoutMS int64
+	dialTimeoutMS int64
 	// Token sdk token
-	Token string
+	token string
 }
 
-// ClientOption setter for bscp sdk options
-type ClientOption func(*ClientOptions) error
+// Option setter for bscp sdk options
+type Option func(*Options) error
 
-// FeedAddrs set feed_server addresses
-func FeedAddrs(addrs []string) ClientOption {
+// WithFeedAddrs set feed_server addresses
+func WithFeedAddrs(addrs []string) Option {
 	// TODO: validate Address
-	return func(o *ClientOptions) error {
-		o.FeedAddrs = addrs
+	return func(o *Options) error {
+		o.feedAddrs = addrs
 		return nil
 	}
 }
 
-// BizID set bscp business id
-func BizID(id uint32) ClientOption {
-	return func(o *ClientOptions) error {
-		o.BizID = id
+// WithFeedAddr set feed_server addresse
+func WithFeedAddr(addr string) Option {
+	// TODO: validate Address
+	return func(o *Options) error {
+		o.feedAddrs = []string{addr}
 		return nil
 	}
 }
 
-// Labels set instance labels
-func Labels(labels map[string]string) ClientOption {
-	return func(o *ClientOptions) error {
-		o.Labels = labels
+// WithBizID set bscp business id
+func WithBizID(id uint32) Option {
+	return func(o *Options) error {
+		o.bizID = id
 		return nil
 	}
 }
 
-// UID set sdk uid
-func UID(uid string) ClientOption {
-	return func(o *ClientOptions) error {
-		o.UID = uid
+// WithLabels set instance labels
+func WithLabels(labels map[string]string) Option {
+	return func(o *Options) error {
+		o.labels = labels
 		return nil
 	}
 }
 
-// UseFileCache cache file to local file system
-func UseFileCache(useFileCache bool) ClientOption {
-	return func(o *ClientOptions) error {
-		o.UseFileCache = useFileCache
+// WithUID set sdk uid
+func WithUID(uid string) Option {
+	return func(o *Options) error {
+		o.uid = uid
 		return nil
 	}
 }
 
-// FileCacheDir file local cache directory
-func FileCacheDir(dir string) ClientOption {
-	return func(o *ClientOptions) error {
-		o.FileCacheDir = dir
-		return nil
-	}
-}
-
-// WithDialTimeoutMS set dial timeout in millisecond
-func WithDialTimeoutMS(timeout int64) ClientOption {
-	return func(o *ClientOptions) error {
-		o.DialTimeoutMS = timeout
-		return nil
-	}
-}
-
-// Token set sdk token
-func Token(token string) ClientOption {
-	return func(o *ClientOptions) error {
-		o.Token = token
+// WithToken set sdk token
+func WithToken(token string) Option {
+	return func(o *Options) error {
+		o.token = token
 		return nil
 	}
 }

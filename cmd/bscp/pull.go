@@ -58,11 +58,11 @@ func Pull(cmd *cobra.Command, args []string) {
 		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
 	}
 	bscp, err := client.New(
-		client.FeedAddrs(conf.FeedAddrs),
-		client.BizID(conf.Biz),
-		client.Token(conf.Token),
-		client.Labels(conf.Labels),
-		client.UID(conf.UID),
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
+		client.WithLabels(conf.Labels),
+		client.WithUID(conf.UID),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))

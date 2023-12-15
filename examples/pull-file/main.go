@@ -16,7 +16,6 @@ package main
 import (
 	"os"
 	"strconv"
-	"strings"
 
 	"golang.org/x/exp/slog"
 
@@ -38,9 +37,9 @@ func main() {
 	}
 
 	bscp, err := client.New(
-		client.FeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
-		client.BizID(uint32(biz)),
-		client.Token(os.Getenv("BSCP_TOKEN")),
+		client.WithFeedAddr(os.Getenv("BSCP_FEED_ADDRS")),
+		client.WithBizID(uint32(biz)),
+		client.WithToken(os.Getenv("BSCP_TOKEN")),
 	)
 	if err != nil {
 		slog.Error("init client", logger.ErrAttr(err))
