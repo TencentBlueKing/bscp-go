@@ -12,7 +12,7 @@
 
 package client
 
-// Options options for bscp sdk
+// Options options for bscp sdk client
 type Options struct {
 	// FeedAddr BSCP feed_server address
 	feedAddrs []string

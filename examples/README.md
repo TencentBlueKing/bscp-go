@@ -2,6 +2,7 @@ bscp sdk examples
 ============
 
 ## 示例代码
+* [config](./config) - bscp 命令行配置文件示例
 * [kv-ctl](./kv-ctl) - 拉取 kv 型配置命令行示例
 * [pull-file](./pull-file) - 拉取 file 型配置
 * [watch-file](./watch-file) - 拉取 file 型配置并监听配置变更

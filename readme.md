@@ -26,6 +26,21 @@ bscp-go 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，
 - [容器化接入](./docs/usage.md)
 - [SDK代码示例](./examples/README.md)
 
+## 安装 bscp 命令行
+方式1，有 golang 环境，可以直接安装
+```
+go install github.com/TencentBlueKing/bscp-go/cmd/bscp@latest
+bscp version
+```
+
+方式2, 安装已编译的二进制，支持 linux/mac/windows, 以 linux 为例
+```
+wget https://github.com/TencentBlueKing/bscp-go/releases/download/v1.0.5/bscp-v1.0.5-linux-amd64.tar.gz
+tar -xf bscp-v1.0.5-linux-amd64.tar.gz
+cp bscp /usr/local/bin/
+bscp version
+```
+
 ## Support
 
 - [蓝鲸论坛](https://bk.tencent.com/s-mart/community)

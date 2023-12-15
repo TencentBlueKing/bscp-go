@@ -1,0 +1,25 @@
+# 订阅地址，必填
+feed_addrs:
+  - "{feed_addr_host}:9510"
+# 业务ID，必填
+biz: 1
+# 服务秘钥，必填
+token: "****************"
+# 实例标签，选填
+labels:
+  - "region": "nanjing"
+  - "env": "prod"
+# bscp 临时工作目录，选填
+temp_dir: "/data/bscp"
+# 拉取或监听的服务
+apps:
+  # 服务名称，必填
+  - name: bscp-demo
+    # 服务标签（将覆盖实例中相同key的标签），选填
+    labels:
+      - "env": "prod"
+      - "app": "demo"
+  - name: demo-2
+    labels:
+      - "env": "prod"
+      - "app": "demo-2"
