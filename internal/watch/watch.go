@@ -38,8 +38,8 @@ import (
 	"github.com/TencentBlueKing/bscp-go/types"
 )
 
-// WatchOptions options for watch bscp config items
-type WatchOptions struct {
+// Options options for watch bscp config items
+type Options struct {
 	// FeedAddrs bscp feed server addresses
 	FeedAddrs []string
 	// DialTimeoutMS dial timeout milliseconds
@@ -68,7 +68,7 @@ type Watcher struct {
 	subscribers     []*Subscriber
 	vas             *kit.Vas
 	cancel          context.CancelFunc
-	opts            WatchOptions
+	opts            Options
 	metaHeaderValue string
 	reconnectChan   chan ReconnectSignal
 	Conn            *grpc.ClientConn
@@ -89,7 +89,7 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 }
 
 // New return a Watcher
-func New(u upstream.Upstream, opts WatchOptions) (*Watcher, error) {
+func New(u upstream.Upstream, opts Options) (*Watcher, error) {
 	w := &Watcher{
 		opts:     opts,
 		upstream: u,

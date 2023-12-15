@@ -126,7 +126,7 @@ func New(opts ...Option) (Client, error) {
 	if clientOpt.useFileCache {
 		cache.Init(true, clientOpt.fileCacheDir)
 	}
-	watcher, err := watch.New(u, watch.WatchOptions{
+	watcher, err := watch.New(u, watch.Options{
 		BizID:       clientOpt.bizID,
 		Labels:      clientOpt.labels,
 		Fingerprint: fp.Encode(),
