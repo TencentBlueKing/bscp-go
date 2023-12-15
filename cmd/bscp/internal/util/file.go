@@ -24,10 +24,10 @@ import (
 	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
-	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 )
 
 // UpdateFiles updates the files to the target directory.
-func UpdateFiles(filesDir string, files []*types.ConfigItemFile) error {
+func UpdateFiles(filesDir string, files []*client.ConfigItemFile) error {
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(UpdateFileConcurrentLimit)
 	for _, f := range files {

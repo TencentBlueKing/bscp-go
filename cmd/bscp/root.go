@@ -21,7 +21,7 @@ import (
 	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/spf13/cobra"
 
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var (

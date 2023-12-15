@@ -19,7 +19,7 @@ import (
 	"go.uber.org/atomic"
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 const defaultBounceIntervalHour = 1

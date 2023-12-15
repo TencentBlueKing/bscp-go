@@ -25,7 +25,7 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var defaultCachePath = "/tmp/bk-bscp"

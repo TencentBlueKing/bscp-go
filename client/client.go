@@ -28,19 +28,17 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
-	"github.com/TencentBlueKing/bscp-go/internal/watch"
-	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 // Client bscp client method
 type Client interface {
 	// PullFiles pull files from remote
-	PullFiles(app string, opts ...types.AppOption) (*types.Release, error)
+	PullFiles(app string, opts ...AppOption) (*Release, error)
 	// Pull Key Value from remote
-	Get(app string, key string, opts ...types.AppOption) (string, error)
+	Get(app string, key string, opts ...AppOption) (string, error)
 	// AddWatcher add a watcher to client
-	AddWatcher(callback types.Callback, app string, opts ...types.AppOption) error
+	AddWatcher(callback Callback, app string, opts ...AppOption) error
 	// StartWatch start watch
 	StartWatch() error
 	// StopWatch stop watch
@@ -54,7 +52,7 @@ type client struct {
 	pairs       map[string]string
 	opts        options
 	fingerPrint sfs.FingerPrint
-	watcher     *watch.Watcher
+	watcher     *watcher
 	upstream    upstream.Upstream
 }
 
@@ -126,11 +124,7 @@ func New(opts ...Option) (Client, error) {
 	if clientOpt.useFileCache {
 		cache.Init(true, clientOpt.fileCacheDir)
 	}
-	watcher, err := watch.New(u, watch.Options{
-		BizID:       clientOpt.bizID,
-		Labels:      clientOpt.labels,
-		Fingerprint: fp.Encode(),
-	})
+	watcher, err := newWatcher(u, clientOpt)
 	if err != nil {
 		return nil, fmt.Errorf("init watcher failed, err: %s", err.Error())
 	}
@@ -139,7 +133,7 @@ func New(opts ...Option) (Client, error) {
 }
 
 // AddWatcher add a watcher to client
-func (c *client) AddWatcher(callback types.Callback, app string, opts ...types.AppOption) error {
+func (c *client) AddWatcher(callback Callback, app string, opts ...AppOption) error {
 	_ = c.watcher.Subscribe(callback, app, opts...)
 	return nil
 }
@@ -161,12 +155,12 @@ func (c *client) ResetLabels(labels map[string]string) {
 		subscriber.ResetLabels(labels)
 	}
 
-	c.watcher.NotifyReconnect(watch.ReconnectSignal{Reason: "reset labels"})
+	c.watcher.NotifyReconnect(reconnectSignal{Reason: "reset labels"})
 }
 
 // PullFiles pull files from remote
-func (c *client) PullFiles(app string, opts ...types.AppOption) (*types.Release, error) {
-	option := &types.AppOptions{}
+func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
+	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)
 	}
@@ -192,9 +186,9 @@ func (c *client) PullFiles(app string, opts ...types.AppOption) (*types.Release,
 	if err != nil {
 		return nil, fmt.Errorf("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}
-	files := make([]*types.ConfigItemFile, len(resp.FileMetas))
+	files := make([]*ConfigItemFile, len(resp.FileMetas))
 	for i, meta := range resp.FileMetas {
-		files[i] = &types.ConfigItemFile{
+		files[i] = &ConfigItemFile{
 			Name:       meta.ConfigItemSpec.Name,
 			Path:       meta.ConfigItemSpec.Path,
 			Permission: meta.ConfigItemSpec.Permission,
@@ -209,7 +203,7 @@ func (c *client) PullFiles(app string, opts ...types.AppOption) (*types.Release,
 		}
 	}
 
-	r := &types.Release{
+	r := &Release{
 		ReleaseID: resp.ReleaseId,
 		FileItems: files,
 		PreHook:   resp.PreHook,
@@ -219,8 +213,8 @@ func (c *client) PullFiles(app string, opts ...types.AppOption) (*types.Release,
 }
 
 // Get 读取 Key 的值
-func (c *client) Get(app string, key string, opts ...types.AppOption) (string, error) {
-	option := &types.AppOptions{}
+func (c *client) Get(app string, key string, opts ...AppOption) (string, error) {
+	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)
 	}

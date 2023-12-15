@@ -36,7 +36,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 const (

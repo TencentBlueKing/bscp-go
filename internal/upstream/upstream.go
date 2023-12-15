@@ -26,7 +26,7 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var (

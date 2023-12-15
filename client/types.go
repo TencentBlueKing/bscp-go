@@ -10,8 +10,7 @@
  * limitations under the License.
  */
 
-// Package types defines the common types.
-package types
+package client
 
 import (
 	"fmt"
@@ -24,7 +23,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
-	"github.com/TencentBlueKing/bscp-go/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 // Release bscp 服务版本

@@ -34,10 +34,9 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/util"
-	"github.com/TencentBlueKing/bscp-go/internal/metrics"
 	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
-	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
 
 var (
@@ -182,7 +181,7 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 	return r, nil
 }
 
-func (w *WatchHandler) watchCallback(release *types.Release) error {
+func (w *WatchHandler) watchCallback(release *client.Release) error {
 	w.Lock.Lock()
 	defer w.Lock.Unlock()
 
@@ -235,14 +234,14 @@ func (w *WatchHandler) watchCallback(release *types.Release) error {
 	return nil
 }
 
-func (w *WatchHandler) getSubscribeOptions() []types.AppOption {
-	options := []types.AppOption{}
-	options = append(options, types.WithAppLabels(w.Labels))
-	options = append(options, types.WithAppUID(w.UID))
+func (w *WatchHandler) getSubscribeOptions() []client.AppOption {
+	options := []client.AppOption{}
+	options = append(options, client.WithAppLabels(w.Labels))
+	options = append(options, client.WithAppUID(w.UID))
 	return options
 }
 
-func clearOldFiles(dir string, files []*types.ConfigItemFile) error {
+func clearOldFiles(dir string, files []*client.ConfigItemFile) error {
 	err := filepath.Walk(dir, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

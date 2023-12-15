@@ -23,13 +23,16 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
-	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 func main() {
 	// 设置日志自定义 Handler
 	// logger.SetHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
+
+	// 在线服务, 可设置 metrics
+	// metrics.RegisterMetrics()
+	// http.Handle("/metrics", promhttp.Handler())
 
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
@@ -50,7 +53,7 @@ func main() {
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []types.AppOption{}
+	opts := []client.AppOption{}
 	if err = watchAppRelease(bscp, appName, opts); err != nil {
 		logger.Error("watch", logger.ErrAttr(err))
 		os.Exit(1)
@@ -58,7 +61,7 @@ func main() {
 }
 
 // callback watch 回调函数
-func callback(release *types.Release) error {
+func callback(release *client.Release) error {
 	// 文件列表, 可以自定义操作，如查看content, 写入文件等
 	logger.Info("get event done", slog.Any("releaseID", release.ReleaseID), slog.Any("items", release.FileItems))
 
@@ -66,7 +69,7 @@ func callback(release *types.Release) error {
 }
 
 // watchAppRelease watch 服务版本
-func watchAppRelease(bscp client.Client, app string, opts []types.AppOption) error {
+func watchAppRelease(bscp client.Client, app string, opts []client.AppOption) error {
 	err := bscp.AddWatcher(callback, app, opts...)
 	if err != nil {
 		return err

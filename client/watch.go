@@ -10,8 +10,7 @@
  * limitations under the License.
  */
 
-// Package watch defines the watcher client.
-package watch
+package client
 
 import (
 	"context"
@@ -31,51 +30,36 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
-	"github.com/TencentBlueKing/bscp-go/internal/metrics"
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
-	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
+	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
-
-// Options options for watch bscp config items
-type Options struct {
-	// FeedAddrs bscp feed server addresses
-	FeedAddrs []string
-	// DialTimeoutMS dial timeout milliseconds
-	DialTimeoutMS int64
-	// Fingerprint watch fingerprint
-	Fingerprint string
-	// Labels watch labels
-	Labels map[string]string
-	// BizID watch biz id
-	BizID uint32
-}
 
 // ReconnectSignal defines the signal information to tell the
 // watcher to reconnect the remote upstream server.
-type ReconnectSignal struct {
+type reconnectSignal struct {
 	Reason string
 }
 
 // String format the reconnect signal to a string.
-func (rs ReconnectSignal) String() string {
+func (rs reconnectSignal) String() string {
 	return rs.Reason
 }
 
 // Watcher is the main watch stream for instance
-type Watcher struct {
-	subscribers     []*Subscriber
+type watcher struct {
+	subscribers     []*subscriber
 	vas             *kit.Vas
 	cancel          context.CancelFunc
-	opts            Options
+	opts            *options
 	metaHeaderValue string
-	reconnectChan   chan ReconnectSignal
+	reconnectChan   chan reconnectSignal
 	Conn            *grpc.ClientConn
 	upstream        upstream.Upstream
 }
 
-func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
+func (w *watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 	pairs := make(map[string]string)
 	// add user information
 	pairs[constant.SideUserKey] = "TODO-USER"
@@ -89,17 +73,17 @@ func (w *Watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 }
 
 // New return a Watcher
-func New(u upstream.Upstream, opts Options) (*Watcher, error) {
-	w := &Watcher{
+func newWatcher(u upstream.Upstream, opts *options) (*watcher, error) {
+	w := &watcher{
 		opts:     opts,
 		upstream: u,
 		// 重启按原子顺序, 添加一个buff, 对labelfile watch的场景，保留一个重启次数
-		reconnectChan: make(chan ReconnectSignal, 1),
+		reconnectChan: make(chan reconnectSignal, 1),
 	}
 
 	mh := sfs.SidecarMetaHeader{
-		BizID:       w.opts.BizID,
-		Fingerprint: w.opts.Fingerprint,
+		BizID:       w.opts.bizID,
+		Fingerprint: w.opts.fingerprint,
 	}
 	mhBytes, err := json.Marshal(mh)
 	if err != nil {
@@ -110,7 +94,7 @@ func New(u upstream.Upstream, opts Options) (*Watcher, error) {
 }
 
 // StartWatch start watch stream
-func (w *Watcher) StartWatch() error {
+func (w *watcher) StartWatch() error {
 	w.vas, w.cancel = w.buildVas()
 
 	var err error
@@ -125,7 +109,7 @@ func (w *Watcher) StartWatch() error {
 		})
 	}
 	payload := sfs.SideWatchPayload{
-		BizID:        w.opts.BizID,
+		BizID:        w.opts.bizID,
 		Applications: apps,
 	}
 	bytes, err := json.Marshal(payload)
@@ -154,7 +138,7 @@ func (w *Watcher) StartWatch() error {
 }
 
 // StopWatch close watch stream
-func (w *Watcher) StopWatch() {
+func (w *watcher) StopWatch() {
 	st := time.Now()
 	if w.cancel == nil {
 		return
@@ -166,7 +150,7 @@ func (w *Watcher) StopWatch() {
 	logger.Info("stop watch done", slog.String("rid", w.vas.Rid), slog.Duration("duration", time.Since(st)))
 }
 
-func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
+func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 	type RecvResult struct {
 		event *pbfs.FeedWatchMessage
 		err   error
@@ -203,13 +187,13 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					logger.Error("watch stream has been closed by remote upstream stream server, need to re-connect again")
-					w.NotifyReconnect(ReconnectSignal{Reason: "connection is closed " +
+					w.NotifyReconnect(reconnectSignal{Reason: "connection is closed " +
 						"by remote upstream server"})
 					return
 				}
 
 				logger.Error("watch stream is corrupted", logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
-				w.NotifyReconnect(ReconnectSignal{Reason: "watch stream corrupted"})
+				w.NotifyReconnect(reconnectSignal{Reason: "watch stream corrupted"})
 				return
 			}
 
@@ -230,7 +214,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 			switch sfs.FeedMessageType(event.Type) {
 			case sfs.Bounce:
 				logger.Info("received upstream bounce request, need to reconnect upstream server", slog.String("rid", event.Rid))
-				w.NotifyReconnect(ReconnectSignal{Reason: "received bounce request"})
+				w.NotifyReconnect(reconnectSignal{Reason: "received bounce request"})
 				return
 
 			case sfs.PublishRelease:
@@ -257,7 +241,7 @@ func (w *Watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 }
 
 // OnReleaseChange handle all instances release change event
-func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
+func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 	// parse payload according the api version.
 	pl := new(sfs.ReleaseChangePayload)
 	if err := json.Unmarshal(event.Payload, pl); err != nil {
@@ -278,9 +262,9 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 			// if subscriber.CheckConfigItemsChanged(pl.ReleaseMeta.CIMetas) {
 			subscriber.ResetConfigItems(pl.ReleaseMeta.CIMetas)
 			// TODO: filter config items by subscriber options
-			configItemFiles := []*types.ConfigItemFile{}
+			configItemFiles := []*ConfigItemFile{}
 			for _, ci := range pl.ReleaseMeta.CIMetas {
-				configItemFiles = append(configItemFiles, &types.ConfigItemFile{
+				configItemFiles = append(configItemFiles, &ConfigItemFile{
 					Name:       ci.ConfigItemSpec.Name,
 					Path:       ci.ConfigItemSpec.Path,
 					Permission: ci.ConfigItemSpec.Permission,
@@ -288,7 +272,7 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 				})
 			}
 
-			release := &types.Release{
+			release := &Release{
 				ReleaseID: pl.ReleaseMeta.ReleaseID,
 				FileItems: configItemFiles,
 				KvItems:   pl.ReleaseMeta.KvMetas,
@@ -308,19 +292,19 @@ func (w *Watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 }
 
 // Subscribe subscribe the instance release change event
-func (w *Watcher) Subscribe(callback types.Callback, app string, opts ...types.AppOption) *Subscriber {
-	options := &types.AppOptions{}
+func (w *watcher) Subscribe(callback Callback, app string, opts ...AppOption) *subscriber {
+	options := &AppOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
 	if options.UID == "" {
-		options.UID = w.opts.Fingerprint
+		options.UID = w.opts.fingerprint
 	}
-	subscriber := &Subscriber{
+	subscriber := &subscriber{
 		App:  app,
 		Opts: options,
 		// merge labels, if key conflict, app value will overwrite client value
-		Labels:           util.MergeLabels(w.opts.Labels, options.Labels),
+		Labels:           util.MergeLabels(w.opts.labels, options.Labels),
 		UID:              options.UID,
 		Callback:         callback,
 		CurrentReleaseID: 0,
@@ -330,16 +314,16 @@ func (w *Watcher) Subscribe(callback types.Callback, app string, opts ...types.A
 }
 
 // Subscribers return all subscribers
-func (w *Watcher) Subscribers() []*Subscriber {
+func (w *watcher) Subscribers() []*subscriber {
 	return w.subscribers
 }
 
 // Subscriber is the subscriber of the instance
-type Subscriber struct {
-	Opts *types.AppOptions
+type subscriber struct {
+	Opts *AppOptions
 	App  string
 	// Callback is the callback function when the watched items are changed
-	Callback types.Callback
+	Callback Callback
 	// CurrentReleaseID is the current release id of the subscriber
 	CurrentReleaseID uint32
 	// Labels is the labels of the subscriber
@@ -353,7 +337,7 @@ type Subscriber struct {
 // CheckConfigItemsChanged check if the subscriber watched config items are changed
 // Deprecated: commit id can not be used to check config items changed anymore
 // ? Should it used in file mode ?
-func (s *Subscriber) CheckConfigItemsChanged(cis []*sfs.ConfigItemMetaV1) bool {
+func (s *subscriber) CheckConfigItemsChanged(cis []*sfs.ConfigItemMetaV1) bool {
 	if len(cis) == 0 {
 		return false
 	}
@@ -372,7 +356,7 @@ func (s *Subscriber) CheckConfigItemsChanged(cis []*sfs.ConfigItemMetaV1) bool {
 
 // ResetConfigItems reset the current config items of the subscriber
 // Deprecated: commit id can not be used to check config items changed anymore
-func (s *Subscriber) ResetConfigItems(cis []*sfs.ConfigItemMetaV1) {
+func (s *subscriber) ResetConfigItems(cis []*sfs.ConfigItemMetaV1) {
 	// TODO: Filter by watch options(pattern/regex)
 	m := make(map[string]uint32)
 	for _, ci := range cis {
@@ -383,11 +367,11 @@ func (s *Subscriber) ResetConfigItems(cis []*sfs.ConfigItemMetaV1) {
 
 // ResetLabels reset the labels of the subscriber
 // s.Opts.Labels as origion labels would not be reset
-func (s *Subscriber) ResetLabels(labels map[string]string) {
+func (s *subscriber) ResetLabels(labels map[string]string) {
 	s.Labels = util.MergeLabels(labels, s.Opts.Labels)
 }
 
-func (s *Subscriber) reportReleaseChangeCallbackMetrics(status string, start time.Time) {
+func (s *subscriber) reportReleaseChangeCallbackMetrics(status string, start time.Time) {
 	releaseID := strconv.Itoa(int(s.CurrentReleaseID))
 	metrics.ReleaseChangeCallbackCounter.WithLabelValues(s.App, status, releaseID).Inc()
 	seconds := time.Since(start).Seconds()

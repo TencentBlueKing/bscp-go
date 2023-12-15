@@ -21,13 +21,16 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
-	"github.com/TencentBlueKing/bscp-go/logger"
-	"github.com/TencentBlueKing/bscp-go/types"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 func main() {
 	// 设置日志自定义 Handler
 	// logger.SetHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
+
+	// 在线服务, 可设置 metrics
+	// metrics.RegisterMetrics()
+	// http.Handle("/metrics", promhttp.Handler())
 
 	// 初始化配置信息, 按需修改
 	bizStr := os.Getenv("BSCP_BIZ")
@@ -55,7 +58,7 @@ func main() {
 	}
 
 	appName := os.Getenv("BSCP_APP")
-	opts := []types.AppOption{}
+	opts := []client.AppOption{}
 	key := "key1"
 	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
 		logger.Error("pull", logger.ErrAttr(err))
@@ -64,7 +67,7 @@ func main() {
 }
 
 // pullAppKvs 拉取 key 的值
-func pullAppKvs(bscp client.Client, app string, key string, opts []types.AppOption) error {
+func pullAppKvs(bscp client.Client, app string, key string, opts []client.AppOption) error {
 	value, err := bscp.Get(app, key, opts...)
 	if err != nil {
 		return err
