@@ -89,7 +89,7 @@ func execute() {
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
+		client.WithFeedAddr(os.Getenv("BSCP_FEED_ADDR")),
 		client.WithBizID(uint32(biz)),
 		client.WithToken(os.Getenv("BSCP_TOKEN")),
 		client.WithLabels(labels),
