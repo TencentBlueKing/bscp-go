@@ -35,6 +35,8 @@ import (
 type Client interface {
 	// PullFiles pull files from remote
 	PullFiles(app string, opts ...AppOption) (*Release, error)
+	// Get release from remote
+	PullKvs(app string, opts ...AppOption) (*Release, error)
 	// Pull Key Value from remote
 	Get(app string, key string, opts ...AppOption) (string, error)
 	// AddWatcher add a watcher to client
@@ -212,6 +214,52 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 	return r, nil
 }
 
+// GetRelease get release from remote
+func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
+	option := &AppOptions{}
+	for _, opt := range opts {
+		opt(option)
+	}
+	vas, _ := c.buildVas()
+	req := &pbfs.PullKvMetaReq{
+		ApiVersion: sfs.CurrentAPIVersion,
+		BizId:      c.opts.bizID,
+		AppMeta: &pbfs.AppMeta{
+			App:    app,
+			Labels: c.opts.labels,
+			Uid:    c.opts.uid,
+		},
+		Token: c.opts.token,
+	}
+	// merge labels, if key conflict, app value will overwrite client value
+	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
+	// reset uid
+	if option.UID != "" {
+		req.AppMeta.Uid = option.UID
+	}
+	resp, err := c.upstream.PullKvMeta(vas, req)
+	if err != nil {
+		return nil, err
+	}
+
+	kvs := make([]*sfs.KvMetaV1, 0, len(resp.GetKvMetas()))
+	for _, v := range resp.GetKvMetas() {
+		kvs = append(kvs, &sfs.KvMetaV1{
+			Key:          v.GetKey(),
+			KvAttachment: v.GetKvAttachment(),
+		})
+	}
+
+	r := &Release{
+		ReleaseID: resp.ReleaseId,
+		FileItems: []*ConfigItemFile{},
+		KvItems:   kvs,
+		PreHook:   nil,
+		PostHook:  nil,
+	}
+	return r, nil
+}
+
 // Get 读取 Key 的值
 func (c *client) Get(app string, key string, opts ...AppOption) (string, error) {
 	option := &AppOptions{}
@@ -237,7 +285,7 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	}
 	resp, err := c.upstream.GetKvValue(vas, req)
 	if err != nil {
-		return "", fmt.Errorf("get kv value failed, err: %s, rid: %s", err, vas.Rid)
+		return "", err
 	}
 
 	return resp.Value, nil

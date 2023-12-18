@@ -88,7 +88,7 @@ func execute() {
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddr(os.Getenv("BSCP_FEED_ADDR")),
+		client.WithFeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
 		client.WithBizID(uint32(biz)),
 		client.WithToken(os.Getenv("BSCP_TOKEN")),
 		client.WithLabels(labels),
@@ -100,7 +100,12 @@ func execute() {
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []client.AppOption{}
-	keySlice := strings.Split(keys, ",")
+
+	keySlice := []string{}
+	if keys != "" {
+		keySlice = strings.Split(keys, ",")
+	}
+
 	if watchMode {
 		if err = watchAppKV(bscp, appName, keySlice, opts); err != nil {
 			logger.Error("watch", logger.ErrAttr(err))
@@ -108,13 +113,34 @@ func execute() {
 		}
 	} else {
 		result := map[string]string{}
+		if len(keySlice) == 0 {
+			release, err := bscp.PullKvs(appName, opts...)
+			if err != nil {
+				slog.Error("pull kv failed", logger.ErrAttr(err))
+				os.Exit(1)
+			}
 
+			if len(release.KvItems) == 0 {
+				slog.Error("kv release is empty")
+				os.Exit(1)
+			}
+
+			for _, v := range release.KvItems {
+				keySlice = append(keySlice, v.Key)
+			}
+		}
+
+		errKeys := []string{}
 		for _, key := range keySlice {
 			value, err := bscp.Get(appName, key, opts...)
 			if err != nil {
+				errKeys = append(errKeys, key)
 				continue
 			}
 			result[key] = value
+		}
+		if len(errKeys) > 0 {
+			logger.Warn("get key failed", slog.Any("keys", errKeys))
 		}
 
 		json.NewEncoder(os.Stdout).Encode(result) // nolint
@@ -130,20 +156,28 @@ type watcher struct {
 // callback watch 回调函数
 func (w *watcher) callback(release *client.Release) error {
 	result := map[string]string{}
+	errKeys := []string{}
 
 	// kv 列表, 可以读取值
 	for _, item := range release.KvItems {
-		value, err := w.bscp.Get(w.app, item.Key)
-		if err != nil {
-			logger.Error("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
+		if _, ok := w.keyMap[item.Key]; !ok && len(keys) != 0 {
 			continue
 		}
-		logger.Info("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
+
+		value, err := w.bscp.Get(w.app, item.Key)
+		if err != nil {
+			errKeys = append(errKeys, item.Key)
+			continue
+		}
 
 		// key匹配或者为空时，输出
 		if _, ok := w.keyMap[item.Key]; ok || len(keys) == 0 {
 			result[item.Key] = value
 		}
+	}
+
+	if len(errKeys) > 0 {
+		logger.Warn("get key failed", slog.Any("keys", errKeys))
 	}
 
 	json.NewEncoder(os.Stdout).Encode(result) // nolint
