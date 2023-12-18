@@ -35,10 +35,10 @@ import (
 type Client interface {
 	// PullFiles pull files from remote
 	PullFiles(app string, opts ...AppOption) (*Release, error)
+	// Get release from remote
+	PullKvs(app string, opts ...AppOption) (*Release, error)
 	// Pull Key Value from remote
 	Get(app string, key string, opts ...AppOption) (string, error)
-	// Get release from remote
-	PullKv(app string, opts ...AppOption) (*Release, error)
 	// AddWatcher add a watcher to client
 	AddWatcher(callback Callback, app string, opts ...AppOption) error
 	// StartWatch start watch
@@ -215,7 +215,7 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 }
 
 // GetRelease get release from remote
-func (c *client) PullKv(app string, opts ...AppOption) (*Release, error) {
+func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)

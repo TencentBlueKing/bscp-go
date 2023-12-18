@@ -114,7 +114,7 @@ func execute() {
 	} else {
 		result := map[string]string{}
 		if len(keySlice) == 0 {
-			release, err := bscp.PullKv(appName, opts...)
+			release, err := bscp.PullKvs(appName, opts...)
 			if err != nil {
 				slog.Error("pull kv failed", logger.ErrAttr(err))
 				os.Exit(1)
@@ -133,7 +133,8 @@ func execute() {
 		for _, key := range keySlice {
 			value, err := bscp.Get(appName, key, opts...)
 			if err != nil {
-				continue
+				logger.Error("get kv value failed", slog.String("key", key))
+				os.Exit(1)
 			}
 			result[key] = value
 		}
@@ -156,10 +157,9 @@ func (w *watcher) callback(release *client.Release) error {
 	for _, item := range release.KvItems {
 		value, err := w.bscp.Get(w.app, item.Key)
 		if err != nil {
-			logger.Error("get value failed: %d, %v, err: %s", release.ReleaseID, item.Key, err)
+			logger.Error("get value failed", slog.String("key", item.Key), logger.ErrAttr(err))
 			continue
 		}
-		logger.Info("get value success: %d, %v, %s", release.ReleaseID, item.Key, value)
 
 		// key匹配或者为空时，输出
 		if _, ok := w.keyMap[item.Key]; ok || len(keys) == 0 {
