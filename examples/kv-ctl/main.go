@@ -130,13 +130,17 @@ func execute() {
 			}
 		}
 
+		errKeys := []string{}
 		for _, key := range keySlice {
 			value, err := bscp.Get(appName, key, opts...)
 			if err != nil {
-				logger.Error("get kv value failed", slog.String("key", key), logger.ErrAttr(err))
-				os.Exit(1)
+				errKeys = append(errKeys, key)
+				continue
 			}
 			result[key] = value
+		}
+		if len(errKeys) > 0 {
+			logger.Warn("get key failed", slog.Any("keys", errKeys))
 		}
 
 		json.NewEncoder(os.Stdout).Encode(result) // nolint
@@ -152,13 +156,17 @@ type watcher struct {
 // callback watch 回调函数
 func (w *watcher) callback(release *client.Release) error {
 	result := map[string]string{}
-	errKeys := map[string]string{}
+	errKeys := []string{}
 
 	// kv 列表, 可以读取值
 	for _, item := range release.KvItems {
+		if _, ok := w.keyMap[item.Key]; !ok && len(keys) != 0 {
+			continue
+		}
+
 		value, err := w.bscp.Get(w.app, item.Key)
 		if err != nil {
-			errKeys[item.Key] = err.Error()
+			errKeys = append(errKeys, item.Key)
 			continue
 		}
 
