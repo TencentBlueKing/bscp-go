@@ -46,6 +46,7 @@ type Upstream interface {
 	Messaging(vas *kit.Vas, typ sfs.MessagingType, payload []byte) (*pbfs.MessagingResp, error)
 	EnableBounce(bounceIntervalHour uint)
 	PullAppFileMeta(vas *kit.Vas, req *pbfs.PullAppFileMetaReq) (*pbfs.PullAppFileMetaResp, error)
+	PullKvMeta(vas *kit.Vas, req *pbfs.PullKvMetaReq) (*pbfs.PullKvMetaResp, error)
 	GetKvValue(vas *kit.Vas, req *pbfs.GetKvValueReq) (*pbfs.GetKvValueResp, error)
 	GetDownloadURL(vas *kit.Vas, req *pbfs.GetDownloadURLReq) (*pbfs.GetDownloadURLResp, error)
 	Version() *pbbase.Versioning

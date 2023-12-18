@@ -37,6 +37,8 @@ type Client interface {
 	PullFiles(app string, opts ...AppOption) (*Release, error)
 	// Pull Key Value from remote
 	Get(app string, key string, opts ...AppOption) (string, error)
+	// Get release from remote
+	PullKv(app string, opts ...AppOption) (*Release, error)
 	// AddWatcher add a watcher to client
 	AddWatcher(callback Callback, app string, opts ...AppOption) error
 	// StartWatch start watch
@@ -208,6 +210,52 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 		FileItems: files,
 		PreHook:   resp.PreHook,
 		PostHook:  resp.PostHook,
+	}
+	return r, nil
+}
+
+// GetRelease get release from remote
+func (c *client) PullKv(app string, opts ...AppOption) (*Release, error) {
+	option := &AppOptions{}
+	for _, opt := range opts {
+		opt(option)
+	}
+	vas, _ := c.buildVas()
+	req := &pbfs.PullKvMetaReq{
+		ApiVersion: sfs.CurrentAPIVersion,
+		BizId:      c.opts.bizID,
+		AppMeta: &pbfs.AppMeta{
+			App:    app,
+			Labels: c.opts.labels,
+			Uid:    c.opts.uid,
+		},
+		Token: c.opts.token,
+	}
+	// merge labels, if key conflict, app value will overwrite client value
+	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
+	// reset uid
+	if option.UID != "" {
+		req.AppMeta.Uid = option.UID
+	}
+	resp, err := c.upstream.PullKvMeta(vas, req)
+	if err != nil {
+		return nil, fmt.Errorf("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
+	}
+
+	kvs := make([]*sfs.KvMetaV1, 0, len(resp.GetKvMetas()))
+	for _, v := range resp.GetKvMetas() {
+		kvs = append(kvs, &sfs.KvMetaV1{
+			Key:          v.GetKey(),
+			KvAttachment: v.GetKvAttachment(),
+		})
+	}
+
+	r := &Release{
+		ReleaseID: resp.ReleaseId,
+		FileItems: []*ConfigItemFile{},
+		KvItems:   kvs,
+		PreHook:   nil,
+		PostHook:  nil,
 	}
 	return r, nil
 }

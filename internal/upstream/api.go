@@ -82,6 +82,17 @@ func (uc *upstreamClient) PullAppFileMeta(vas *kit.Vas, req *pbfs.PullAppFileMet
 	return uc.client.PullAppFileMeta(vas.Ctx, req)
 }
 
+// PullKVMeta pulls the app kv meta from upstream feed server.
+func (uc *upstreamClient) PullKvMeta(vas *kit.Vas, req *pbfs.PullKvMetaReq) (
+	*pbfs.PullKvMetaResp, error) {
+
+	if err := uc.wait.WaitWithContext(vas.Ctx); err != nil {
+		return nil, err
+	}
+
+	return uc.client.PullKvMeta(vas.Ctx, req)
+}
+
 // GetDownloadURL gets the file temp download url from upstream feed server.
 func (uc *upstreamClient) GetDownloadURL(vas *kit.Vas, req *pbfs.GetDownloadURLReq) (*pbfs.GetDownloadURLResp, error) {
 

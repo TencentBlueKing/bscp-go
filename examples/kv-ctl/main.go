@@ -88,7 +88,7 @@ func execute() {
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddr(os.Getenv("BSCP_FEED_ADDR")),
+		client.WithFeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
 		client.WithBizID(uint32(biz)),
 		client.WithToken(os.Getenv("BSCP_TOKEN")),
 		client.WithLabels(labels),
@@ -100,7 +100,12 @@ func execute() {
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []client.AppOption{}
-	keySlice := strings.Split(keys, ",")
+
+	keySlice := []string{}
+	if keys != "" {
+		keySlice = strings.Split(keys, ",")
+	}
+
 	if watchMode {
 		if err = watchAppKV(bscp, appName, keySlice, opts); err != nil {
 			logger.Error("watch", logger.ErrAttr(err))
@@ -108,6 +113,22 @@ func execute() {
 		}
 	} else {
 		result := map[string]string{}
+		if len(keySlice) == 0 {
+			release, err := bscp.PullKv(appName, opts...)
+			if err != nil {
+				slog.Error("pull kv failed", logger.ErrAttr(err))
+				os.Exit(1)
+			}
+
+			if len(release.KvItems) == 0 {
+				slog.Error("kv release is empty")
+				os.Exit(1)
+			}
+
+			for _, v := range release.KvItems {
+				keySlice = append(keySlice, v.Key)
+			}
+		}
 
 		for _, key := range keySlice {
 			value, err := bscp.Get(appName, key, opts...)

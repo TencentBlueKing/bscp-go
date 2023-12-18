@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"golang.org/x/exp/slog"
@@ -43,7 +44,7 @@ func main() {
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddr(os.Getenv("BSCP_FEED_ADDR")),
+		client.WithFeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
 		client.WithBizID(uint32(biz)),
 		client.WithToken(os.Getenv("BSCP_TOKEN")),
 	)
