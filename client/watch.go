@@ -193,6 +193,8 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 				}
 
 				logger.Error("watch stream is corrupted", logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
+				// 权限不足或者删除等会一直错误，限制重连频率
+				time.Sleep(time.Millisecond * 100)
 				w.NotifyReconnect(reconnectSignal{Reason: "watch stream corrupted"})
 				return
 			}

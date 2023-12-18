@@ -239,7 +239,7 @@ func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
 	}
 	resp, err := c.upstream.PullKvMeta(vas, req)
 	if err != nil {
-		return nil, fmt.Errorf("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
+		return nil, err
 	}
 
 	kvs := make([]*sfs.KvMetaV1, 0, len(resp.GetKvMetas()))
@@ -285,7 +285,7 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	}
 	resp, err := c.upstream.GetKvValue(vas, req)
 	if err != nil {
-		return "", fmt.Errorf("get kv value failed, err: %s, rid: %s", err, vas.Rid)
+		return "", err
 	}
 
 	return resp.Value, nil
