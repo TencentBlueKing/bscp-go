@@ -17,10 +17,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/TencentBlueKing/bscp-go/client"
-	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
+
+	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var (
