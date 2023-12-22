@@ -111,3 +111,12 @@ func (uc *upstreamClient) GetKvValue(vas *kit.Vas, req *pbfs.GetKvValueReq) (*pb
 
 	return uc.client.GetKvValue(vas.Ctx, req)
 }
+
+// ListApps list the apps value from upstream feed server.
+func (uc *upstreamClient) ListApps(vas *kit.Vas, req *pbfs.ListAppsReq) (*pbfs.ListAppsResp, error) {
+	if err := uc.wait.WaitWithContext(vas.Ctx); err != nil {
+		return nil, err
+	}
+
+	return uc.client.ListApps(vas.Ctx, req)
+}

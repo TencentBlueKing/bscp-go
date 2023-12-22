@@ -17,9 +17,11 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
 
@@ -35,14 +37,17 @@ var (
 	// PullCmd command to pull app files
 	PullCmd = &cobra.Command{
 		Use:   "pull",
-		Short: "pull",
-		Long:  `pull `,
+		Short: "pull file to temp-dir and exec hooks",
+		Long:  `pull file to temp-dir and exec hooks`,
 		Run:   Pull,
 	}
 )
 
 // Pull executes the pull command.
 func Pull(cmd *cobra.Command, args []string) {
+	// print bscp banner
+	fmt.Println(strings.TrimSpace(version.GetStartInfo()))
+
 	if err := initArgs(); err != nil {
 		logger.Error("init", logger.ErrAttr(err))
 		os.Exit(1)

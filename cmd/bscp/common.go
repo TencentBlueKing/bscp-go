@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 
@@ -278,4 +279,21 @@ func readLabelsFile(path string) (map[string]string, error) {
 		return nil, fmt.Errorf("unmarshal labels file %s failed, err: %s", path, err.Error())
 	}
 	return labels, nil
+}
+
+// newTable 统一风格表格, 风格参考 kubectl
+func newTable() *tablewriter.Table {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetAutoWrapText(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetTablePadding("\t") // pad with tabs
+	table.SetNoWhiteSpace(true)
+	return table
 }
