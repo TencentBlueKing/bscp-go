@@ -79,6 +79,10 @@ func New(opts ...Option) (Client, error) {
 	pairs := make(map[string]string)
 	// add user information
 	pairs[constant.SideUserKey] = "TODO-USER"
+
+	// 添加头部认证信息
+	pairs[authorizationHeader] = bearerKey + " " + clientOpt.token
+
 	// add finger printer
 	mh := sfs.SidecarMetaHeader{
 		BizID:       clientOpt.bizID,
@@ -224,14 +228,12 @@ func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
 	}
 	vas, _ := c.buildVas()
 	req := &pbfs.PullKvMetaReq{
-		ApiVersion: sfs.CurrentAPIVersion,
-		BizId:      c.opts.bizID,
+		BizId: c.opts.bizID,
 		AppMeta: &pbfs.AppMeta{
 			App:    app,
 			Labels: c.opts.labels,
 			Uid:    c.opts.uid,
 		},
-		Token: c.opts.token,
 	}
 	// merge labels, if key conflict, app value will overwrite client value
 	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
@@ -270,15 +272,13 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	}
 	vas, _ := c.buildVas()
 	req := &pbfs.GetKvValueReq{
-		ApiVersion: sfs.CurrentAPIVersion,
-		BizId:      c.opts.bizID,
+		BizId: c.opts.bizID,
 		AppMeta: &pbfs.AppMeta{
 			App:    app,
 			Labels: c.opts.labels,
 			Uid:    c.opts.uid,
 		},
-		Token: c.opts.token,
-		Key:   key,
+		Key: key,
 	}
 	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
 	// reset uid
@@ -298,7 +298,6 @@ func (c *client) ListApps() ([]*pbfs.App, error) {
 	vas, _ := c.buildVas()
 	req := &pbfs.ListAppsReq{
 		BizId: c.opts.bizID,
-		Token: c.opts.token,
 	}
 	resp, err := c.upstream.ListApps(vas, req)
 	if err != nil {

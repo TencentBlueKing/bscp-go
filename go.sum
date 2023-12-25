@@ -40,8 +40,6 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5 h1:8B8di9Hxgh9aIIMLVkIhQnsJmAwKd1VxgjfHlvJ+864=
 github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5/go.mod h1:/9h4LrWU1cVp46TF0DW5sUrqLtUyyMW0A9mnqhCTavA=
-github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231222100254-f7b4213bd09c h1:dvfeBQy2X8o7kocPUyvRKYyz14bsHQ0NO16ETp3XKVI=
-github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231222100254-f7b4213bd09c/go.mod h1:hcXljx/5UrwyWjyp1BDONJvjQvo0GDcuyvssyC53Cc8=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
