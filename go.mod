@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5
-	github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231222100254-f7b4213bd09c
+	github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231226133937-7be33dc8c268
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/olekukonko/tablewriter v0.0.5
@@ -74,5 +74,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 )
-
-replace github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp => /data/repos/bk-bcs/bcs-bscp/bcs-services/bcs-bscp
