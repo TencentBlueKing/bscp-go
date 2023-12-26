@@ -293,7 +293,7 @@ func newTable() *tablewriter.Table {
 	table.SetRowSeparator("")
 	table.SetHeaderLine(false)
 	table.SetBorder(false)
-	table.SetTablePadding("\t") // pad with tabs
+	table.SetTablePadding("   ") // pad with 3 space
 	table.SetNoWhiteSpace(true)
 	return table
 }

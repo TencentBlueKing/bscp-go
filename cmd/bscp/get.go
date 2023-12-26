@@ -13,49 +13,86 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var (
-	// GetCmd command to pull app files
+	outputFormat string
+	getValue     bool
+	key          string
+)
+
+var (
 	getCmd = &cobra.Command{
 		Use:   "get",
-		Short: "display app or kv resources",
-		Long:  `get `,
-		Run:   runGet,
+		Short: "Display app or kv resources",
+		Long:  `Display app or kv resources`,
 	}
 
 	getAppCmd = &cobra.Command{
 		Use:   "app",
-		Short: "display app resources",
-		Long:  `get `,
-		Run:   runGetApp,
+		Short: "Display app resources",
+		Long:  `Display app resources`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := runGetApp(); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %s", err)
+				fmt.Println("lei")
+				os.Exit(1)
+			}
+
+			os.Exit(0)
+		},
+	}
+
+	getKvCmd = &cobra.Command{
+		Use:   "kv",
+		Short: "Display kv resources",
+		Long:  `Display kv resources`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := runGetKv(); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %s", err)
+				fmt.Println("lei")
+				os.Exit(1)
+			}
+
+			os.Exit(0)
+		},
 	}
 )
 
-// runGet executes the get command.
-func runGet(cmd *cobra.Command, args []string) {
-	fmt.Println("leji")
+func init() {
+	// 公共参数
+	getCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, current support: json")
+	getKvCmd.Flags().StringVarP(&key, "key", "k", "", "filter by primary key name")
+
+	// kv 参数
+	getKvCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
+	getKvCmd.Flags().BoolVarP(&getValue, "value", "", false, "get kv raw value, only support single key")
 }
 
-func runGetApp(cmd *cobra.Command, args []string) {
+// runGetApp executes the get app command.
+func runGetApp() error {
+	logger.SetLevel(slog.LevelError)
+
 	bscp, err := client.New(
 		client.WithFeedAddrs([]string{"127.0.0.1:9510"}),
 		client.WithBizID(2),
-		client.WithToken(""),
+		client.WithToken("GoL90j7fX6xsepIydESbNyo7QrDOmn2h"),
 	)
 
 	if err != nil {
-		logger.Error("list app failed", logger.ErrAttr(err))
-		os.Exit(1)
+		return err
 	}
 
 	apps, err := bscp.ListApps()
@@ -64,25 +101,132 @@ func runGetApp(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	table := newTable()
-	table.SetHeader([]string{"Name", "Config_Type", "Reviser", "UpdateAt"})
+	tableOutput := func() error {
+		table := newTable()
+		table.SetHeader([]string{"Name", "Config_Type", "Reviser", "UpdateAt"})
+		for _, v := range apps {
+			t, err := time.Parse(time.RFC3339, v.UpdateAt)
 
-	for _, v := range apps {
-		t, err := time.Parse(time.RFC3339, v.UpdateAt)
+			var durStr string
+			if err != nil {
+				durStr = "N/A"
+			} else {
+				durStr = humanize.Time(t)
+			}
 
-		var durStr string
-		if err != nil {
-			durStr = "N/A"
-		} else {
-			durStr = humanize.Time(t)
+			table.Append([]string{
+				v.Name,
+				v.ConfigType,
+				v.Reviser,
+				durStr,
+			})
+		}
+		table.Render()
+
+		return nil
+	}
+
+	jsonOutput := func() error {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "    ")
+		return enc.Encode(apps)
+	}
+
+	switch outputFormat {
+	case "json":
+		return jsonOutput()
+	default:
+		return tableOutput()
+	}
+
+}
+
+func runGetListKv(bscp client.Client, app, key string) error {
+	release, err := bscp.PullKvs(app)
+	if err != nil {
+		fmt.Println("lei1")
+		return err
+	}
+
+	tableOutput := func() error {
+		table := newTable()
+		table.SetHeader([]string{"Key", "Type", "Reviser", "UpdateAt"})
+
+		for _, v := range release.KvItems {
+			ok, err := path.Match(key, v.Key)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				continue
+			}
+
+			t, err := time.Parse(time.RFC3339, v.UpdateAt)
+
+			var durStr string
+			if err != nil {
+				durStr = "N/A"
+			} else {
+				durStr = humanize.Time(t)
+			}
+
+			table.Append([]string{
+				v.Key,
+				v.KvType,
+				v.Reviser,
+				durStr,
+			})
 		}
 
-		table.Append([]string{
-			v.Name,
-			v.ConfigType,
-			v.Reviser,
-			durStr,
-		})
+		table.Render()
+		return nil
 	}
-	table.Render()
+
+	jsonOutput := func() error {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "    ")
+		return enc.Encode(release.KvItems)
+	}
+
+	switch outputFormat {
+	case "json":
+		return jsonOutput()
+	case "":
+		return tableOutput()
+	default:
+		fmt.Println("lei")
+		return fmt.Errorf(
+			`unable to match a printer suitable for the output format "%s", allowed formats are: json`, outputFormat)
+	}
+}
+
+func runGetKvValue(bscp client.Client, app, key string) error {
+	value, err := bscp.Get(app, key)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprint(os.Stdout, value)
+	return err
+}
+
+// runGetKv executes the get kv command.
+func runGetKv() error {
+	logger.SetLevel(slog.LevelError)
+
+	bscp, err := client.New(
+		client.WithFeedAddrs([]string{"127.0.0.1:9510"}),
+		client.WithBizID(2),
+		client.WithToken("GoL90j7fX6xsepIydESbNyo7QrDOmn2h"),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if getValue {
+		return runGetKvValue(bscp, appName, key)
+	}
+
+	return runGetListKv(bscp, appName, key)
 }

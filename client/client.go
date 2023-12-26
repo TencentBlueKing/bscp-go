@@ -249,6 +249,9 @@ func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
 	kvs := make([]*sfs.KvMetaV1, 0, len(resp.GetKvMetas()))
 	for _, v := range resp.GetKvMetas() {
 		kvs = append(kvs, &sfs.KvMetaV1{
+			KvType:       v.KvType,
+			Reviser:      v.Reviser,
+			UpdateAt:     v.UpdateAt,
 			Key:          v.GetKey(),
 			KvAttachment: v.GetKvAttachment(),
 		})

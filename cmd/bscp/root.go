@@ -46,6 +46,7 @@ func init() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	getCmd.AddCommand(getAppCmd)
+	getCmd.AddCommand(getKvCmd)
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(PullCmd)
 	rootCmd.AddCommand(WatchCmd)
