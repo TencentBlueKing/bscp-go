@@ -15,11 +15,8 @@ package main
 import (
 	"fmt"
 	"os"
-	_ "unsafe"
 
 	"github.com/spf13/cobra"
-
-	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var (
@@ -33,21 +30,21 @@ var (
 
 // Execute executes the root command.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("exec cmd", logger.ErrAttr(err))
-		os.Exit(1)
-	}
+	cobra.CheckErr(rootCmd.Execute())
 }
 
 func init() {
 	// 不开启 自动排序
 	cobra.EnableCommandSorting = false
 	// 不开启 completion 子命令
+	rootCmd.SilenceUsage = true
+	rootCmd.SilenceErrors = true
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	getCmd.AddCommand(getAppCmd)
 	getCmd.AddCommand(getKvCmd)
 	rootCmd.AddCommand(getCmd)
+
 	rootCmd.AddCommand(PullCmd)
 	rootCmd.AddCommand(WatchCmd)
 	rootCmd.AddCommand(VersionCmd)

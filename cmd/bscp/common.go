@@ -297,3 +297,10 @@ func newTable() *tablewriter.Table {
 	table.SetNoWhiteSpace(true)
 	return table
 }
+
+// jsonOutput json风格输出
+func jsonOutput(obj any) error {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "    ")
+	return enc.Encode(obj)
+}

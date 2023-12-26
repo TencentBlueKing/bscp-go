@@ -13,7 +13,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -44,14 +43,8 @@ var (
 		Use:   "app",
 		Short: "Display app resources",
 		Long:  `Display app resources`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := runGetApp(); err != nil {
-				fmt.Fprintf(os.Stderr, "error: %s", err)
-				fmt.Println("lei")
-				os.Exit(1)
-			}
-
-			os.Exit(0)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runGetApp()
 		},
 	}
 
@@ -59,14 +52,8 @@ var (
 		Use:   "kv",
 		Short: "Display kv resources",
 		Long:  `Display kv resources`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := runGetKv(); err != nil {
-				fmt.Fprintf(os.Stderr, "error: %s", err)
-				fmt.Println("lei")
-				os.Exit(1)
-			}
-
-			os.Exit(0)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runGetKv()
 		},
 	}
 )
@@ -97,8 +84,7 @@ func runGetApp() error {
 
 	apps, err := bscp.ListApps()
 	if err != nil {
-		logger.Error("list app failed", logger.ErrAttr(err))
-		os.Exit(1)
+		return err
 	}
 
 	tableOutput := func() error {
@@ -126,25 +112,21 @@ func runGetApp() error {
 		return nil
 	}
 
-	jsonOutput := func() error {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "    ")
-		return enc.Encode(apps)
-	}
-
 	switch outputFormat {
 	case "json":
-		return jsonOutput()
-	default:
+		return jsonOutput(apps)
+	case "":
 		return tableOutput()
-	}
+	default:
+		return fmt.Errorf(
+			`unable to match a printer suitable for the output format "%s", allowed formats are: json`, outputFormat)
 
+	}
 }
 
 func runGetListKv(bscp client.Client, app, key string) error {
 	release, err := bscp.PullKvs(app)
 	if err != nil {
-		fmt.Println("lei1")
 		return err
 	}
 
@@ -182,19 +164,12 @@ func runGetListKv(bscp client.Client, app, key string) error {
 		return nil
 	}
 
-	jsonOutput := func() error {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "    ")
-		return enc.Encode(release.KvItems)
-	}
-
 	switch outputFormat {
 	case "json":
-		return jsonOutput()
+		return jsonOutput(release.KvItems)
 	case "":
 		return tableOutput()
 	default:
-		fmt.Println("lei")
 		return fmt.Errorf(
 			`unable to match a printer suitable for the output format "%s", allowed formats are: json`, outputFormat)
 	}
@@ -222,6 +197,10 @@ func runGetKv() error {
 
 	if err != nil {
 		return err
+	}
+
+	if key == "" {
+		key = "*"
 	}
 
 	if getValue {
