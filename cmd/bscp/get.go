@@ -25,8 +25,12 @@ import (
 
 var (
 	outputFormat string
-	key          string
-	match        []string
+)
+
+const (
+	outputFormatTable = ""
+	outputFormatJson  = "json"
+	outputFormatValue = "value"
 )
 
 var (
@@ -37,20 +41,20 @@ var (
 	}
 
 	getAppCmd = &cobra.Command{
-		Use:   "app",
+		Use:   "app [res...]",
 		Short: "Display app resources",
 		Long:  `Display app resources`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runGetApp()
+			return runGetApp(args)
 		},
 	}
 
 	getKvCmd = &cobra.Command{
-		Use:   "kv",
+		Use:   "kv [res...]",
 		Short: "Display kv resources",
 		Long:  `Display kv resources`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runGetKv()
+			return runGetKv(args)
 		},
 	}
 )
@@ -61,17 +65,18 @@ func init() {
 		"feed server address, eg: 'bscp-feed.example.com:9510'")
 	getCmd.PersistentFlags().IntVarP(&bizID, "biz", "b", 0, "biz id")
 	getCmd.PersistentFlags().StringVarP(&token, "token", "t", "", "sdk token")
-	getCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, current support: json")
-	getCmd.PersistentFlags().StringArrayVarP(&match, "match", "m", []string{}, "match primary name pattern")
+
+	// app 参数
+	getAppCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json")
 
 	// kv 参数
 	getKvCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	getKvCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	getKvCmd.Flags().StringVarP(&key, "key", "k", "", "get kv raw value")
+	getKvCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|value")
 }
 
 // runGetApp executes the get app command.
-func runGetApp() error {
+func runGetApp(args []string) error {
 	baseConf, err := initBaseConf()
 	if err != nil {
 		return err
@@ -89,7 +94,7 @@ func runGetApp() error {
 		return err
 	}
 
-	apps, err := bscp.ListApps(match)
+	apps, err := bscp.ListApps(args)
 	if err != nil {
 		return err
 	}
@@ -111,9 +116,9 @@ func runGetApp() error {
 	}
 
 	switch outputFormat {
-	case "json":
+	case outputFormatJson:
 		return jsonOutput(apps)
-	case "":
+	case outputFormatTable:
 		return tableOutput()
 	default:
 		return fmt.Errorf(
@@ -146,13 +151,13 @@ func runGetListKv(bscp client.Client, app string, match []string) error {
 	}
 
 	switch outputFormat {
-	case "json":
+	case outputFormatJson:
 		return jsonOutput(release.KvItems)
-	case "":
+	case outputFormatTable:
 		return tableOutput()
 	default:
 		return fmt.Errorf(
-			`unable to match a printer suitable for the output format "%s", allowed formats are: json`, outputFormat)
+			`unable to match a printer suitable for the output format "%s", allowed formats are: json,value`, outputFormat)
 	}
 }
 
@@ -167,7 +172,7 @@ func runGetKvValue(bscp client.Client, app, key string) error {
 }
 
 // runGetKv executes the get kv command.
-func runGetKv() error {
+func runGetKv(args []string) error {
 	baseConf, err := initBaseConf()
 	if err != nil {
 		return err
@@ -189,9 +194,12 @@ func runGetKv() error {
 		return err
 	}
 
-	if key != "" {
-		return runGetKvValue(bscp, appName, key)
+	if outputFormat == outputFormatValue {
+		if len(args) == 0 {
+			return fmt.Errorf("res must not be empty")
+		}
+		return runGetKvValue(bscp, appName, args[0])
 	}
 
-	return runGetListKv(bscp, appName, match)
+	return runGetListKv(bscp, appName, args)
 }
