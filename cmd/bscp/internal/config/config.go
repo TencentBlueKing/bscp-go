@@ -44,13 +44,27 @@ type ClientConfig struct {
 	Port int `json:"port" mapstructure:"port"`
 }
 
+// ValidateBase validate the watch config
+func (c *ClientConfig) ValidateBase() error {
+	if len(c.FeedAddrs) == 0 {
+		return fmt.Errorf("feed_addrs is empty")
+	}
+	if c.Biz == 0 {
+		return fmt.Errorf("biz is empty")
+	}
+	if c.Token == "" {
+		return fmt.Errorf("token is empty")
+	}
+	return nil
+}
+
 // Validate validate the watch config
 func (c *ClientConfig) Validate() error {
 	if len(c.FeedAddrs) == 0 {
-		return fmt.Errorf("feedAddrs is empty")
+		return fmt.Errorf("feed_addrs is empty")
 	}
 	if c.Biz == 0 {
-		return fmt.Errorf("bizID is empty")
+		return fmt.Errorf("biz is empty")
 	}
 	if c.Token == "" {
 		return fmt.Errorf("token is empty")

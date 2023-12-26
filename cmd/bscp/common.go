@@ -20,8 +20,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/fsnotify/fsnotify"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 
@@ -80,6 +83,41 @@ type ReloadMessage struct {
 	Event  fsnotify.Event
 	Labels map[string]string
 	Error  error
+}
+
+// initBaseConf 只检查基础参数
+func initBaseConf() (*config.ClientConfig, error) {
+	baseConf := new(config.ClientConfig)
+
+	if configPath != "" {
+		v := viper.New()
+		v.SetConfigFile(configPath)
+		if err := v.ReadInConfig(); err != nil {
+			return nil, fmt.Errorf("read config file failed, err: %s", err.Error())
+		}
+		if err := v.Unmarshal(baseConf); err != nil {
+			return nil, fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
+		}
+		if err := baseConf.ValidateBase(); err != nil {
+			return nil, fmt.Errorf("validate config file failed, err: %s", err.Error())
+		}
+	} else {
+		if feedAddrs == "" {
+			return nil, fmt.Errorf("feed server address must not be empty")
+		}
+		baseConf.FeedAddrs = strings.Split(feedAddrs, ",")
+
+		if token == "" {
+			return nil, fmt.Errorf("token must not be empty")
+		}
+		baseConf.Token = token
+
+		if bizID <= 0 {
+			return nil, fmt.Errorf("biz id must be greater than 0")
+		}
+		baseConf.Biz = uint32(bizID)
+	}
+	return baseConf, nil
 }
 
 // initArgs init the common args
@@ -278,4 +316,42 @@ func readLabelsFile(path string) (map[string]string, error) {
 		return nil, fmt.Errorf("unmarshal labels file %s failed, err: %s", path, err.Error())
 	}
 	return labels, nil
+}
+
+// newTable 统一风格表格, 风格参考 kubectl
+func newTable() *tablewriter.Table {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetAutoWrapText(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetTablePadding("   ") // pad with 3 space
+	table.SetNoWhiteSpace(true)
+	return table
+}
+
+// jsonOutput json风格输出
+func jsonOutput(obj any) error {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "    ")
+	return enc.Encode(obj)
+}
+
+// refineOutputTime 优化返回的时间显示, 时间格式固定 RFC3339 规范
+func refineOutputTime(timeStr string) string {
+	t, err := time.Parse(time.RFC3339, timeStr)
+
+	var durStr string
+	if err != nil {
+		durStr = "N/A"
+	} else {
+		durStr = humanize.Time(t)
+	}
+
+	return durStr
 }

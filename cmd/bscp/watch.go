@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
+	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
@@ -43,14 +44,17 @@ var (
 	// WatchCmd command to watch app files
 	WatchCmd = &cobra.Command{
 		Use:   "watch",
-		Short: "watch",
-		Long:  `watch `,
+		Short: "watch release then pull file, exec hooks",
+		Long:  `watch release then pull file, exec hooks`,
 		Run:   Watch,
 	}
 )
 
 // Watch run as a daemon to watch the config changes.
 func Watch(cmd *cobra.Command, args []string) {
+	// print bscp banner
+	fmt.Println(strings.TrimSpace(version.GetStartInfo()))
+
 	if err := initArgs(); err != nil {
 		logger.Error("init args", logger.ErrAttr(err))
 		os.Exit(1)

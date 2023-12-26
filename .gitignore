@@ -8,3 +8,4 @@ build_local.sh
 cover.out
 .envrc
 .vscode
+/bin

@@ -50,6 +50,7 @@ type Upstream interface {
 	GetKvValue(vas *kit.Vas, req *pbfs.GetKvValueReq) (*pbfs.GetKvValueResp, error)
 	GetDownloadURL(vas *kit.Vas, req *pbfs.GetDownloadURLReq) (*pbfs.GetDownloadURLResp, error)
 	Version() *pbbase.Versioning
+	ListApps(vas *kit.Vas, req *pbfs.ListAppsReq) (*pbfs.ListAppsResp, error)
 }
 
 // New create a rolling client instance.

@@ -33,10 +33,12 @@ import (
 
 // Client bscp client method
 type Client interface {
+	// ListApps list app from remote, only return have perm by token
+	ListApps(match []string) ([]*pbfs.App, error)
 	// PullFiles pull files from remote
 	PullFiles(app string, opts ...AppOption) (*Release, error)
-	// Get release from remote
-	PullKvs(app string, opts ...AppOption) (*Release, error)
+	// Get KV release from remote
+	PullKvs(app string, match []string, opts ...AppOption) (*Release, error)
 	// Pull Key Value from remote
 	Get(app string, key string, opts ...AppOption) (string, error)
 	// AddWatcher add a watcher to client
@@ -77,6 +79,10 @@ func New(opts ...Option) (Client, error) {
 	pairs := make(map[string]string)
 	// add user information
 	pairs[constant.SideUserKey] = "TODO-USER"
+
+	// 添加头部认证信息
+	pairs[authorizationHeader] = bearerKey + " " + clientOpt.token
+
 	// add finger printer
 	mh := sfs.SidecarMetaHeader{
 		BizID:       clientOpt.bizID,
@@ -215,21 +221,20 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 }
 
 // GetRelease get release from remote
-func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
+func (c *client) PullKvs(app string, match []string, opts ...AppOption) (*Release, error) {
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)
 	}
 	vas, _ := c.buildVas()
 	req := &pbfs.PullKvMetaReq{
-		ApiVersion: sfs.CurrentAPIVersion,
-		BizId:      c.opts.bizID,
+		BizId: c.opts.bizID,
+		Match: match,
 		AppMeta: &pbfs.AppMeta{
 			App:    app,
 			Labels: c.opts.labels,
 			Uid:    c.opts.uid,
 		},
-		Token: c.opts.token,
 	}
 	// merge labels, if key conflict, app value will overwrite client value
 	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
@@ -246,6 +251,8 @@ func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
 	for _, v := range resp.GetKvMetas() {
 		kvs = append(kvs, &sfs.KvMetaV1{
 			Key:          v.GetKey(),
+			KvType:       v.KvType,
+			Revision:     v.GetRevision(),
 			KvAttachment: v.GetKvAttachment(),
 		})
 	}
@@ -268,15 +275,13 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	}
 	vas, _ := c.buildVas()
 	req := &pbfs.GetKvValueReq{
-		ApiVersion: sfs.CurrentAPIVersion,
-		BizId:      c.opts.bizID,
+		BizId: c.opts.bizID,
 		AppMeta: &pbfs.AppMeta{
 			App:    app,
 			Labels: c.opts.labels,
 			Uid:    c.opts.uid,
 		},
-		Token: c.opts.token,
-		Key:   key,
+		Key: key,
 	}
 	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
 	// reset uid
@@ -289,6 +294,21 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	}
 
 	return resp.Value, nil
+}
+
+// ListApps list app from remote, only return have perm by token
+func (c *client) ListApps(match []string) ([]*pbfs.App, error) {
+	vas, _ := c.buildVas()
+	req := &pbfs.ListAppsReq{
+		BizId: c.opts.bizID,
+		Match: match,
+	}
+	resp, err := c.upstream.ListApps(vas, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Apps, nil
 }
 
 func (c *client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint

@@ -44,7 +44,7 @@ build_docker: build_initContainer build_sidecar
 
 .PHONY: build
 build:
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o ${BIN_NAME} cmd/bscp/*.go
+	${GOBUILD} -ldflags ${LDVersionFLAG} -o bin/${BIN_NAME} cmd/bscp/*.go
 
 .PHONY: test
 test:

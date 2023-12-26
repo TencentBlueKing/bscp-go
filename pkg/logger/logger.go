@@ -15,6 +15,7 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,21 +28,9 @@ var defaultLogger atomic.Value
 
 func init() {
 	textHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource: true,
-		Level:     slog.LevelInfo,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.SourceKey {
-				source, ok := a.Value.Any().(*slog.Source)
-				if !ok {
-					return a
-				}
-				dir, file := filepath.Split(source.File)
-				source.File = filepath.Join(filepath.Base(dir), file)
-				return a
-			}
-
-			return a
-		},
+		AddSource:   true,
+		Level:       slog.LevelInfo,
+		ReplaceAttr: ReplaceSourceAttr,
 	})
 	logger := slog.New(&handler{
 		TextHandler: textHandler,
@@ -74,6 +63,19 @@ func getLogger() *slog.Logger {
 // SetHandler set logger
 func SetHandler(handler slog.Handler) {
 	defaultLogger.Store(slog.New(handler))
+}
+
+// SetLevel init default logger with level
+func SetLevel(level slog.Leveler) {
+	textHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource:   true,
+		Level:       level,
+		ReplaceAttr: ReplaceSourceAttr,
+	})
+	logger := slog.New(&handler{
+		TextHandler: textHandler,
+	})
+	defaultLogger.Store(logger)
 }
 
 // Debug logs at LevelDebug.
@@ -119,4 +121,21 @@ func ErrorContext(ctx context.Context, msg string, args ...any) {
 // ErrAttr 错误类型Attr
 func ErrAttr(err error) slog.Attr {
 	return slog.String("err", err.Error())
+}
+
+// ReplaceSourceAttr source 格式化为 dir/file:line 格式
+func ReplaceSourceAttr(groups []string, a slog.Attr) slog.Attr {
+	if a.Key != slog.SourceKey {
+		return a
+	}
+
+	source, ok := a.Value.Any().(*slog.Source)
+	if !ok {
+		return a
+	}
+
+	dir, file := filepath.Split(source.File)
+	source.File = filepath.Join(filepath.Base(dir), file)
+	fmt.Println(source)
+	return a
 }
