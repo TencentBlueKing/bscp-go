@@ -97,8 +97,8 @@ func runGetApp() error {
 			table.Append([]string{
 				v.Name,
 				v.ConfigType,
-				v.Reviser,
-				refineOutputTime(v.UpdateAt),
+				v.Revision.Reviser,
+				refineOutputTime(v.Revision.UpdateAt),
 			})
 		}
 		table.Render()
@@ -132,8 +132,8 @@ func runGetListKv(bscp client.Client, app string, match []string) error {
 			table.Append([]string{
 				v.Key,
 				v.KvType,
-				v.Reviser,
-				refineOutputTime(v.UpdateAt),
+				v.Revision.Reviser,
+				refineOutputTime(v.Revision.UpdateAt),
 			})
 		}
 
