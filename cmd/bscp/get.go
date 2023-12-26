@@ -15,10 +15,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
-	"time"
+	"strings"
 
-	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
 
@@ -28,8 +26,8 @@ import (
 
 var (
 	outputFormat string
-	getValue     bool
 	key          string
+	match        []string
 )
 
 var (
@@ -60,12 +58,17 @@ var (
 
 func init() {
 	// 公共参数
+	getCmd.PersistentFlags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
+		"feed server address, eg: 'bscp-feed.example.com:9510'")
+	getCmd.PersistentFlags().IntVarP(&bizID, "biz", "b", 0, "biz id")
+	getCmd.PersistentFlags().StringVarP(&token, "token", "t", "", "sdk token")
 	getCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, current support: json")
-	getKvCmd.Flags().StringVarP(&key, "key", "k", "", "filter by primary key name")
+	getCmd.PersistentFlags().StringArrayVarP(&match, "match", "m", []string{}, "match primary name pattern")
 
 	// kv 参数
 	getKvCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
-	getKvCmd.Flags().BoolVarP(&getValue, "value", "", false, "get kv raw value, only support single key")
+	getKvCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
+	getKvCmd.Flags().StringVarP(&key, "key", "k", "", "get kv raw value")
 }
 
 // runGetApp executes the get app command.
@@ -73,16 +76,16 @@ func runGetApp() error {
 	logger.SetLevel(slog.LevelError)
 
 	bscp, err := client.New(
-		client.WithFeedAddrs([]string{"127.0.0.1:9510"}),
-		client.WithBizID(2),
-		client.WithToken("GoL90j7fX6xsepIydESbNyo7QrDOmn2h"),
+		client.WithFeedAddrs(strings.Split(feedAddrs, ",")),
+		client.WithBizID(uint32(bizID)),
+		client.WithToken(token),
 	)
 
 	if err != nil {
 		return err
 	}
 
-	apps, err := bscp.ListApps()
+	apps, err := bscp.ListApps(match)
 	if err != nil {
 		return err
 	}
@@ -91,20 +94,11 @@ func runGetApp() error {
 		table := newTable()
 		table.SetHeader([]string{"Name", "Config_Type", "Reviser", "UpdateAt"})
 		for _, v := range apps {
-			t, err := time.Parse(time.RFC3339, v.UpdateAt)
-
-			var durStr string
-			if err != nil {
-				durStr = "N/A"
-			} else {
-				durStr = humanize.Time(t)
-			}
-
 			table.Append([]string{
 				v.Name,
 				v.ConfigType,
 				v.Reviser,
-				durStr,
+				refineOutputTime(v.UpdateAt),
 			})
 		}
 		table.Render()
@@ -124,8 +118,8 @@ func runGetApp() error {
 	}
 }
 
-func runGetListKv(bscp client.Client, app, key string) error {
-	release, err := bscp.PullKvs(app)
+func runGetListKv(bscp client.Client, app string, match []string) error {
+	release, err := bscp.PullKvs(app, match)
 	if err != nil {
 		return err
 	}
@@ -135,28 +129,11 @@ func runGetListKv(bscp client.Client, app, key string) error {
 		table.SetHeader([]string{"Key", "Type", "Reviser", "UpdateAt"})
 
 		for _, v := range release.KvItems {
-			ok, err := path.Match(key, v.Key)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				continue
-			}
-
-			t, err := time.Parse(time.RFC3339, v.UpdateAt)
-
-			var durStr string
-			if err != nil {
-				durStr = "N/A"
-			} else {
-				durStr = humanize.Time(t)
-			}
-
 			table.Append([]string{
 				v.Key,
 				v.KvType,
 				v.Reviser,
-				durStr,
+				refineOutputTime(v.UpdateAt),
 			})
 		}
 
@@ -190,22 +167,18 @@ func runGetKv() error {
 	logger.SetLevel(slog.LevelError)
 
 	bscp, err := client.New(
-		client.WithFeedAddrs([]string{"127.0.0.1:9510"}),
-		client.WithBizID(2),
-		client.WithToken("GoL90j7fX6xsepIydESbNyo7QrDOmn2h"),
+		client.WithFeedAddrs(strings.Split(feedAddrs, ",")),
+		client.WithBizID(uint32(bizID)),
+		client.WithToken(token),
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if key == "" {
-		key = "*"
-	}
-
-	if getValue {
+	if key != "" {
 		return runGetKvValue(bscp, appName, key)
 	}
 
-	return runGetListKv(bscp, appName, key)
+	return runGetListKv(bscp, appName, match)
 }

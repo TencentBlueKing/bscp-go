@@ -20,7 +20,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/fsnotify/fsnotify"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/viper"
@@ -303,4 +305,18 @@ func jsonOutput(obj any) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "    ")
 	return enc.Encode(obj)
+}
+
+// refineOutputTime 优化返回的时间显示, 时间格式固定 RFC3339 规范
+func refineOutputTime(timeStr string) string {
+	t, err := time.Parse(time.RFC3339, timeStr)
+
+	var durStr string
+	if err != nil {
+		durStr = "N/A"
+	} else {
+		durStr = humanize.Time(t)
+	}
+
+	return durStr
 }

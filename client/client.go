@@ -34,11 +34,11 @@ import (
 // Client bscp client method
 type Client interface {
 	// ListApps list app from remote, only return have perm by token
-	ListApps() ([]*pbfs.App, error)
+	ListApps(match []string) ([]*pbfs.App, error)
 	// PullFiles pull files from remote
 	PullFiles(app string, opts ...AppOption) (*Release, error)
-	// Get release from remote
-	PullKvs(app string, opts ...AppOption) (*Release, error)
+	// Get KV release from remote
+	PullKvs(app string, match []string, opts ...AppOption) (*Release, error)
 	// Pull Key Value from remote
 	Get(app string, key string, opts ...AppOption) (string, error)
 	// AddWatcher add a watcher to client
@@ -221,7 +221,7 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 }
 
 // GetRelease get release from remote
-func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
+func (c *client) PullKvs(app string, match []string, opts ...AppOption) (*Release, error) {
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)
@@ -229,6 +229,7 @@ func (c *client) PullKvs(app string, opts ...AppOption) (*Release, error) {
 	vas, _ := c.buildVas()
 	req := &pbfs.PullKvMetaReq{
 		BizId: c.opts.bizID,
+		Match: match,
 		AppMeta: &pbfs.AppMeta{
 			App:    app,
 			Labels: c.opts.labels,
@@ -297,10 +298,11 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 }
 
 // ListApps list app from remote, only return have perm by token
-func (c *client) ListApps() ([]*pbfs.App, error) {
+func (c *client) ListApps(match []string) ([]*pbfs.App, error) {
 	vas, _ := c.buildVas()
 	req := &pbfs.ListAppsReq{
 		BizId: c.opts.bizID,
+		Match: match,
 	}
 	resp, err := c.upstream.ListApps(vas, req)
 	if err != nil {
