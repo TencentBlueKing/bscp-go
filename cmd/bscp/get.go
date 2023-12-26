@@ -15,7 +15,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
@@ -73,12 +72,17 @@ func init() {
 
 // runGetApp executes the get app command.
 func runGetApp() error {
+	baseConf, err := initBaseConf()
+	if err != nil {
+		return err
+	}
+
 	logger.SetLevel(slog.LevelError)
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(strings.Split(feedAddrs, ",")),
-		client.WithBizID(uint32(bizID)),
-		client.WithToken(token),
+		client.WithFeedAddrs(baseConf.FeedAddrs),
+		client.WithBizID(baseConf.Biz),
+		client.WithToken(baseConf.Token),
 	)
 
 	if err != nil {
@@ -164,12 +168,21 @@ func runGetKvValue(bscp client.Client, app, key string) error {
 
 // runGetKv executes the get kv command.
 func runGetKv() error {
+	baseConf, err := initBaseConf()
+	if err != nil {
+		return err
+	}
+
 	logger.SetLevel(slog.LevelError)
 
+	if appName == "" {
+		return fmt.Errorf("app must not be empty")
+	}
+
 	bscp, err := client.New(
-		client.WithFeedAddrs(strings.Split(feedAddrs, ",")),
-		client.WithBizID(uint32(bizID)),
-		client.WithToken(token),
+		client.WithFeedAddrs(baseConf.FeedAddrs),
+		client.WithBizID(baseConf.Biz),
+		client.WithToken(baseConf.Token),
 	)
 
 	if err != nil {

@@ -85,6 +85,41 @@ type ReloadMessage struct {
 	Error  error
 }
 
+// initBaseConf 只检查基础参数
+func initBaseConf() (*config.ClientConfig, error) {
+	baseConf := new(config.ClientConfig)
+
+	if configPath != "" {
+		v := viper.New()
+		v.SetConfigFile(configPath)
+		if err := v.ReadInConfig(); err != nil {
+			return nil, fmt.Errorf("read config file failed, err: %s", err.Error())
+		}
+		if err := v.Unmarshal(baseConf); err != nil {
+			return nil, fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
+		}
+		if err := baseConf.ValidateBase(); err != nil {
+			return nil, fmt.Errorf("validate config file failed, err: %s", err.Error())
+		}
+	} else {
+		if feedAddrs == "" {
+			return nil, fmt.Errorf("feed server address must not be empty")
+		}
+		baseConf.FeedAddrs = strings.Split(feedAddrs, ",")
+
+		if token == "" {
+			return nil, fmt.Errorf("token must not be empty")
+		}
+		baseConf.Token = token
+
+		if bizID <= 0 {
+			return nil, fmt.Errorf("biz id must be greater than 0")
+		}
+		baseConf.Biz = uint32(bizID)
+	}
+	return baseConf, nil
+}
+
 // initArgs init the common args
 func initArgs() error {
 
