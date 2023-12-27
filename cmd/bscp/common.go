@@ -92,6 +92,8 @@ func initBaseConf() (*config.ClientConfig, error) {
 	if configPath != "" {
 		v := viper.New()
 		v.SetConfigFile(configPath)
+		// 固定 yaml 格式
+		v.SetConfigType("yaml")
 		if err := v.ReadInConfig(); err != nil {
 			return nil, fmt.Errorf("read config file failed, err: %s", err.Error())
 		}
@@ -140,6 +142,8 @@ func initFromConfig() error {
 	fmt.Println("use config file: ", configPath)
 	v := viper.New()
 	v.SetConfigFile(configPath)
+	// 固定 yaml 格式
+	v.SetConfigType("yaml")
 	if err := v.ReadInConfig(); err != nil {
 		return fmt.Errorf("read config file failed, err: %s", err.Error())
 	}
