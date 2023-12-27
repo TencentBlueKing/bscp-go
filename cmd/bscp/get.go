@@ -85,7 +85,7 @@ func runGetApp(args []string) error {
 	logger.SetLevel(slog.LevelError)
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(baseConf.FeedAddrs),
+		client.WithFeedAddrs(baseConf.GetFeedAddrs()),
 		client.WithBizID(baseConf.Biz),
 		client.WithToken(baseConf.Token),
 	)
@@ -185,7 +185,7 @@ func runGetKv(args []string) error {
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(baseConf.FeedAddrs),
+		client.WithFeedAddrs(baseConf.GetFeedAddrs()),
 		client.WithBizID(baseConf.Biz),
 		client.WithToken(baseConf.Token),
 	)
