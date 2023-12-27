@@ -1,6 +1,6 @@
 FROM alpine:3.18.3
 
-RUN apk --update --no-cache add ca-certificates bash vim curl python3
+RUN apk --update --no-cache add ca-certificates bash vim curl python3 tzdata
 
 # users:x:100:games already created by system
 RUN mkdir -p /data/home && \
