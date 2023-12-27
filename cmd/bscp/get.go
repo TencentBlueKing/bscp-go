@@ -13,6 +13,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -162,7 +163,14 @@ func runGetListKv(bscp client.Client, app string, match []string) error {
 }
 
 func runGetKvValue(bscp client.Client, app, key string) error {
-	value, err := bscp.Get(app, key)
+	labels := map[string]string{}
+	if labelsStr != "" {
+		if err := json.Unmarshal([]byte(labelsStr), &labels); err != nil {
+			return fmt.Errorf("labels invalid: %w", err)
+		}
+	}
+
+	value, err := bscp.Get(app, key, client.WithAppLabels(labels))
 	if err != nil {
 		return err
 	}
