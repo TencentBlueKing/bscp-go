@@ -198,6 +198,9 @@ func runGetKv(args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("res must not be empty")
 		}
+		if len(args) > 1 {
+			return fmt.Errorf("multiple res are not supported")
+		}
 		return runGetKvValue(bscp, appName, args[0])
 	}
 
