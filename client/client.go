@@ -28,6 +28,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util/host"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -62,12 +63,12 @@ type client struct {
 // New return a bscp client instance
 func New(opts ...Option) (Client, error) {
 	clientOpt := &options{}
-	fp, err := util.GenerateFingerPrint()
+	fingerprint, err := host.GenerateFingerPrint()
 	if err != nil {
 		return nil, fmt.Errorf("generate instance fingerprint failed, err: %s", err.Error())
 	}
-	logger.Info("instance fingerprint", slog.String("fingerprint", fp))
-	clientOpt.fingerprint = fp
+	logger.Info("instance fingerprint", slog.String("fingerprint", fingerprint))
+	clientOpt.fingerprint = fingerprint
 	clientOpt.uid = clientOpt.fingerprint
 	for _, opt := range opts {
 		if e := opt(clientOpt); e != nil {
