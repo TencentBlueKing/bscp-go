@@ -54,10 +54,10 @@ type Client interface {
 
 // Client is the bscp client
 type client struct {
-	pairs       map[string]string
-	opts        options
-	watcher     *watcher
-	upstream    upstream.Upstream
+	pairs    map[string]string
+	opts     options
+	watcher  *watcher
+	upstream upstream.Upstream
 }
 
 // New return a bscp client instance
@@ -102,9 +102,9 @@ func New(opts ...Option) (Client, error) {
 		return nil, fmt.Errorf("init upstream client failed, err: %s", err.Error())
 	}
 	c := &client{
-		opts:        *clientOpt,
-		upstream:    u,
-		pairs:       pairs,
+		opts:     *clientOpt,
+		upstream: u,
+		pairs:    pairs,
 	}
 	// handshake
 	vas, _ := c.buildVas()
