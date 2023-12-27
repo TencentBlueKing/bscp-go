@@ -85,7 +85,7 @@ func runGetApp(args []string) error {
 	logger.SetLevel(slog.LevelError)
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(baseConf.FeedAddrs),
+		client.WithFeedAddrs(baseConf.GetFeedAddrs()),
 		client.WithBizID(baseConf.Biz),
 		client.WithToken(baseConf.Token),
 	)
@@ -185,7 +185,7 @@ func runGetKv(args []string) error {
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(baseConf.FeedAddrs),
+		client.WithFeedAddrs(baseConf.GetFeedAddrs()),
 		client.WithBizID(baseConf.Biz),
 		client.WithToken(baseConf.Token),
 	)
@@ -197,6 +197,9 @@ func runGetKv(args []string) error {
 	if outputFormat == outputFormatValue {
 		if len(args) == 0 {
 			return fmt.Errorf("res must not be empty")
+		}
+		if len(args) > 1 {
+			return fmt.Errorf("multiple res are not supported")
 		}
 		return runGetKvValue(bscp, appName, args[0])
 	}

@@ -57,7 +57,7 @@ var (
 
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
-		"log.level": "log.level",
+		"BSCP_CONFIG": "config",
 	}
 
 	// commonEnvs variable definition

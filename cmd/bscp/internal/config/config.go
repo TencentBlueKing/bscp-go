@@ -26,6 +26,8 @@ import (
 type ClientConfig struct {
 	// FeedAddrs bscp feed server addresses
 	FeedAddrs []string `json:"feed_addrs" mapstructure:"feed_addrs"`
+	// FeedAddr bscp feed server addresse
+	FeedAddr string `json:"feed_addr" mapstructure:"feed_addr"`
 	// Biz bscp biz id
 	Biz uint32 `json:"biz" mapstructure:"biz"`
 	// Token bscp sdk token
@@ -44,10 +46,23 @@ type ClientConfig struct {
 	Port int `json:"port" mapstructure:"port"`
 }
 
+// GetFeedAddrs 支持单个 FeedAddr
+func (c *ClientConfig) GetFeedAddrs() []string {
+	if len(c.FeedAddrs) > 0 {
+		return c.FeedAddrs
+	}
+
+	if len(c.FeedAddr) > 0 {
+		return []string{c.FeedAddr}
+	}
+
+	return []string{}
+}
+
 // ValidateBase validate the watch config
 func (c *ClientConfig) ValidateBase() error {
-	if len(c.FeedAddrs) == 0 {
-		return fmt.Errorf("feed_addrs is empty")
+	if len(c.GetFeedAddrs()) == 0 {
+		return fmt.Errorf("feed_addrsis empty")
 	}
 	if c.Biz == 0 {
 		return fmt.Errorf("biz is empty")
@@ -60,7 +75,7 @@ func (c *ClientConfig) ValidateBase() error {
 
 // Validate validate the watch config
 func (c *ClientConfig) Validate() error {
-	if len(c.FeedAddrs) == 0 {
+	if len(c.GetFeedAddrs()) == 0 {
 		return fmt.Errorf("feed_addrs is empty")
 	}
 	if c.Biz == 0 {
