@@ -22,7 +22,6 @@ import (
 	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
 	pbfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
 	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
-	"github.com/denisbrodbeck/machineid"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
@@ -63,12 +62,12 @@ type client struct {
 // New return a bscp client instance
 func New(opts ...Option) (Client, error) {
 	clientOpt := &options{}
-	mid, err := machineid.ID()
+	fp, err := util.GenerateFingerPrint()
 	if err != nil {
-		return nil, fmt.Errorf("get instance fingerprint(machineid) failed, err: %s", err.Error())
+		return nil, fmt.Errorf("generate instance fingerprint failed, err: %s", err.Error())
 	}
-	logger.Info("instance fingerprint(machineid)", slog.String("fingerprint", mid))
-	clientOpt.fingerprint = mid
+	logger.Info("instance fingerprint", slog.String("fingerprint", fp))
+	clientOpt.fingerprint = fp
 	clientOpt.uid = clientOpt.fingerprint
 	for _, opt := range opts {
 		if e := opt(clientOpt); e != nil {
