@@ -53,22 +53,21 @@ type Client interface {
 
 // Client is the bscp client
 type client struct {
-	pairs       map[string]string
-	opts        options
-	fingerPrint sfs.FingerPrint
-	watcher     *watcher
-	upstream    upstream.Upstream
+	pairs    map[string]string
+	opts     options
+	watcher  *watcher
+	upstream upstream.Upstream
 }
 
 // New return a bscp client instance
 func New(opts ...Option) (Client, error) {
 	clientOpt := &options{}
-	fp, err := sfs.GetFingerPrint()
+	fp, err := util.GenerateFingerPrint()
 	if err != nil {
-		return nil, fmt.Errorf("get instance fingerprint failed, err: %s", err.Error())
+		return nil, fmt.Errorf("generate instance fingerprint failed, err: %s", err.Error())
 	}
-	logger.Info("instance fingerprint", slog.String("fingerprint", fp.Encode()))
-	clientOpt.fingerprint = fp.Encode()
+	logger.Info("instance fingerprint", slog.String("fingerprint", fp))
+	clientOpt.fingerprint = fp
 	clientOpt.uid = clientOpt.fingerprint
 	for _, opt := range opts {
 		if e := opt(clientOpt); e != nil {
@@ -102,10 +101,9 @@ func New(opts ...Option) (Client, error) {
 		return nil, fmt.Errorf("init upstream client failed, err: %s", err.Error())
 	}
 	c := &client{
-		opts:        *clientOpt,
-		fingerPrint: fp,
-		upstream:    u,
-		pairs:       pairs,
+		opts:     *clientOpt,
+		upstream: u,
+		pairs:    pairs,
 	}
 	// handshake
 	vas, _ := c.buildVas()
