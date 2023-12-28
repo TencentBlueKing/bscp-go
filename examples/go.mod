@@ -10,11 +10,12 @@ require (
 
 require (
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5 // indirect
-	github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231222100254-f7b4213bd09c // indirect
+	github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231226133937-7be33dc8c268 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
+	github.com/denisbrodbeck/machineid v1.0.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect

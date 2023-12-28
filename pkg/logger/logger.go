@@ -77,6 +77,22 @@ func SetLevel(level slog.Leveler) {
 	defaultLogger.Store(logger)
 }
 
+// GetLevelByName human readable logger level
+func GetLevelByName(name string) slog.Leveler {
+	switch name {
+	case "error":
+		return slog.LevelError
+	case "warn":
+		return slog.LevelWarn
+	case "info":
+		return slog.LevelInfo
+	case "debug":
+		return slog.LevelDebug
+	default:
+		return slog.LevelInfo
+	}
+}
+
 // Debug logs at LevelDebug.
 func Debug(msg string, args ...any) {
 	getLogger().Debug(msg, args...)
