@@ -139,7 +139,7 @@ func initArgs() error {
 }
 
 func initFromConfig() error {
-	fmt.Println("use config file: ", configPath)
+	fmt.Println("use config file:", configPath)
 	v := viper.New()
 	v.SetConfigFile(configPath)
 	// 固定 yaml 格式
