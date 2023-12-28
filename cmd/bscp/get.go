@@ -38,7 +38,7 @@ var (
 		Use:   "get",
 		Short: "Display app or kv resources",
 		Long:  `Display app or kv resources`,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// 设置日志等级, get 命令默认是 error
 			if logLevel == "" {
 				logLevel = "error"
@@ -46,6 +46,15 @@ var (
 
 			level := logger.GetLevelByName(logLevel)
 			logger.SetLevel(level)
+
+			// 校验&反序列化 labels
+			if labelsStr != "" {
+				if err := json.Unmarshal([]byte(labelsStr), &labels); err != nil {
+					return fmt.Errorf("invalid labels: %w", err)
+				}
+			}
+
+			return nil
 		},
 	}
 
@@ -135,7 +144,7 @@ func runGetApp(args []string) error {
 }
 
 func runGetListKv(bscp client.Client, app string, match []string) error {
-	release, err := bscp.PullKvs(app, match)
+	release, err := bscp.PullKvs(app, match, client.WithAppLabels(labels))
 	if err != nil {
 		return err
 	}
@@ -169,13 +178,6 @@ func runGetListKv(bscp client.Client, app string, match []string) error {
 }
 
 func runGetKvValue(bscp client.Client, app, key string) error {
-	labels := map[string]string{}
-	if labelsStr != "" {
-		if err := json.Unmarshal([]byte(labelsStr), &labels); err != nil {
-			return fmt.Errorf("labels invalid: %w", err)
-		}
-	}
-
 	value, err := bscp.Get(app, key, client.WithAppLabels(labels))
 	if err != nil {
 		return err
