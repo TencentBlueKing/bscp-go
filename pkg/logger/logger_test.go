@@ -10,7 +10,6 @@
  * limitations under the License.
  */
 
-// Package logger defines the logger interface.
 package logger
 
 import (
