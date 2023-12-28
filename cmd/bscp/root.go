@@ -28,6 +28,7 @@ var (
 		Short: "bscp is a command line tool for blueking service config platform",
 		Long:  `bscp is a command line tool for blueking service config platform`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// 设置日志等级
 			level := logger.GetLevelByName(logLevel)
 			logger.SetLevel(level)
 		},
