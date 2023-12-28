@@ -15,7 +15,6 @@ package logger
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -136,6 +135,5 @@ func ReplaceSourceAttr(groups []string, a slog.Attr) slog.Attr {
 
 	dir, file := filepath.Split(source.File)
 	source.File = filepath.Join(filepath.Base(dir), file)
-	fmt.Println(source)
 	return a
 }
