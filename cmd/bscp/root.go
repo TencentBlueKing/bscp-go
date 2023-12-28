@@ -48,7 +48,8 @@ func init() {
 	rootCmd.AddCommand(PullCmd)
 	rootCmd.AddCommand(WatchCmd)
 	rootCmd.AddCommand(VersionCmd)
-	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "", "", "log filtering level. (default info)")
+	rootCmd.PersistentFlags().StringVarP(
+		&logLevel, "log-level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file path")
 
 	for env, f := range rootEnvs {
