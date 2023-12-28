@@ -218,7 +218,7 @@ func initFromCmdArgs() error {
 }
 
 func initLabelsFromEnv() {
-	labels := make(map[string]string)
+	envLabels := make(map[string]string)
 	// get multi labels from environment variables
 	envs := os.Environ()
 	for _, env := range envs {
@@ -230,10 +230,10 @@ func initLabelsFromEnv() {
 			continue
 		}
 		if strings.HasPrefix(k, envLabelsPrefix) && strings.TrimPrefix(k, envLabelsPrefix) != "" {
-			labels[strings.TrimPrefix(k, envLabelsPrefix)] = v
+			envLabels[strings.TrimPrefix(k, envLabelsPrefix)] = v
 		}
 	}
-	conf.Labels = util.MergeLabels(conf.Labels, labels)
+	conf.Labels = util.MergeLabels(conf.Labels, envLabels)
 }
 
 func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]string) (chan ReloadMessage, error) {
@@ -278,22 +278,22 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 					continue
 				}
 
-				labels := make(map[string]string)
-				if err := v.Unmarshal(&labels); err != nil {
+				newLabels := make(map[string]string)
+				if err := v.Unmarshal(&newLabels); err != nil {
 					msg.Error = fmt.Errorf("unmarshal labels file failed, err: %s", err.Error())
 					watchChan <- msg
 					continue
 				}
 
-				if reflect.DeepEqual(labels, oldLabels) {
+				if reflect.DeepEqual(newLabels, oldLabels) {
 					continue
 				}
 
 				logger.Info("labels file changed, try reset labels",
-					slog.String("file", path), slog.Any("old", oldLabels), slog.Any("new", labels))
-				msg.Labels = labels
+					slog.String("file", path), slog.Any("old", oldLabels), slog.Any("new", newLabels))
+				msg.Labels = newLabels
 				watchChan <- msg
-				oldLabels = labels
+				oldLabels = newLabels
 			case err := <-watcher.Errors:
 				logger.Error("watcher error", logger.ErrAttr(err))
 			}
@@ -305,21 +305,21 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 func readLabelsFile(path string) (map[string]string, error) {
 	v := viper.New()
 	v.SetConfigFile(path)
-	labels := make(map[string]string)
+	fileLabels := make(map[string]string)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
 			logger.Warn("labels file not exist, skip read", slog.String("path", path))
-			return labels, nil
+			return fileLabels, nil
 		}
 		return nil, fmt.Errorf("stat labels file %s failed, err: %s", path, err.Error())
 	}
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("read labels file %s failed, err: %s", path, err.Error())
 	}
-	if err := v.Unmarshal(&labels); err != nil {
+	if err := v.Unmarshal(&fileLabels); err != nil {
 		return nil, fmt.Errorf("unmarshal labels file %s failed, err: %s", path, err.Error())
 	}
-	return labels, nil
+	return fileLabels, nil
 }
 
 // newTable 统一风格表格, 风格参考 kubectl
