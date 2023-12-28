@@ -17,6 +17,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var (
@@ -25,6 +27,10 @@ var (
 		Use:   "bscp",
 		Short: "bscp is a command line tool for blueking service config platform",
 		Long:  `bscp is a command line tool for blueking service config platform`,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			level := logger.GetLevelByName(logLevel)
+			logger.SetLevel(level)
+		},
 	}
 )
 

@@ -18,7 +18,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
@@ -39,6 +38,15 @@ var (
 		Use:   "get",
 		Short: "Display app or kv resources",
 		Long:  `Display app or kv resources`,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// 设置日志等级, get 命令默认是 error
+			if logLevel == "" {
+				logLevel = "error"
+			}
+
+			level := logger.GetLevelByName(logLevel)
+			logger.SetLevel(level)
+		},
 	}
 
 	getAppCmd = &cobra.Command{
@@ -78,13 +86,6 @@ func init() {
 
 // runGetApp executes the get app command.
 func runGetApp(args []string) error {
-	// 设置日志等级, get 命令默认是 error
-	if logLevel == "" {
-		logLevel = "error"
-	}
-	level := logger.GetLevelByName(logLevel)
-	logger.SetLevel(level)
-
 	baseConf, err := initBaseConf()
 	if err != nil {
 		return err
@@ -190,8 +191,6 @@ func runGetKv(args []string) error {
 	if err != nil {
 		return err
 	}
-
-	logger.SetLevel(slog.LevelError)
 
 	if appName == "" {
 		return fmt.Errorf("app must not be empty")

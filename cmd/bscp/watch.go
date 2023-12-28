@@ -55,10 +55,6 @@ func Watch(cmd *cobra.Command, args []string) {
 	// print bscp banner
 	fmt.Println(strings.TrimSpace(version.GetStartInfo()))
 
-	// 设置日志等级
-	level := logger.GetLevelByName(logLevel)
-	logger.SetLevel(level)
-
 	if err := initArgs(); err != nil {
 		logger.Error("init args", logger.ErrAttr(err))
 		os.Exit(1)
