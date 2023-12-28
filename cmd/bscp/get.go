@@ -78,12 +78,17 @@ func init() {
 
 // runGetApp executes the get app command.
 func runGetApp(args []string) error {
+	// 设置日志等级, get 命令默认是 error
+	if logLevel == "" {
+		logLevel = "error"
+	}
+	level := logger.GetLevelByName(logLevel)
+	logger.SetLevel(level)
+
 	baseConf, err := initBaseConf()
 	if err != nil {
 		return err
 	}
-
-	logger.SetLevel(slog.LevelError)
 
 	bscp, err := client.New(
 		client.WithFeedAddrs(baseConf.GetFeedAddrs()),
