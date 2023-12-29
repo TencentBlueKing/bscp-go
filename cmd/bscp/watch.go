@@ -199,17 +199,19 @@ func (w *WatchHandler) watchCallback(release *client.Release) error {
 
 	// 1. execute pre hook
 	if release.PreHook != nil {
-		if err := util.ExecuteHook(release.PreHook, table.PreHook, w.TempDir, w.Biz, w.App); err != nil {
-			logger.Error("execute pre hook", logger.ErrAttr(err))
-			return err
+		if releaseErr := util.ExecuteHook(release.PreHook, table.PreHook, w.TempDir, w.Biz, w.App); releaseErr != nil {
+			logger.Error("execute pre hook", logger.ErrAttr(releaseErr))
+			return releaseErr
 		}
 	}
 
 	filesDir := path.Join(w.AppTempDir, "files")
-	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
+	successDownloads, err := util.UpdateFiles(filesDir, release.FileItems)
+	if err != nil {
 		logger.Error("update files", logger.ErrAttr(err))
 		return err
 	}
+	logger.Info("successDownloads", successDownloads)
 	// 4. clear old files
 	if err := clearOldFiles(filesDir, release.FileItems); err != nil {
 		logger.Error("clear old files failed", logger.ErrAttr(err))

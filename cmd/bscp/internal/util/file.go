@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sync/atomic"
 
 	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
@@ -36,7 +37,8 @@ const (
 )
 
 // UpdateFiles updates the files to the target directory.
-func UpdateFiles(filesDir string, files []*client.ConfigItemFile) error {
+func UpdateFiles(filesDir string, files []*client.ConfigItemFile) (int32, error) {
+	var successDownloads int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(UpdateFileConcurrentLimit)
 	for _, f := range files {
@@ -67,10 +69,11 @@ func UpdateFiles(filesDir string, files []*client.ConfigItemFile) error {
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
 				logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
 			}
+			atomic.AddInt32(&successDownloads, 1)
 			return nil
 		})
 	}
-	return g.Wait()
+	return successDownloads, g.Wait()
 }
 
 // CheckFileExists checks the file exists and the SHA256 is match.

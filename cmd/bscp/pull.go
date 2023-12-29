@@ -93,9 +93,9 @@ func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, op
 	if e := os.MkdirAll(appDir, os.ModePerm); e != nil {
 		return e
 	}
-	release, err := bscp.PullFiles(app, opts...)
-	if err != nil {
-		return err
+	release, releaseErr := bscp.PullFiles(app, opts...)
+	if releaseErr != nil {
+		return releaseErr
 	}
 	// 2. execute pre hook
 	if release.PreHook != nil {
@@ -103,11 +103,14 @@ func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, op
 			return err
 		}
 	}
+
 	// 3. download files and save to temp dir
 	filesDir := path.Join(appDir, "files")
-	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
+	successDownloads, err := util.UpdateFiles(filesDir, release.FileItems)
+	if err != nil {
 		return err
 	}
+	logger.Info("successDownloads", successDownloads)
 	// 4. execute post hook
 	if release.PostHook != nil {
 		if err := util.ExecuteHook(release.PostHook, table.PostHook, tempDir, biz, app); err != nil {
