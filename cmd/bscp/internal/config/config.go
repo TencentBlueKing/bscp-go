@@ -44,6 +44,8 @@ type ClientConfig struct {
 	LabelsFile string `json:"labels_file" mapstructure:"labels_file"`
 	// Port sidecar http server port
 	Port int `json:"port" mapstructure:"port"`
+	// EnableReportResourceUsage 启用上报资源使用率
+	EnableReportResourceUsage bool
 }
 
 // GetFeedAddrs 支持单个 FeedAddr

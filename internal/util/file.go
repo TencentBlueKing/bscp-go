@@ -19,7 +19,7 @@ import (
 	"os/user"
 	"strconv"
 
-	pbci "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/config-item"
+	pbci "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/config-item"
 )
 
 // SetFilePermission sets the file permission.

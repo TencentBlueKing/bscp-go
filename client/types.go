@@ -14,10 +14,11 @@ package client
 
 import (
 	"fmt"
+	"time"
 
-	pbci "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/config-item"
-	pbhook "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
-	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	pbci "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/config-item"
+	pbhook "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
@@ -28,11 +29,15 @@ import (
 
 // Release bscp 服务版本
 type Release struct {
-	ReleaseID uint32            `json:"release_id"`
-	FileItems []*ConfigItemFile `json:"files"`
-	KvItems   []*sfs.KvMetaV1   `json:"kvs"`
-	PreHook   *pbhook.HookSpec  `json:"pre_hook"`
-	PostHook  *pbhook.HookSpec  `json:"post_hook"`
+	ReleaseID        uint32            `json:"release_id"`
+	FileItems        []*ConfigItemFile `json:"files"`
+	KvItems          []*sfs.KvMetaV1   `json:"kvs"`
+	PreHook          *pbhook.HookSpec  `json:"pre_hook"`
+	PostHook         *pbhook.HookSpec  `json:"post_hook"`
+	CursorID         string            `json:"cursor_id"`
+	DownloadFileNum  int32             `json:"download_file_num"`
+	DownloadFileSize uint64            `json:"download_file_size"`
+	SemaphoreCh      chan struct{}
 }
 
 // ConfigItemFile defines config item file
@@ -85,3 +90,15 @@ func (c *ConfigItemFile) SaveToFile(src string) error {
 
 // Callback watch callback
 type Callback func(release *Release) error
+
+// VersionChangeMessaging 版本变更
+type VersionChangeMessaging struct {
+	Meta               sfs.SideAppMeta
+	Resource           sfs.ResourceUsage
+	StartTime, EndTime time.Time
+	TotalFileNum       int
+	TotalFileSize      uint64
+	Reason             sfs.FailedReason
+	FailedDetailReason string
+	Annotations        any
+}
