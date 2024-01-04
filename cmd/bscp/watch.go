@@ -25,8 +25,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
-	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
@@ -36,6 +37,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/util"
 	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util/host"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
@@ -82,6 +84,8 @@ func Watch(cmd *cobra.Command, args []string) {
 		client.WithToken(conf.Token),
 		client.WithLabels(confLabels),
 		client.WithUID(conf.UID),
+		client.WithClientMode(sfs.Watch),
+		client.WithEnableReportResourceUsage(conf.EnableReportResourceUsage),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -100,6 +104,7 @@ func Watch(cmd *cobra.Command, args []string) {
 			Lock:       sync.Mutex{},
 			TempDir:    tempDir,
 			AppTempDir: path.Join(tempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+			bscp:       bscp,
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
 			logger.Error("add watch", logger.ErrAttr(err))
@@ -151,6 +156,7 @@ type WatchHandler struct {
 	AppTempDir string
 	// Lock lock for concurrent callback
 	Lock sync.Mutex
+	bscp client.Client
 }
 
 type refinedLabelsFile struct {
@@ -185,39 +191,114 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 	return r, nil
 }
 
-func (w *WatchHandler) watchCallback(release *client.Release) error {
+func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 	w.Lock.Lock()
-	defer w.Lock.Unlock()
+	startTime := time.Now()
+	var (
+		failedReason       sfs.FailedReason
+		status             sfs.Status
+		failedDetailReason string
+		currentReleaseID   uint32
+		totalFileSize      uint64
+	)
+
+	cpuUsage, cpuMaxUsage := host.GetCpuUsage()
+	memoryUsage, memoryMaxUsage := host.GetMemUsage()
+	status = sfs.Processing
+	meta := sfs.SideAppMeta{
+		App:                 w.App,
+		Uid:                 w.UID,
+		Labels:              w.Labels,
+		TargetReleaseID:     release.ReleaseID,
+		ReleaseChangeStatus: status,
+		CursorID:            release.CursorID,
+	}
+
+	defer func() {
+		w.Lock.Unlock()
+
+		// 处理变更事件
+		messaging := client.VersionChangeMessaging{}
+		messaging.EndTime = time.Now()
+		messaging.StartTime = startTime
+		messaging.FailedDetailReason = failedDetailReason
+		messaging.Reason = failedReason
+		messaging.Resource = sfs.ResourceUsage{
+			CpuMaxUsage:    cpuMaxUsage,
+			CpuUsage:       cpuUsage,
+			MemoryMaxUsage: memoryMaxUsage,
+			MemoryUsage:    memoryUsage,
+		}
+		messaging.Meta = meta
+		messaging.Meta.CurrentReleaseID = currentReleaseID
+		messaging.Meta.DownloadFileNum = release.DownloadFileNum
+		messaging.Meta.DownloadFileSize = release.DownloadFileSize
+		messaging.Meta.ReleaseChangeStatus = status
+		err := w.bscp.SendVersionChangeMessaging(messaging)
+		if err != nil {
+			logger.Error("description failed to report the client change event: client_mode: %s, biz: %d,app: %s, err: %s",
+				sfs.Pull.String(), w.Biz, w.App, err.Error())
+		}
+		// 发送变更后的pull事件
+		err = w.bscp.SendPullStatusMessaging(messaging.Meta, startTime, status, failedReason, failedDetailReason)
+		if err != nil {
+			logger.Error("failed to send the pull status event. biz: %d,app: %s, err: %s",
+				w.Biz, w.App, err.Error())
+		}
+	}()
 
 	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(w.AppTempDir)
+	if lastMetadata != nil {
+		currentReleaseID = lastMetadata.ReleaseID
+	}
+	// 拉取前上报拉取事件
+	// 在该位置发送可以获取到currentReleaseID以及skip信息
+	for _, item := range release.FileItems {
+		totalFileSize += item.FileMeta.ContentSpec.GetByteSize()
+	}
+	meta.TotalFileNum = len(release.FileItems)
+	meta.TotalFileSize = totalFileSize
+	meta.CurrentReleaseID = currentReleaseID
+	if errPs := w.bscp.SendPullStatusMessaging(meta, startTime, sfs.Processing, failedReason, ""); errPs != nil {
+		logger.Error("failed to send the pull status event. biz: %d,app: %s, err: %s",
+			w.Biz, w.App, errPs.Error())
+	}
 	if err != nil {
+		failedReason, status, failedDetailReason = sfs.DownloadFailed, sfs.Failed, err.Error()
 		logger.Warn("get latest release metadata failed, maybe you should exec pull command first", logger.ErrAttr(err))
 	} else if lastMetadata.ReleaseID == release.ReleaseID {
+		failedReason, status = sfs.SkipFailed, sfs.Skip
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", release.ReleaseID))
 		return nil
 	}
 
 	// 1. execute pre hook
 	if release.PreHook != nil {
-		if err := util.ExecuteHook(release.PreHook, table.PreHook, w.TempDir, w.Biz, w.App); err != nil {
-			logger.Error("execute pre hook", logger.ErrAttr(err))
-			return err
+		if errEH := util.ExecuteHook(release.PreHook, table.PreHook, w.TempDir, w.Biz, w.App); errEH != nil {
+			failedReason, status, failedDetailReason = sfs.PreHookFailed, sfs.Failed, err.Error()
+			logger.Error("execute pre hook", logger.ErrAttr(errEH))
+			return errEH
 		}
 	}
 
 	filesDir := path.Join(w.AppTempDir, "files")
-	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
+	if err = util.UpdateFiles(filesDir, release.FileItems, &release.DownloadFileNum, &release.DownloadFileSize,
+		release.SemaphoreCh); err != nil {
+		failedReason, status, failedDetailReason = sfs.DownloadFailed, sfs.Failed, err.Error()
 		logger.Error("update files", logger.ErrAttr(err))
 		return err
 	}
+
 	// 4. clear old files
 	if err := clearOldFiles(filesDir, release.FileItems); err != nil {
+		failedReason, status, failedDetailReason = sfs.DownloadFailed, sfs.Failed, err.Error()
 		logger.Error("clear old files failed", logger.ErrAttr(err))
 		return err
 	}
 	// 5. execute post hook
 	if release.PostHook != nil {
 		if err := util.ExecuteHook(release.PostHook, table.PostHook, w.TempDir, w.Biz, w.App); err != nil {
+			failedReason, status, failedDetailReason = sfs.PostHookFailed, sfs.Failed, err.Error()
 			logger.Error("execute post hook", logger.ErrAttr(err))
 			return err
 		}
@@ -230,9 +311,12 @@ func (w *WatchHandler) watchCallback(release *client.Release) error {
 		EventTime: time.Now().Format(time.RFC3339),
 	}
 	if err := eventmeta.AppendMetadataToFile(w.AppTempDir, metadata); err != nil {
+		failedReason, status, failedDetailReason = sfs.DownloadFailed, sfs.Failed, err.Error()
 		logger.Error("append metadata to file failed", logger.ErrAttr(err))
 		return err
 	}
+
+	status = sfs.Success
 	// TODO: 6.2 call the callback notify api
 	logger.Info("watch release change success", slog.Any("currentReleaseID", release.ReleaseID))
 	return nil
@@ -291,6 +375,7 @@ func init() {
 	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
 		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
 	WatchCmd.Flags().IntVarP(&port, "port", "p", constant.DefaultHttpPort, "sidecar http port")
+	WatchCmd.Flags().BoolVarP(&enableReportResourceUsage, "enable-resource", "e", true, "enable report resource usage")
 
 	envs := map[string]string{}
 	for env, f := range commonEnvs {

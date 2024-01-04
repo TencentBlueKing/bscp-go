@@ -12,6 +12,8 @@
 
 package client
 
+import sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+
 // options options for bscp sdk client
 type options struct {
 	// FeedAddr BSCP feed_server address
@@ -32,6 +34,10 @@ type options struct {
 	dialTimeoutMS int64
 	// Token sdk token
 	token string
+	// Mode 客户端模式 pull 或者 watch
+	mode sfs.ClientMode
+	// EnableReportResourceUsage 启用上报资源使用率
+	enableReportResourceUsage bool
 }
 
 // Option setter for bscp sdk options
@@ -83,6 +89,22 @@ func WithUID(uid string) Option {
 func WithToken(token string) Option {
 	return func(o *options) error {
 		o.token = token
+		return nil
+	}
+}
+
+// WithClientMode 设置客户端模式
+func WithClientMode(mode sfs.ClientMode) Option {
+	return func(o *options) error {
+		o.mode = mode
+		return nil
+	}
+}
+
+// WithEnableReportResourceUsage 是否启用上报资源
+func WithEnableReportResourceUsage(enable bool) Option {
+	return func(o *options) error {
+		o.enableReportResourceUsage = enable
 		return nil
 	}
 }
