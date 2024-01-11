@@ -76,8 +76,6 @@ func New(opts ...Option) (Client, error) {
 	}
 	// prepare pairs
 	pairs := make(map[string]string)
-	// add user information
-	pairs[constant.SideUserKey] = "TODO-USER"
 
 	// 添加头部认证信息
 	pairs[authorizationHeader] = bearerKey + " " + clientOpt.token

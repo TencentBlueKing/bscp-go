@@ -61,8 +61,7 @@ type watcher struct {
 
 func (w *watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 	pairs := make(map[string]string)
-	// add user information
-	pairs[constant.SideUserKey] = "TODO-USER"
+
 	// add finger printer
 	pairs[constant.SidecarMetaKey] = w.metaHeaderValue
 
