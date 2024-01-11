@@ -10,7 +10,7 @@ require (
 
 require (
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5 // indirect
-	github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231226133937-7be33dc8c268 // indirect
+	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20231226133937-7be33dc8c268 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
