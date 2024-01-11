@@ -20,10 +20,10 @@ else ifeq ($(shell echo ${ENV_BK_BSCP_VERSION} | egrep "^v1\.[0-9]+\.[0-9]+"),)
 	VERSION=v1.0.0-devops-${ENV_BK_BSCP_VERSION}
 endif
 
-export LDVersionFLAG = "-X github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version.VERSION=${VERSION} \
-    	-X github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
-    	-X github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version.GITHASH=${GITHASH} \
-    	-X github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version.DEBUG=${DEBUG}"
+export LDVersionFLAG = "-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.VERSION=${VERSION} \
+    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
+    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.GITHASH=${GITHASH} \
+    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.DEBUG=${DEBUG}"
 
 .PHONY: lint
 lint:
