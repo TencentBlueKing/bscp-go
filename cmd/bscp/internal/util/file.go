@@ -25,7 +25,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/TencentBlueKing/bscp-go/client"
-	"github.com/TencentBlueKing/bscp-go/internal/downloader"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
@@ -55,8 +54,7 @@ func UpdateFiles(filesDir string, files []*client.ConfigItemFile) error {
 				return fmt.Errorf("check file exists failed, err: %s", err.Error())
 			}
 			if !exists {
-				err := downloader.GetDownloader().Download(file.FileMeta.PbFileMeta(), file.FileMeta.RepositoryPath,
-					file.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, filePath)
+				err := file.SaveToFile(filePath)
 				if err != nil {
 					return fmt.Errorf("download file failed, err: %s", err.Error())
 				}

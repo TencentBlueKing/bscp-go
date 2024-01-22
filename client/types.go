@@ -22,7 +22,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
-	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -64,20 +63,16 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 }
 
 // SaveToFile save file content and write to local file
-func (c *ConfigItemFile) SaveToFile(src string) error {
+func (c *ConfigItemFile) SaveToFile(dst string) error {
 	// 1. check if cache hit, copy from cache
-	if cache.Enable && cache.GetCache().CopyToFile(c.FileMeta, src) {
-		logger.Info("copy file from cache success", slog.String("src", src))
+	if cache.Enable && cache.GetCache().CopyToFile(c.FileMeta, dst) {
+		logger.Info("copy file from cache success", slog.String("dst", dst))
 	} else {
 		// 2. if cache not hit, download file from remote
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
-			c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, src); err != nil {
+			c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, dst); err != nil {
 			return fmt.Errorf("download file failed, err %s", err.Error())
 		}
-	}
-	// 3. set file permission
-	if err := util.SetFilePermission(src, c.Permission); err != nil {
-		logger.Warn("set file permission failed", slog.String("file", src), logger.ErrAttr(err))
 	}
 
 	return nil

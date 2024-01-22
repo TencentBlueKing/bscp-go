@@ -15,7 +15,6 @@ package config
 
 import (
 	"fmt"
-
 	// for unmarshal yaml config file
 	_ "gopkg.in/yaml.v2"
 
@@ -44,6 +43,8 @@ type ClientConfig struct {
 	LabelsFile string `json:"labels_file" mapstructure:"labels_file"`
 	// Port sidecar http server port
 	Port int `json:"port" mapstructure:"port"`
+	// FileCache file cache config
+	FileCache *FileCacheConfig `json:"file_cache" mapstructure:"file_cache"`
 }
 
 // GetFeedAddrs 支持单个 FeedAddr
@@ -103,6 +104,12 @@ func (c *ClientConfig) Validate() error {
 	if c.Port == 0 {
 		c.Port = constant.DefaultHttpPort
 	}
+	if c.FileCache == nil {
+		c.FileCache = new(FileCacheConfig)
+	}
+	if err := c.FileCache.Validate(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -120,6 +127,41 @@ type AppConfig struct {
 func (c *AppConfig) Validate() error {
 	if c.Name == "" {
 		return fmt.Errorf("app is empty")
+	}
+	return nil
+}
+
+// FileCacheConfig config for file cache
+type FileCacheConfig struct {
+	// Enabled is whether enable file cache
+	Enabled *bool `json:"enabled" mapstructure:"enabled"`
+	// CacheDir is file cache dir
+	CacheDir string `json:"cache_dir" mapstructure:"cache_dir"`
+	// CleanupIntervalSeconds is interval seconds of cleanup
+	CleanupIntervalSeconds int64 `json:"cleanup_interval_seconds" mapstructure:"cleanup_interval_seconds"`
+	// ThresholdBytes is threshold bytes of cleanup
+	ThresholdBytes int64 `json:"threshold_bytes" mapstructure:"threshold_bytes"`
+	// RetentionRate is retention rate of cleanup
+	RetentionRate float64 `json:"retention_rate" mapstructure:"retention_rate"`
+}
+
+// Validate validate the file cache config
+func (c *FileCacheConfig) Validate() error {
+	if c.Enabled == nil {
+		c.Enabled = new(bool)
+		*c.Enabled = constant.DefaultFileCacheEnabled
+	}
+	if c.CacheDir == "" {
+		c.CacheDir = constant.DefaultFileCacheDir
+	}
+	if c.CleanupIntervalSeconds <= 0 {
+		c.CleanupIntervalSeconds = constant.DefaultCleanupIntervalSeconds
+	}
+	if c.ThresholdBytes <= 0 {
+		c.ThresholdBytes = constant.DefaultCacheThresholdBytes
+	}
+	if c.RetentionRate <= 0 || c.RetentionRate > 1 {
+		c.RetentionRate = constant.DefaultCacheRetentionRate
 	}
 	return nil
 }

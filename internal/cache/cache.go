@@ -17,8 +17,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
+	"math"
 	"os"
 	"path"
+	"path/filepath"
+	"sort"
+	"time"
 
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
@@ -28,7 +33,6 @@ import (
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
-var defaultCachePath = "/tmp/bk-bscp"
 var instance *Cache
 
 // Enable define whether to enable local cache
@@ -41,10 +45,6 @@ type Cache struct {
 
 // Init return a bscp sdk cache instance
 func Init(enable bool, path string) {
-	// TODO: confirm should we support overwrite the cache instance
-	if path == "" {
-		path = defaultCachePath
-	}
 	Enable = enable
 	instance = &Cache{
 		path: path,
@@ -135,6 +135,7 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 }
 
 // CopyToFile copy the config content to the specified file.
+// get from cache first, if not exist, then get from remote repo and add it to cache
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
@@ -142,22 +143,32 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 			slog.String("item", ci.ContentSpec.Signature), logger.ErrAttr(err))
 		return false
 	}
-	if !exists {
-		return false
-	}
+
 	cacheFilePath := path.Join(c.path, ci.ContentSpec.Signature)
-	src, err := os.Open(cacheFilePath)
+	if !exists {
+		// get from remote repo and add it to cache
+		if err = downloader.GetDownloader().Download(ci.PbFileMeta(), ci.RepositoryPath, ci.ContentSpec.ByteSize,
+			downloader.DownloadToFile, nil, cacheFilePath); err != nil {
+			logger.Error("download file failed", logger.ErrAttr(err))
+			return false
+		}
+	}
+
+	var src, dst *os.File
+	src, err = os.Open(cacheFilePath)
 	if err != nil {
 		logger.Error("open config item cache file failed", slog.String("file", cacheFilePath), logger.ErrAttr(err))
 		return false
 	}
 	defer src.Close()
-	dst, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+
+	dst, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		logger.Error("open destination file failed", slog.String("file", filePath), logger.ErrAttr(err))
 		return false
 	}
 	defer dst.Close()
+
 	if _, err := io.Copy(dst, src); err != nil {
 		logger.Error("copy config item cache file to destination file failed",
 			slog.String("cache_file", cacheFilePath), slog.String("file", filePath), logger.ErrAttr(err))
@@ -166,4 +177,78 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	return true
 }
 
-// TODO: add cache clean logic
+// AutoCleanupFileCache auto cleanup file cache
+func AutoCleanupFileCache(cacheDir string, cleanupIntervalSeconds, thresholdBytes int64, retentionRate float64) {
+	logger.Info("start auto cleanup file cache ", slog.String("cacheDir", cacheDir),
+		slog.Int64("cleanupIntervalSeconds", cleanupIntervalSeconds),
+		slog.Int64("thresholdBytes", thresholdBytes), slog.Float64("thresholdBytes", retentionRate))
+	for {
+		currentSize, err := calculateDirSize(cacheDir)
+		if err != nil {
+			logger.Info("calculate current cache directory size failed", logger.ErrAttr(err))
+			time.Sleep(time.Duration(cleanupIntervalSeconds) * time.Second)
+		} else {
+			logger.Info("calculate current cache directory size", slog.Int64("currentSize", currentSize))
+		}
+		if currentSize > thresholdBytes {
+			logger.Info("cleaning up directory...")
+			cleanupOldestFiles(cacheDir, currentSize-int64(math.Floor(float64(thresholdBytes)*retentionRate)))
+		}
+		time.Sleep(time.Duration(cleanupIntervalSeconds) * time.Second)
+	}
+}
+
+func calculateDirSize(dir string) (int64, error) {
+	var size int64
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		size += info.Size()
+		return nil
+	})
+	return size, err
+}
+
+func cleanupOldestFiles(dir string, spaceToFree int64) {
+	files, err := listFilesByModTime(dir)
+	if err != nil {
+		logger.Error("list files by mod time failed", logger.ErrAttr(err))
+	}
+
+	for _, file := range files {
+		filePath := filepath.Join(dir, file.Name())
+		err = os.Remove(filePath)
+		if err != nil {
+			logger.Error("deleting file failed", slog.String("file", filePath), logger.ErrAttr(err))
+		} else {
+			logger.Info("deleted file", slog.String("file", filePath))
+			spaceToFree -= file.Size()
+		}
+
+		if spaceToFree <= 0 {
+			break
+		}
+	}
+}
+
+func listFilesByModTime(dir string) ([]os.FileInfo, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	files := make([]fs.FileInfo, 0, len(entries))
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, info)
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].ModTime().Before(files[j].ModTime())
+	})
+
+	return files, nil
+}

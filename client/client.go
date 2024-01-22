@@ -125,8 +125,10 @@ func New(opts ...Option) (Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init downloader failed, err: %s", err.Error())
 	}
-	if clientOpt.useFileCache {
-		cache.Init(true, clientOpt.fileCacheDir)
+	if clientOpt.fileCache.Enabled {
+		cache.Init(true, clientOpt.fileCache.CacheDir)
+		go cache.AutoCleanupFileCache(clientOpt.fileCache.CacheDir, clientOpt.fileCache.CleanupIntervalSeconds,
+			clientOpt.fileCache.ThresholdBytes, clientOpt.fileCache.RetentionRate)
 	}
 	watcher, err := newWatcher(u, clientOpt)
 	if err != nil {

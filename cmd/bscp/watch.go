@@ -82,6 +82,13 @@ func Watch(cmd *cobra.Command, args []string) {
 		client.WithToken(conf.Token),
 		client.WithLabels(confLabels),
 		client.WithUID(conf.UID),
+		client.WithFileCache(client.FileCache{
+			Enabled:                *conf.FileCache.Enabled,
+			CacheDir:               conf.FileCache.CacheDir,
+			CleanupIntervalSeconds: conf.FileCache.CleanupIntervalSeconds,
+			ThresholdBytes:         conf.FileCache.ThresholdBytes,
+			RetentionRate:          conf.FileCache.RetentionRate,
+		}),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -291,6 +298,16 @@ func init() {
 	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
 		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
 	WatchCmd.Flags().IntVarP(&port, "port", "p", constant.DefaultHttpPort, "sidecar http port")
+	WatchCmd.Flags().BoolVarP(fileCache.Enabled, "file-cache-enabled", "",
+		constant.DefaultFileCacheEnabled, "enable file cache or not")
+	WatchCmd.Flags().StringVarP(&fileCache.CacheDir, "file-cache-dir", "",
+		constant.DefaultFileCacheDir, "bscp file cache dir")
+	WatchCmd.Flags().Int64VarP(&fileCache.CleanupIntervalSeconds, "cleanup-interval-seconds", "",
+		constant.DefaultCleanupIntervalSeconds, "bscp file cache cleanup interval seconds")
+	WatchCmd.Flags().Int64VarP(&fileCache.ThresholdBytes, "cache-threshold-bytes", "",
+		constant.DefaultCacheThresholdBytes, "bscp file cache threshold bytes")
+	WatchCmd.Flags().Float64VarP(&fileCache.RetentionRate, "cache-retention-rate", "",
+		constant.DefaultCacheRetentionRate, "bscp file cache retention rate")
 
 	envs := map[string]string{}
 	for env, f := range commonEnvs {
