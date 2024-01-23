@@ -139,6 +139,33 @@ Json 示例：labels.json
 }
 ```
 
+### 其他可选配置
+#### pull/watch文件缓存配置相关
+- 命令行配置
+```bash
+--file-cache-enabled             enable file cache or not (default true)
+--file-cache-dir string          bscp file cache dir (default "/tmp/bscp")
+--cleanup-interval-seconds int   bscp file cache cleanup interval seconds (default 3600)
+--cache-threshold-bytes int      bscp file cache threshold bytes (default 524288000)
+--cache-retention-rate float     bscp file cache retention rate (default 0.9)
+```
+- 配置文件中配置，yaml示例
+```yaml
+# 文件缓存配置
+file_cache:
+  # 是否开启文件缓存，不配置时默认开启
+  enabled: true
+  # 缓存目录
+  cache_dir: /tmp/bscp1
+  # 缓存清理周期，单位为秒
+  cleanup_interval_seconds: 3600
+  # 缓存清理阈值，单位为字节，缓存目录达到该阈值时开始清理，按文件更新时间从最老的文件开始清理，直至达到设置的缓存保留比例为止
+  threshold_bytes: 524288000
+  # 缓存保留比例，范围为(0,1]，比如0.9代表每次清理后，保留总缓存量的90%，10%用于缓存新的文件
+  retention_rate: 0.9
+```
+
+
 ## initContainer/sidecar 执行流程
 
 1. initContainer 启动 / sidecar 监听到服务端版本发布事件
