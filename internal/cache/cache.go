@@ -182,14 +182,16 @@ func AutoCleanupFileCache(cacheDir string, cleanupIntervalSeconds, thresholdByte
 	logger.Info("start auto cleanup file cache ", slog.String("cacheDir", cacheDir),
 		slog.Int64("cleanupIntervalSeconds", cleanupIntervalSeconds),
 		slog.Int64("thresholdBytes", thresholdBytes), slog.Float64("thresholdBytes", retentionRate))
+
 	for {
 		currentSize, err := calculateDirSize(cacheDir)
 		if err != nil {
-			logger.Info("calculate current cache directory size failed", logger.ErrAttr(err))
+			logger.Error("calculate current cache directory size failed", logger.ErrAttr(err))
 			time.Sleep(time.Duration(cleanupIntervalSeconds) * time.Second)
-		} else {
-			logger.Info("calculate current cache directory size", slog.Int64("currentSize", currentSize))
+			continue
 		}
+		logger.Info("calculate current cache directory size", slog.Int64("currentSize", currentSize))
+
 		if currentSize > thresholdBytes {
 			logger.Info("cleaning up directory...")
 			cleanupOldestFiles(cacheDir, currentSize-int64(math.Floor(float64(thresholdBytes)*retentionRate)))
