@@ -4,6 +4,7 @@ BUILDTIME = $(shell TZ=Asia/Shanghai date +%Y-%m-%dT%T%z)
 GITHASH   = $(shell git rev-parse HEAD)
 VERSION   = $(shell echo ${ENV_BK_BSCP_VERSION})
 DEBUG     = $(shell echo ${ENV_BK_BSCP_ENABLE_DEBUG})
+CLIENTTYPE     = $(shell echo ${ENV_BK_BSCP_CLIENT_TYPE})
 PREFIX   ?= $(shell pwd)
 
 GOBUILD=CGO_ENABLED=0 go build -trimpath
@@ -20,10 +21,11 @@ else ifeq ($(shell echo ${ENV_BK_BSCP_VERSION} | egrep "^v1\.[0-9]+\.[0-9]+"),)
 	VERSION=v1.0.0-devops-${ENV_BK_BSCP_VERSION}
 endif
 
-export LDVersionFLAG = "-X github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version.VERSION=${VERSION} \
-    	-X github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
-    	-X github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version.GITHASH=${GITHASH} \
-    	-X github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/version.DEBUG=${DEBUG}"
+export LDVersionFLAG = "-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.VERSION=${VERSION} \
+    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
+    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.GITHASH=${GITHASH} \
+    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.DEBUG=${DEBUG} \
+    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=${CLIENTTYPE}"
 
 .PHONY: lint
 lint:

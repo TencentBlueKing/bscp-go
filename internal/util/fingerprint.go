@@ -16,7 +16,7 @@ package util
 import (
 	"fmt"
 
-	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/denisbrodbeck/machineid"
 )
 

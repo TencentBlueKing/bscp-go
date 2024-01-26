@@ -10,24 +10,15 @@
  * limitations under the License.
  */
 
-package main
-
-import (
-	bscpVersion "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
-	"github.com/spf13/cobra"
-)
+package host
 
 var (
-	// VersionCmd command to show version info
-	VersionCmd = &cobra.Command{
-		Use:   "version",
-		Short: "show version of the bscp-go cli.",
-		Long:  `show version of the bscp-go cli. `,
-		Run:   Version,
-	}
+	// 当前cpu使用率
+	cpuUsage float64
+	// 最大cpu使用率
+	cpuMaxUsage float64
+	// 当前内存使用量
+	memoryUsage uint64
+	// 最大内存使用量
+	memoryMaxUsage uint64
 )
-
-// Version is the version of the bscp-go cli.
-func Version(cmd *cobra.Command, args []string) {
-	bscpVersion.ShowVersion("Client", bscpVersion.JSON)
-}

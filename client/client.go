@@ -17,17 +17,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/criteria/constant"
-	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
-	pbfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
-	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/criteria/constant"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
+	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util/host"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -49,20 +52,31 @@ type Client interface {
 	StopWatch()
 	// ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
 	ResetLabels(labels map[string]string)
+	// SendVersionChangeMessaging Send a version change message
+	SendVersionChangeMessaging(messaging VersionChangeMessaging) error
+	// SendPullStatusMessaging Send a pull satatus message
+	SendPullStatusMessaging(meta sfs.SideAppMeta, startTime time.Time, releaseChangeStatus sfs.Status,
+		failedReason sfs.FailedReason, failedDetailReason string) error
+	// NewHeartbeat init pull hearbeat
+	NewHeartbeat()
+	// GetApplication get sideAppMeta struct
+	GetApplication() *sfs.SideAppMeta
 }
 
 // Client is the bscp client
 type client struct {
-	pairs    map[string]string
-	opts     options
-	watcher  *watcher
-	upstream upstream.Upstream
+	pairs     map[string]string
+	opts      options
+	watcher   *watcher
+	upstream  upstream.Upstream
+	heartbeat *Heartbeat
 }
 
 // New return a bscp client instance
 func New(opts ...Option) (Client, error) {
 	clientOpt := &options{}
-	fp, err := util.GenerateFingerPrint()
+	fp, err := host.GenerateFingerPrint()
+	// fp, err := util.GenerateFingerPrint()
 	if err != nil {
 		return nil, fmt.Errorf("generate instance fingerprint failed, err: %s", err.Error())
 	}
@@ -76,8 +90,6 @@ func New(opts ...Option) (Client, error) {
 	}
 	// prepare pairs
 	pairs := make(map[string]string)
-	// add user information
-	pairs[constant.SideUserKey] = "TODO-USER"
 
 	// 添加头部认证信息
 	pairs[authorizationHeader] = bearerKey + " " + clientOpt.token
@@ -314,4 +326,97 @@ func (c *client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint
 	ctx, cancel := context.WithCancel(vas.Ctx)
 	vas.Ctx = ctx
 	return vas, cancel
+}
+
+// SendVersionChangeMessaging 发送客户端版本变更信息
+func (c *client) SendVersionChangeMessaging(messaging VersionChangeMessaging) error {
+	vas, _ := c.buildVas()
+
+	pullPayload := sfs.VersionChangePayload{
+		BasicData: sfs.BasicData{
+			FingerPrint:   c.opts.fingerprint,
+			BizID:         c.opts.bizID,
+			Labels:        c.opts.labels,
+			ClientMode:    c.opts.mode,
+			HeartbeatTime: time.Now(),
+			OnlineStatus:  sfs.Online,
+			ClientVersion: sfs.CurrentAPIVersion.Format(),
+			IP:            host.GetClientIP(),
+			Annotations:   messaging.Annotations,
+			ClientType:    sfs.ClientType(version.CLIENTTYPE),
+		},
+		ResourceUsage:      messaging.Resource,
+		Application:        messaging.Meta,
+		TotalSeconds:       messaging.EndTime.Sub(messaging.StartTime).Seconds(),
+		TotalFileNum:       messaging.TotalFileNum,
+		TotalFileSize:      messaging.TotalFileSize,
+		StartTime:          messaging.StartTime,
+		EndTime:            messaging.EndTime,
+		FailedReason:       messaging.Reason,
+		FailedDetailReason: messaging.FailedDetailReason,
+	}
+
+	encode, err := pullPayload.Encode()
+	if err != nil {
+		return err
+	}
+
+	_, err = c.upstream.Messaging(vas, pullPayload.MessagingType(), encode)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *client) NewHeartbeat() {
+	vas, _ := c.buildVas()
+	cursorID := GenerateCursorID(c.opts.bizID)
+	h := NewHeartbeat(vas, c.upstream, c.opts, cursorID)
+	c.heartbeat = h
+	h.loopHeartbeat()
+}
+
+// GenerateCursorID 生成cursorID
+func GenerateCursorID(bizID uint32) string {
+	timestamp := time.Now().UnixNano()
+	return fmt.Sprintf("%d%d", bizID, timestamp)
+}
+
+func (c *client) GetApplication() *sfs.SideAppMeta {
+	return c.heartbeat.GetApplication()
+}
+
+// SendPullStatusMessaging 发送拉取状态信息
+func (c *client) SendPullStatusMessaging(meta sfs.SideAppMeta, startTime time.Time, releaseChangeStatus sfs.Status,
+	failedReason sfs.FailedReason, failedDetailReason string) error {
+	vas, _ := c.buildVas()
+	meta.ReleaseChangeStatus = releaseChangeStatus
+	pullStatusPayload := sfs.PullStatusPayload{
+		BasicData: sfs.BasicData{
+			FingerPrint:   c.opts.fingerprint,
+			BizID:         c.opts.bizID,
+			Labels:        c.opts.labels,
+			ClientMode:    c.opts.mode,
+			HeartbeatTime: time.Now(),
+			OnlineStatus:  sfs.Online,
+			ClientVersion: sfs.CurrentAPIVersion.Format(),
+			IP:            host.GetClientIP(),
+			Annotations:   nil,
+			ClientType:    sfs.ClientType(version.CLIENTTYPE),
+		},
+		Application:        meta,
+		FailedDetailReason: failedDetailReason,
+		FailedReason:       failedReason,
+		StartTime:          startTime,
+	}
+	payload, err := pullStatusPayload.Encode()
+
+	if err != nil {
+		return err
+	}
+	_, err = c.upstream.Messaging(vas, pullStatusPayload.MessagingType(), payload)
+	if err != nil {
+		return err
+	}
+	return nil
 }

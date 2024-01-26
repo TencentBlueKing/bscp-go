@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sync/atomic"
 
-	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
-	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 
@@ -36,7 +37,9 @@ const (
 )
 
 // UpdateFiles updates the files to the target directory.
-func UpdateFiles(filesDir string, files []*client.ConfigItemFile) error {
+func UpdateFiles(filesDir string, files []*client.ConfigItemFile, successDownloads *int32, successFileSize *uint64,
+	semaphoreCh chan struct{}) error {
+	// var successDownloads int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(UpdateFileConcurrentLimit)
 	for _, f := range files {
@@ -67,6 +70,9 @@ func UpdateFiles(filesDir string, files []*client.ConfigItemFile) error {
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
 				logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
 			}
+			atomic.AddInt32(successDownloads, 1)
+			atomic.AddUint64(successFileSize, file.FileMeta.ContentSpec.ByteSize)
+			semaphoreCh <- struct{}{}
 			return nil
 		})
 	}

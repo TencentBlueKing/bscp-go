@@ -20,18 +20,20 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+	"sync/atomic"
 	"time"
 
-	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/criteria/constant"
-	"github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
-	pbfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
-	sfs "github.com/TencentBlueking/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/criteria/constant"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
+	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util/host"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
@@ -61,8 +63,6 @@ type watcher struct {
 
 func (w *watcher) buildVas() (*kit.Vas, context.CancelFunc) {
 	pairs := make(map[string]string)
-	// add user information
-	pairs[constant.SideUserKey] = "TODO-USER"
 	// add finger printer
 	pairs[constant.SidecarMetaKey] = w.metaHeaderValue
 
@@ -122,6 +122,19 @@ func (w *watcher) StartWatch() error {
 		w.cancel()
 		return fmt.Errorf("watch upstream server with payload failed, err: %s", err.Error())
 	}
+
+	// Determine whether to collect resources
+	if w.opts.enableReportResourceUsage {
+		go host.MonitorCPUAndMemUsage()
+	}
+
+	// 发送客户端连接信息
+	go func() {
+		if err = w.sendClientMessaging(apps, nil); err != nil {
+			logger.Error("failed to send the client connection event. biz: %d, err: %s", w.opts.bizID, err.Error())
+		}
+	}()
+
 	go w.waitForReconnectSignal()
 
 	w.vas.Wg.Add(1)
@@ -243,7 +256,7 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 }
 
 // OnReleaseChange handle all instances release change event
-func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
+func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 	// parse payload according the api version.
 	pl := new(sfs.ReleaseChangePayload)
 	if err := json.Unmarshal(event.Payload, pl); err != nil {
@@ -251,14 +264,26 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 			logger.ErrAttr(err), slog.String("rid", event.Rid))
 		return
 	}
+
+	// 如果事件ID为0根据 bizID+当前时间生成 事件ID
+	var cursorID string
+	if pl.CursorID == 0 {
+		cursorID = GenerateCursorID(w.opts.bizID)
+	} else {
+		cursorID = strconv.FormatUint(uint64(pl.CursorID), 10)
+	}
+
 	// TODO: encode subscriber options(App, UID, Labels) to a unique string key
 	for _, subscriber := range w.subscribers {
 		if subscriber.App == pl.Instance.App &&
 			subscriber.UID == pl.Instance.Uid &&
 			reflect.DeepEqual(subscriber.Labels, pl.Instance.Labels) &&
 			subscriber.CurrentReleaseID != pl.ReleaseMeta.ReleaseID {
-
+			// Target version ID
+			subscriber.TargetReleaseID = subscriber.CurrentReleaseID
 			subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
+			subscriber.CursorID = cursorID
+			subscriber.ReleaseChangeStatus = sfs.Processing
 
 			// TODO: check if the subscriber watched config items are changed
 			// if subscriber.CheckConfigItemsChanged(pl.ReleaseMeta.CIMetas) {
@@ -275,20 +300,43 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 			}
 
 			release := &Release{
-				ReleaseID: pl.ReleaseMeta.ReleaseID,
-				FileItems: configItemFiles,
-				KvItems:   pl.ReleaseMeta.KvMetas,
-				PreHook:   pl.ReleaseMeta.PreHook,
-				PostHook:  pl.ReleaseMeta.PostHook,
+				ReleaseID:   pl.ReleaseMeta.ReleaseID,
+				FileItems:   configItemFiles,
+				KvItems:     pl.ReleaseMeta.KvMetas,
+				PreHook:     pl.ReleaseMeta.PreHook,
+				PostHook:    pl.ReleaseMeta.PostHook,
+				CursorID:    cursorID,
+				SemaphoreCh: make(chan struct{}),
 			}
 
 			// TODO: need to retry if callback with error ?
 			start := time.Now()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go func(ctx context.Context) {
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-release.SemaphoreCh:
+						successDownloads := atomic.LoadInt32(&release.DownloadFileNum)
+						successFileSize := atomic.LoadUint64(&release.DownloadFileSize)
+						subscriber.DownloadFileNum = successDownloads
+						subscriber.DownloadFileSize = successFileSize
+					}
+				}
+			}(ctx)
+
 			if err := subscriber.Callback(release); err != nil {
+				cancel()
+				subscriber.ReleaseChangeStatus = sfs.Failed
 				logger.Error("execute watch callback failed", slog.String("app", subscriber.App), logger.ErrAttr(err))
 				subscriber.reportReleaseChangeCallbackMetrics("failed", start)
+			} else {
+				cancel()
+				subscriber.ReleaseChangeStatus = sfs.Success
+				subscriber.reportReleaseChangeCallbackMetrics("success", start)
 			}
-			subscriber.reportReleaseChangeCallbackMetrics("success", start)
 		}
 	}
 }
@@ -328,12 +376,20 @@ type subscriber struct {
 	Callback Callback
 	// CurrentReleaseID is the current release id of the subscriber
 	CurrentReleaseID uint32
+	// TargetReleaseID is sidecar's target release id
+	TargetReleaseID uint32
 	// Labels is the labels of the subscriber
 	Labels map[string]string
 	// UID is the unique id of the subscriber
 	UID string
 	// currentConfigItems store the current config items of the subscriber, map[configItemName]commitID
 	currentConfigItems map[string]uint32
+	// CursorID 事件ID
+	CursorID string
+	// ReleaseChangeStatus 变更状态
+	ReleaseChangeStatus sfs.Status
+	DownloadFileNum     int32
+	DownloadFileSize    uint64
 }
 
 // CheckConfigItemsChanged check if the subscriber watched config items are changed
@@ -378,4 +434,32 @@ func (s *subscriber) reportReleaseChangeCallbackMetrics(status string, start tim
 	metrics.ReleaseChangeCallbackCounter.WithLabelValues(s.App, status, releaseID).Inc()
 	seconds := time.Since(start).Seconds()
 	metrics.ReleaseChangeCallbackHandingSecond.WithLabelValues(s.App, status, releaseID).Observe(seconds)
+}
+
+// sendClientMessaging 发送客户端连接信息
+func (w *watcher) sendClientMessaging(meta []sfs.SideAppMeta, annotations any) error {
+	clientInfoPayload := sfs.ClientInfoPayload{
+		BasicData: sfs.BasicData{
+			FingerPrint:   w.opts.fingerprint,
+			BizID:         w.opts.bizID,
+			Labels:        w.opts.labels,
+			ClientMode:    w.opts.mode,
+			HeartbeatTime: time.Now(),
+			OnlineStatus:  sfs.Online,
+			ClientVersion: sfs.CurrentAPIVersion.Format(),
+			IP:            host.GetClientIP(),
+			Annotations:   annotations,
+		},
+		Applications: meta,
+	}
+
+	payload, err := clientInfoPayload.Encode()
+	if err != nil {
+		return err
+	}
+	_, err = w.upstream.Messaging(w.vas, clientInfoPayload.MessagingType(), payload)
+	if err != nil {
+		return err
+	}
+	return nil
 }

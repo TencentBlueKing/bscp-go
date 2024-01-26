@@ -47,8 +47,9 @@ var (
 	validArgs      []string
 	conf           = new(config.ClientConfig)
 	// flag values
-	configPath string
-	port       int
+	configPath                string
+	port                      int
+	enableReportResourceUsage bool
 )
 
 var (
@@ -208,6 +209,7 @@ func initFromCmdArgs() error {
 	conf.TempDir = tempDir
 	conf.LabelsFile = labelsFilePath
 	conf.Port = port
+	conf.EnableReportResourceUsage = enableReportResourceUsage
 
 	apps := []*config.AppConfig{}
 	for _, app := range strings.Split(appName, ",") {
