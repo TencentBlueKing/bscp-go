@@ -28,9 +28,10 @@ var (
 )
 
 const (
-	outputFormatTable = ""
-	outputFormatJson  = "json"
-	outputFormatValue = "value"
+	outputFormatTable     = ""
+	outputFormatJson      = "json"
+	outputFormatValue     = "value"
+	outputFormatValueJson = "value_json"
 )
 
 var (
@@ -90,7 +91,7 @@ func init() {
 	// kv 参数
 	getKvCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	getKvCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	getKvCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|value")
+	getKvCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|value|value_json")
 }
 
 // runGetApp executes the get app command.
@@ -187,6 +188,23 @@ func runGetKvValue(bscp client.Client, app, key string) error {
 	return err
 }
 
+func runGetKvValues(bscp client.Client, app string, keys []string) error {
+	kvs, err := bscp.GetKvValues(app, keys, client.WithAppLabels(labels))
+	if err != nil {
+		return err
+	}
+
+	output := make(map[string]any, len(kvs))
+	for _, kv := range kvs {
+		output[kv.Key] = map[string]string{
+			"kv_type": kv.KvType,
+			"value":   kv.Value,
+		}
+	}
+
+	return jsonOutput(output)
+}
+
 // runGetKv executes the get kv command.
 func runGetKv(args []string) error {
 	baseConf, err := initBaseConf()
@@ -208,7 +226,8 @@ func runGetKv(args []string) error {
 		return err
 	}
 
-	if outputFormat == outputFormatValue {
+	switch outputFormat {
+	case outputFormatValue:
 		if len(args) == 0 {
 			return fmt.Errorf("res must not be empty")
 		}
@@ -216,7 +235,9 @@ func runGetKv(args []string) error {
 			return fmt.Errorf("multiple res are not supported")
 		}
 		return runGetKvValue(bscp, appName, args[0])
+	case outputFormatValueJson:
+		return runGetKvValues(bscp, appName, args)
+	default:
+		return runGetListKv(bscp, appName, args)
 	}
-
-	return runGetListKv(bscp, appName, args)
 }
