@@ -27,6 +27,7 @@ import (
 
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
+	"github.com/dustin/go-humanize"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
@@ -44,11 +45,14 @@ type Cache struct {
 }
 
 // Init return a bscp sdk cache instance
-func Init(enable bool, path string) {
+func Init(enable bool, path string) error {
 	Enable = enable
 	instance = &Cache{
 		path: path,
 	}
+
+	// prepare cache dir
+	return os.MkdirAll(path, os.ModePerm)
 }
 
 // GetCache return the cache instance
@@ -139,7 +143,7 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
-		logger.Warn("check config item cache exists failed",
+		logger.Error("check config item cache exists failed",
 			slog.String("item", ci.ContentSpec.Signature), logger.ErrAttr(err))
 		return false
 	}
@@ -181,7 +185,8 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 func AutoCleanupFileCache(cacheDir string, cleanupIntervalSeconds, thresholdBytes int64, retentionRate float64) {
 	logger.Info("start auto cleanup file cache ", slog.String("cacheDir", cacheDir),
 		slog.Int64("cleanupIntervalSeconds", cleanupIntervalSeconds),
-		slog.Int64("thresholdBytes", thresholdBytes), slog.Float64("thresholdBytes", retentionRate))
+		slog.String("thresholdBytes", humanize.IBytes(uint64(thresholdBytes))), slog.String("retentionRate",
+			humanize.Ftoa(retentionRate)))
 
 	for {
 		currentSize, err := calculateDirSize(cacheDir)

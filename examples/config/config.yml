@@ -28,7 +28,7 @@ file_cache:
   # 是否开启文件缓存，不配置时默认开启
   enabled: true
   # 缓存目录
-  cache_dir: /tmp/bscp1
+  cache_dir: /data/bscp/cache
   # 缓存清理周期，单位为秒
   cleanup_interval_seconds: 3600
   # 缓存清理阈值，单位为字节，缓存目录达到该阈值时开始清理，按文件更新时间从最老的文件开始清理，直至达到设置的缓存保留比例为止

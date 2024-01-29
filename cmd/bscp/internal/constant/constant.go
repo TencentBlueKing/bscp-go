@@ -22,7 +22,7 @@ const (
 	DefaultFileCacheEnabled = true
 	// DefaultFileCacheDir is the bscp cli default file cache dir.
 	// !important: promise of compatibility
-	DefaultFileCacheDir = "/tmp/bscp"
+	DefaultFileCacheDir = "/data/bscp/cache"
 	// DefaultCleanupIntervalSeconds is the bscp cli default file cache cleanup interval.
 	// !important: promise of compatibility
 	DefaultCleanupIntervalSeconds = 3600
