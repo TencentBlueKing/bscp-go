@@ -48,7 +48,6 @@ type Upstream interface {
 	PullAppFileMeta(vas *kit.Vas, req *pbfs.PullAppFileMetaReq) (*pbfs.PullAppFileMetaResp, error)
 	PullKvMeta(vas *kit.Vas, req *pbfs.PullKvMetaReq) (*pbfs.PullKvMetaResp, error)
 	GetKvValue(vas *kit.Vas, req *pbfs.GetKvValueReq) (*pbfs.GetKvValueResp, error)
-	GetKvValues(vas *kit.Vas, req *pbfs.GetKvValuesReq) (*pbfs.GetKvValuesResp, error)
 	GetDownloadURL(vas *kit.Vas, req *pbfs.GetDownloadURLReq) (*pbfs.GetDownloadURLResp, error)
 	Version() *pbbase.Versioning
 	ListApps(vas *kit.Vas, req *pbfs.ListAppsReq) (*pbfs.ListAppsResp, error)

@@ -41,8 +41,6 @@ type Client interface {
 	PullKvs(app string, match []string, opts ...AppOption) (*Release, error)
 	// Get gets Key Value from remote
 	Get(app string, key string, opts ...AppOption) (string, error)
-	// GetKvValues gets kv values from remote, get all kv values if keys are empty
-	GetKvValues(app string, keys []string, opts ...AppOption) ([]*pbfs.KV, error)
 	// AddWatcher add a watcher to client
 	AddWatcher(callback Callback, app string, opts ...AppOption) error
 	// StartWatch start watch
@@ -292,35 +290,6 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	}
 
 	return resp.Value, nil
-}
-
-// GetKvValues gets kv values from remote, get all kv values if keys are empty
-func (c *client) GetKvValues(app string, keys []string, opts ...AppOption) ([]*pbfs.KV, error) {
-	option := &AppOptions{}
-	for _, opt := range opts {
-		opt(option)
-	}
-	vas, _ := c.buildVas()
-	req := &pbfs.GetKvValuesReq{
-		BizId: c.opts.bizID,
-		AppMeta: &pbfs.AppMeta{
-			App:    app,
-			Labels: c.opts.labels,
-			Uid:    c.opts.uid,
-		},
-		Keys: keys,
-	}
-	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
-	// reset uid
-	if option.UID != "" {
-		req.AppMeta.Uid = option.UID
-	}
-	resp, err := c.upstream.GetKvValues(vas, req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Kvs, nil
 }
 
 // ListApps list app from remote, only return have perm by token

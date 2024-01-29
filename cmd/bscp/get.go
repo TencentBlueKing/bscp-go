@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/spf13/cobra"
 
@@ -189,20 +190,66 @@ func runGetKvValue(bscp client.Client, app, key string) error {
 }
 
 func runGetKvValues(bscp client.Client, app string, keys []string) error {
-	kvs, err := bscp.GetKvValues(app, keys, client.WithAppLabels(labels))
+	release, err := bscp.PullKvs(app, []string{}, client.WithAppLabels(labels))
 	if err != nil {
 		return err
 	}
+	kvTypeMap := make(map[string]string)
+	isAll := false
+	if len(keys) == 0 {
+		isAll = true
+	}
+	for _, k := range release.KvItems {
+		kvTypeMap[k.Key] = k.KvType
+		if isAll {
+			keys = append(keys, k.Key)
+		}
+	}
 
-	output := make(map[string]any, len(kvs))
-	for _, kv := range kvs {
-		output[kv.Key] = map[string]string{
-			"kv_type": kv.KvType,
-			"value":   kv.Value,
+	values, hitError := getKvValues(bscp, app, keys)
+	if hitError != nil {
+		return hitError
+	}
+
+	output := make(map[string]any, len(keys))
+	for idx, key := range keys {
+		output[key] = map[string]string{
+			"kv_type": kvTypeMap[key],
+			"value":   values[idx],
 		}
 	}
 
 	return jsonOutput(output)
+}
+
+// getKvValues get kv values concurrently
+func getKvValues(bscp client.Client, app string, keys []string) ([]string, error) {
+	var hitError error
+	values := make([]string, len(keys))
+	pipe := make(chan struct{}, 10)
+	wg := sync.WaitGroup{}
+
+	for idx, key := range keys {
+		wg.Add(1)
+
+		pipe <- struct{}{}
+		go func(idx int, key string) {
+			defer func() {
+				wg.Done()
+				<-pipe
+			}()
+
+			value, err := bscp.Get(app, key, client.WithAppLabels(labels))
+			if err != nil {
+				hitError = fmt.Errorf("get kv value failed for key: %s, err:%v", key, err)
+				return
+			}
+			values[idx] = value
+		}(idx, key)
+	}
+	wg.Wait()
+
+	return values, hitError
 }
 
 // runGetKv executes the get kv command.

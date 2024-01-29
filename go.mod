@@ -74,7 +74,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 )
-
-replace (
-	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp => /Users/yun/data/mycode/bk-bcs/bcs-services/bcs-bscp
-)
