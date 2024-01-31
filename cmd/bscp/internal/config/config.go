@@ -15,6 +15,7 @@ package config
 
 import (
 	"fmt"
+
 	// for unmarshal yaml config file
 	_ "gopkg.in/yaml.v2"
 
