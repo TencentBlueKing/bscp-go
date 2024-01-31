@@ -86,7 +86,7 @@ func Watch(cmd *cobra.Command, args []string) {
 			Enabled:                *conf.FileCache.Enabled,
 			CacheDir:               conf.FileCache.CacheDir,
 			CleanupIntervalSeconds: conf.FileCache.CleanupIntervalSeconds,
-			ThresholdBytes:         conf.FileCache.ThresholdBytes,
+			ThresholdGB:            conf.FileCache.ThresholdGB,
 			RetentionRate:          conf.FileCache.RetentionRate,
 		}),
 	)
@@ -302,12 +302,8 @@ func init() {
 		constant.DefaultFileCacheEnabled, "enable file cache or not")
 	WatchCmd.Flags().StringVarP(&fileCache.CacheDir, "file-cache-dir", "",
 		constant.DefaultFileCacheDir, "bscp file cache dir")
-	WatchCmd.Flags().Int64VarP(&fileCache.CleanupIntervalSeconds, "cleanup-interval-seconds", "",
-		constant.DefaultCleanupIntervalSeconds, "bscp file cache cleanup interval seconds")
-	WatchCmd.Flags().Int64VarP(&fileCache.ThresholdBytes, "cache-threshold-bytes", "",
-		constant.DefaultCacheThresholdBytes, "bscp file cache threshold bytes")
-	WatchCmd.Flags().Float64VarP(&fileCache.RetentionRate, "cache-retention-rate", "",
-		constant.DefaultCacheRetentionRate, "bscp file cache retention rate")
+	WatchCmd.Flags().Float64VarP(&fileCache.ThresholdGB, "cache-threshold-gb", "",
+		constant.DefaultCacheThresholdGB, "bscp file cache threshold gigabyte")
 
 	envs := map[string]string{}
 	for env, f := range commonEnvs {

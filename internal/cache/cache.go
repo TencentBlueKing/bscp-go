@@ -34,6 +34,9 @@ import (
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
+// GByte is gigabyte unit
+const GByte = 1024 * 1024 * 1024
+
 var instance *Cache
 
 // Enable define whether to enable local cache
@@ -182,11 +185,12 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 }
 
 // AutoCleanupFileCache auto cleanup file cache
-func AutoCleanupFileCache(cacheDir string, cleanupIntervalSeconds, thresholdBytes int64, retentionRate float64) {
-	logger.Info("start auto cleanup file cache ", slog.String("cacheDir", cacheDir),
-		slog.Int64("cleanupIntervalSeconds", cleanupIntervalSeconds),
-		slog.String("thresholdBytes", humanize.IBytes(uint64(thresholdBytes))), slog.String("retentionRate",
-			humanize.Ftoa(retentionRate)))
+func AutoCleanupFileCache(cacheDir string, cleanupIntervalSeconds int64, thresholdGB, retentionRate float64) {
+	logger.Info("start auto cleanup file cache ",
+		slog.String("cacheDir", cacheDir),
+		slog.String("cleanupIntervalSeconds", fmt.Sprintf("%ds", cleanupIntervalSeconds)),
+		slog.String("thresholdGB", fmt.Sprintf("%sGB", humanize.Ftoa(thresholdGB))),
+		slog.String("retentionRate", fmt.Sprintf("%s%%", humanize.Ftoa(retentionRate*100))))
 
 	for {
 		currentSize, err := calculateDirSize(cacheDir)
@@ -195,11 +199,12 @@ func AutoCleanupFileCache(cacheDir string, cleanupIntervalSeconds, thresholdByte
 			time.Sleep(time.Duration(cleanupIntervalSeconds) * time.Second)
 			continue
 		}
-		logger.Info("calculate current cache directory size", slog.Int64("currentSize", currentSize))
+		logger.Info("calculate current cache directory size", slog.String("currentSize",
+			humanize.IBytes(uint64(currentSize))))
 
-		if currentSize > thresholdBytes {
+		if currentSize > int64(thresholdGB*GByte) {
 			logger.Info("cleaning up directory...")
-			cleanupOldestFiles(cacheDir, currentSize-int64(math.Floor(float64(thresholdBytes)*retentionRate)))
+			cleanupOldestFiles(cacheDir, currentSize-int64(math.Floor(thresholdGB*GByte*retentionRate)))
 		}
 		time.Sleep(time.Duration(cleanupIntervalSeconds) * time.Second)
 	}

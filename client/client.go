@@ -130,7 +130,7 @@ func New(opts ...Option) (Client, error) {
 			return nil, fmt.Errorf("init file cache failed, err: %s", err.Error())
 		}
 		go cache.AutoCleanupFileCache(clientOpt.fileCache.CacheDir, clientOpt.fileCache.CleanupIntervalSeconds,
-			clientOpt.fileCache.ThresholdBytes, clientOpt.fileCache.RetentionRate)
+			clientOpt.fileCache.ThresholdGB, clientOpt.fileCache.RetentionRate)
 	}
 	watcher, err := newWatcher(u, clientOpt)
 	if err != nil {

@@ -204,9 +204,8 @@ func initFromCmdArgs() error {
 		return err
 	}
 	validArgs = append(validArgs,
-		fmt.Sprintf("--file-cache-enabled=%t --file-cache-dir=%s --cleanup-interval-seconds=%d "+
-			"--cache-threshold-bytes=%d --cache-retention-rate=%f", *fileCache.Enabled, fileCache.CacheDir,
-			fileCache.CleanupIntervalSeconds, fileCache.ThresholdBytes, fileCache.RetentionRate))
+		fmt.Sprintf("--file-cache-enabled=%t --file-cache-dir=%s --cache-threshold-gb=%f",
+			*fileCache.Enabled, fileCache.CacheDir, fileCache.ThresholdGB))
 
 	fmt.Println("args:", strings.Join(validArgs, " "))
 

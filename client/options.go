@@ -40,8 +40,8 @@ type FileCache struct {
 	CacheDir string
 	// CleanupIntervalSeconds is interval seconds of cleanup
 	CleanupIntervalSeconds int64
-	// ThresholdBytes is threshold bytes of cleanup
-	ThresholdBytes int64
+	// ThresholdGB is threshold gigabyte of cleanup
+	ThresholdGB float64
 	// RetentionRate is retention rate of cleanup
 	RetentionRate float64
 }

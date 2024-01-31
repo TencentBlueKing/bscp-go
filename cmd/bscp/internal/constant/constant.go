@@ -25,10 +25,10 @@ const (
 	DefaultFileCacheDir = "/data/bscp/cache"
 	// DefaultCleanupIntervalSeconds is the bscp cli default file cache cleanup interval.
 	// !important: promise of compatibility
-	DefaultCleanupIntervalSeconds = 3600
-	// DefaultCacheThresholdBytes is the bscp cli default file cache threshold, which is 500MB
+	DefaultCleanupIntervalSeconds = 300
+	// DefaultCacheThresholdGB is the bscp cli default file cache threshold, which is 2GB
 	// !important: promise of compatibility
-	DefaultCacheThresholdBytes = 1024 * 1024 * 500
+	DefaultCacheThresholdGB = 2
 	// DefaultCacheRetentionRate is the bscp cli default file cache retention rate, which is 90%
 	// !important: promise of compatibility
 	DefaultCacheRetentionRate = 0.9

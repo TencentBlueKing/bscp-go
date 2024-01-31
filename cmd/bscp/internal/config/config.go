@@ -137,12 +137,12 @@ type FileCacheConfig struct {
 	Enabled *bool `json:"enabled" mapstructure:"enabled"`
 	// CacheDir is file cache dir
 	CacheDir string `json:"cache_dir" mapstructure:"cache_dir"`
-	// CleanupIntervalSeconds is interval seconds of cleanup
-	CleanupIntervalSeconds int64 `json:"cleanup_interval_seconds" mapstructure:"cleanup_interval_seconds"`
-	// ThresholdBytes is threshold bytes of cleanup
-	ThresholdBytes int64 `json:"threshold_bytes" mapstructure:"threshold_bytes"`
-	// RetentionRate is retention rate of cleanup
-	RetentionRate float64 `json:"retention_rate" mapstructure:"retention_rate"`
+	// cleanupIntervalSeconds is interval seconds of cleanup, not exposed for configuration now, use default value
+	CleanupIntervalSeconds int64 `json:"-" mapstructure:"-"`
+	// ThresholdGB is threshold gigabyte of cleanup
+	ThresholdGB float64 `json:"threshold_gb" mapstructure:"threshold_gb"`
+	// retentionRate is retention rate of cleanup, not exposed for configuration now, use default value
+	RetentionRate float64 `json:"-" mapstructure:"-"`
 }
 
 // Validate validate the file cache config
@@ -157,8 +157,8 @@ func (c *FileCacheConfig) Validate() error {
 	if c.CleanupIntervalSeconds <= 0 {
 		c.CleanupIntervalSeconds = constant.DefaultCleanupIntervalSeconds
 	}
-	if c.ThresholdBytes <= 0 {
-		c.ThresholdBytes = constant.DefaultCacheThresholdBytes
+	if c.ThresholdGB <= 0 {
+		c.ThresholdGB = constant.DefaultCacheThresholdGB
 	}
 	if c.RetentionRate <= 0 || c.RetentionRate > 1 {
 		c.RetentionRate = constant.DefaultCacheRetentionRate
