@@ -103,7 +103,7 @@ func (uc *upstreamClient) GetDownloadURL(vas *kit.Vas, req *pbfs.GetDownloadURLR
 	return uc.client.GetDownloadURL(vas.Ctx, req)
 }
 
-// GetKvValue get the kvs value from upstream feed server.
+// GetKvValue get the kv value from upstream feed server.
 func (uc *upstreamClient) GetKvValue(vas *kit.Vas, req *pbfs.GetKvValueReq) (*pbfs.GetKvValueResp, error) {
 	if err := uc.wait.WaitWithContext(vas.Ctx); err != nil {
 		return nil, err

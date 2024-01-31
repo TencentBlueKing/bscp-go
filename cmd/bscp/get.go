@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/spf13/cobra"
 
@@ -28,9 +29,10 @@ var (
 )
 
 const (
-	outputFormatTable = ""
-	outputFormatJson  = "json"
-	outputFormatValue = "value"
+	outputFormatTable     = ""
+	outputFormatJson      = "json"
+	outputFormatValue     = "value"
+	outputFormatValueJson = "value_json"
 )
 
 var (
@@ -90,7 +92,7 @@ func init() {
 	// kv 参数
 	getKvCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	getKvCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	getKvCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|value")
+	getKvCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|value|value_json")
 }
 
 // runGetApp executes the get app command.
@@ -187,6 +189,69 @@ func runGetKvValue(bscp client.Client, app, key string) error {
 	return err
 }
 
+func runGetKvValues(bscp client.Client, app string, keys []string) error {
+	release, err := bscp.PullKvs(app, []string{}, client.WithAppLabels(labels))
+	if err != nil {
+		return err
+	}
+	kvTypeMap := make(map[string]string)
+	isAll := false
+	if len(keys) == 0 {
+		isAll = true
+	}
+	for _, k := range release.KvItems {
+		kvTypeMap[k.Key] = k.KvType
+		if isAll {
+			keys = append(keys, k.Key)
+		}
+	}
+
+	values, hitError := getKvValues(bscp, app, keys)
+	if hitError != nil {
+		return hitError
+	}
+
+	output := make(map[string]any, len(keys))
+	for idx, key := range keys {
+		output[key] = map[string]string{
+			"kv_type": kvTypeMap[key],
+			"value":   values[idx],
+		}
+	}
+
+	return jsonOutput(output)
+}
+
+// getKvValues get kv values concurrently
+func getKvValues(bscp client.Client, app string, keys []string) ([]string, error) {
+	var hitError error
+	values := make([]string, len(keys))
+	pipe := make(chan struct{}, 10)
+	wg := sync.WaitGroup{}
+
+	for idx, key := range keys {
+		wg.Add(1)
+
+		pipe <- struct{}{}
+		go func(idx int, key string) {
+			defer func() {
+				wg.Done()
+				<-pipe
+			}()
+
+			value, err := bscp.Get(app, key, client.WithAppLabels(labels))
+			if err != nil {
+				hitError = fmt.Errorf("get kv value failed for key: %s, err:%v", key, err)
+				return
+			}
+			values[idx] = value
+		}(idx, key)
+	}
+	wg.Wait()
+
+	return values, hitError
+}
+
 // runGetKv executes the get kv command.
 func runGetKv(args []string) error {
 	baseConf, err := initBaseConf()
@@ -208,7 +273,8 @@ func runGetKv(args []string) error {
 		return err
 	}
 
-	if outputFormat == outputFormatValue {
+	switch outputFormat {
+	case outputFormatValue:
 		if len(args) == 0 {
 			return fmt.Errorf("res must not be empty")
 		}
@@ -216,7 +282,9 @@ func runGetKv(args []string) error {
 			return fmt.Errorf("multiple res are not supported")
 		}
 		return runGetKvValue(bscp, appName, args[0])
+	case outputFormatValueJson:
+		return runGetKvValues(bscp, appName, args)
+	default:
+		return runGetListKv(bscp, appName, args)
 	}
-
-	return runGetListKv(bscp, appName, args)
 }

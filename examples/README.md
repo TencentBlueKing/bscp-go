@@ -14,7 +14,7 @@ bscp sdk examples
 添加环境变量
 ```bash
 #  FEED 地址
-export BSCP_FEED_ADDR="bscp-feed.example.com:9510"
+export BSCP_FEED_ADDRS="bscp-feed.example.com:9510"
 # 服务密钥 Token, 记得需要关联配置文件
 export BSCP_TOKEN="xxx"
 # 当前业务

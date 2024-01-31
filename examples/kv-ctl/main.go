@@ -114,7 +114,7 @@ func execute() {
 	} else {
 		result := map[string]string{}
 		if len(keySlice) == 0 {
-			release, err := bscp.PullKvs(appName, opts...)
+			release, err := bscp.PullKvs(appName, []string{}, opts...)
 			if err != nil {
 				slog.Error("pull kv failed", logger.ErrAttr(err))
 				os.Exit(1)

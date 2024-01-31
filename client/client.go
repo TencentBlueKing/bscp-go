@@ -37,9 +37,9 @@ type Client interface {
 	ListApps(match []string) ([]*pbfs.App, error)
 	// PullFiles pull files from remote
 	PullFiles(app string, opts ...AppOption) (*Release, error)
-	// Get KV release from remote
+	// PullKvs pull KV release from remote
 	PullKvs(app string, match []string, opts ...AppOption) (*Release, error)
-	// Pull Key Value from remote
+	// Get gets Key Value from remote
 	Get(app string, key string, opts ...AppOption) (string, error)
 	// AddWatcher add a watcher to client
 	AddWatcher(callback Callback, app string, opts ...AppOption) error
@@ -216,7 +216,7 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 	return r, nil
 }
 
-// GetRelease get release from remote
+// PullKvs get release from remote
 func (c *client) PullKvs(app string, match []string, opts ...AppOption) (*Release, error) {
 	option := &AppOptions{}
 	for _, opt := range opts {
