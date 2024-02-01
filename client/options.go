@@ -24,15 +24,34 @@ type options struct {
 	fingerprint string
 	// UID sdk uid
 	uid string
-	// UseFileCache use file cache
-	useFileCache bool
-	// FileCacheDir file cache directory
-	fileCacheDir string
 	// DialTimeoutMS dial upstream timeout in millisecond
 	dialTimeoutMS int64
 	// Token sdk token
 	token string
+	// fileCache file cache option
+	fileCache FileCache
 }
+
+// FileCache option for file cache
+type FileCache struct {
+	// Enabled is whether enable file cache
+	Enabled bool
+	// CacheDir is file cache dir
+	CacheDir string
+	// ThresholdGB is threshold gigabyte of cleanup
+	ThresholdGB float64
+	// CleanupIntervalSeconds is interval seconds of cleanup, not exposed for configuration now, use default value
+	// CleanupIntervalSeconds int64
+	// RetentionRate is retention rate of cleanup, not exposed for configuration now, use default value
+	// RetentionRate float64
+}
+
+const (
+	// DefaultCleanupIntervalSeconds is the bscp cli default file cache cleanup interval.
+	DefaultCleanupIntervalSeconds = 300
+	// DefaultCacheRetentionRate is the bscp cli default file cache retention rate, which is 90%
+	DefaultCacheRetentionRate = 0.9
+)
 
 // Option setter for bscp sdk options
 type Option func(*options) error
@@ -83,6 +102,14 @@ func WithUID(uid string) Option {
 func WithToken(token string) Option {
 	return func(o *options) error {
 		o.token = token
+		return nil
+	}
+}
+
+// WithFileCache set file cache
+func WithFileCache(c FileCache) Option {
+	return func(o *options) error {
+		o.fileCache = c
 		return nil
 	}
 }

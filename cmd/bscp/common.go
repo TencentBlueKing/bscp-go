@@ -49,6 +49,9 @@ var (
 	// flag values
 	configPath string
 	port       int
+	fileCache  = &config.FileCacheConfig{
+		Enabled: new(bool),
+	}
 )
 
 var (
@@ -197,6 +200,13 @@ func initFromCmdArgs() error {
 
 	validArgs = append(validArgs, fmt.Sprintf("--port=%d", port))
 
+	if err := fileCache.Validate(); err != nil {
+		return err
+	}
+	validArgs = append(validArgs,
+		fmt.Sprintf("--file-cache-enabled=%t --file-cache-dir=%s --cache-threshold-gb=%f",
+			*fileCache.Enabled, fileCache.CacheDir, fileCache.ThresholdGB))
+
 	fmt.Println("args:", strings.Join(validArgs, " "))
 
 	// construct config
@@ -208,6 +218,7 @@ func initFromCmdArgs() error {
 	conf.TempDir = tempDir
 	conf.LabelsFile = labelsFilePath
 	conf.Port = port
+	conf.FileCache = fileCache
 
 	apps := []*config.AppConfig{}
 	for _, app := range strings.Split(appName, ",") {

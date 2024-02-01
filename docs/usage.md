@@ -139,6 +139,27 @@ Json 示例：labels.json
 }
 ```
 
+### 其他可选配置
+#### pull/watch文件缓存配置相关
+- 命令行配置
+```bash
+--file-cache-enabled         enable file cache or not (default true)
+--file-cache-dir string      bscp file cache dir (default "/data/bscp/cache")
+--cache-threshold-gb float   bscp file cache threshold gigabyte (default 2)
+```
+- 配置文件中配置，yaml示例
+```yaml
+# 文件缓存配置
+file_cache:
+  # 是否开启文件缓存，不配置时默认开启
+  enabled: true
+  # 缓存目录
+  cache_dir: /data/bscp/cache
+  # 缓存清理阈值，单位为GB，缓存目录达到该阈值时开始清理，按文件更新时间从最老的文件开始清理，直至达到设置的缓存保留比例为止
+  threshold_gb: 2
+```
+
+
 ## initContainer/sidecar 执行流程
 
 1. initContainer 启动 / sidecar 监听到服务端版本发布事件
