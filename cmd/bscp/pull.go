@@ -68,11 +68,9 @@ func Pull(cmd *cobra.Command, args []string) {
 		client.WithLabels(conf.Labels),
 		client.WithUID(conf.UID),
 		client.WithFileCache(client.FileCache{
-			Enabled:                *conf.FileCache.Enabled,
-			CacheDir:               conf.FileCache.CacheDir,
-			CleanupIntervalSeconds: conf.FileCache.CleanupIntervalSeconds,
-			ThresholdGB:            conf.FileCache.ThresholdGB,
-			RetentionRate:          conf.FileCache.RetentionRate,
+			Enabled:     *conf.FileCache.Enabled,
+			CacheDir:    conf.FileCache.CacheDir,
+			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
 	)
 	if err != nil {

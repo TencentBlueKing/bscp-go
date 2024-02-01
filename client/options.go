@@ -38,13 +38,20 @@ type FileCache struct {
 	Enabled bool
 	// CacheDir is file cache dir
 	CacheDir string
-	// CleanupIntervalSeconds is interval seconds of cleanup
-	CleanupIntervalSeconds int64
 	// ThresholdGB is threshold gigabyte of cleanup
 	ThresholdGB float64
-	// RetentionRate is retention rate of cleanup
-	RetentionRate float64
+	// CleanupIntervalSeconds is interval seconds of cleanup, not exposed for configuration now, use default value
+	// CleanupIntervalSeconds int64
+	// RetentionRate is retention rate of cleanup, not exposed for configuration now, use default value
+	// RetentionRate float64
 }
+
+const (
+	// DefaultCleanupIntervalSeconds is the bscp cli default file cache cleanup interval.
+	DefaultCleanupIntervalSeconds = 300
+	// DefaultCacheRetentionRate is the bscp cli default file cache retention rate, which is 90%
+	DefaultCacheRetentionRate = 0.9
+)
 
 // Option setter for bscp sdk options
 type Option func(*options) error
