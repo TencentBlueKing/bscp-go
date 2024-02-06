@@ -14,6 +14,7 @@ package client
 
 import (
 	"fmt"
+	"path"
 
 	pbci "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/config-item"
 	pbhook "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
@@ -50,6 +51,7 @@ type ConfigItemFile struct {
 func (c *ConfigItemFile) GetContent() ([]byte, error) {
 	if cache.Enable {
 		if hit, bytes := cache.GetCache().GetFileContent(c.FileMeta); hit {
+			logger.Info("get file content from cache success", slog.String("file", path.Join(c.Path, c.Name)))
 			return bytes, nil
 		}
 	}
@@ -59,6 +61,7 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 		c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToBytes, bytes, ""); err != nil {
 		return nil, fmt.Errorf("download file failed, err: %s", err.Error())
 	}
+	logger.Info("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
 	return bytes, nil
 }
 
