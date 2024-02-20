@@ -206,6 +206,7 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 				ContentSpec:          meta.CommitSpec.Content,
 				ConfigItemSpec:       meta.ConfigItemSpec,
 				ConfigItemAttachment: meta.ConfigItemAttachment,
+				ConfigItemRevision:   meta.ConfigItemRevision,
 				RepositoryPath:       meta.RepositorySpec.Path,
 			},
 		}
