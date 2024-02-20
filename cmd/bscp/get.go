@@ -177,12 +177,14 @@ func runGetFileList(bscp client.Client, app string, match []string) error {
 
 	tableOutput := func() error {
 		table := newTable()
-		table.SetHeader([]string{"File", "ContentID", "Size"})
+		table.SetHeader([]string{"File", "ContentID", "Size", "Reviser", "UpdateAt"})
 		for _, v := range release.FileItems {
 			table.Append([]string{
 				path.Join(v.Path, v.Name),
 				v.FileMeta.ContentSpec.Signature,
 				humanize.IBytes(v.FileMeta.ContentSpec.ByteSize),
+				v.FileMeta.ConfigItemRevision.Reviser,
+				refineOutputTime(v.FileMeta.ConfigItemRevision.UpdateAt),
 			})
 		}
 
@@ -229,6 +231,12 @@ func runGetFileContents(bscp client.Client, app string, contentIDs []string) err
 	var contents [][]byte
 	contents, err = getfileContents(files)
 	if err != nil {
+		return err
+	}
+
+	// output only content when getting for just one file which is convenient to save it directly in a file
+	if len(contentIDs) == 1 {
+		_, err = fmt.Fprint(os.Stdout, string(contents[0]))
 		return err
 	}
 
@@ -294,7 +302,6 @@ func runGetFile(args []string) error {
 	}
 
 	return runGetFileList(bscp, appName, args)
-
 }
 
 func runGetKvList(bscp client.Client, app string, match []string) error {
