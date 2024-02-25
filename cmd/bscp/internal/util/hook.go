@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
 	pbhook "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
@@ -46,7 +47,14 @@ const (
 func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	tempDir string, biz uint32, app string) error {
 	appTempDir := path.Join(tempDir, fmt.Sprintf("%d/%s", biz, app))
-	hookPath, err := saveContentToFile(appTempDir, hook, hookType)
+	hookEnvs := []string{
+		fmt.Sprintf("%s=%s", EnvAppTempDir, appTempDir),
+		fmt.Sprintf("%s=%s", EnvTempDir, tempDir),
+		fmt.Sprintf("%s=%d", EnvBiz, biz),
+		fmt.Sprintf("%s=%s", EnvApp, app),
+	}
+
+	hookPath, err := saveContentToFile(appTempDir, hook, hookType, hookEnvs)
 	if err != nil {
 		logger.Error("save hook content to file failed", logger.ErrAttr(err))
 		return err
@@ -63,12 +71,7 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	args := []string{hookPath}
 	cmd := exec.Command(command, args...)
 	cmd.Dir = appTempDir
-	cmd.Env = append(os.Environ(),
-		fmt.Sprintf("%s=%s", EnvAppTempDir, appTempDir),
-		fmt.Sprintf("%s=%s", EnvTempDir, tempDir),
-		fmt.Sprintf("%s=%d", EnvBiz, biz),
-		fmt.Sprintf("%s=%s", EnvApp, app),
-	)
+	cmd.Env = append(os.Environ(), hookEnvs...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("exec %s error: %s, output: %s", hookType.String(), err.Error(), string(out))
@@ -77,7 +80,8 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	return nil
 }
 
-func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.HookType) (string, error) {
+func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.HookType, hookEnvs []string) (string,
+	error) {
 	hookDir := path.Join(workspace, "hooks")
 	if err := os.MkdirAll(hookDir, os.ModePerm); err != nil {
 		logger.Error("mkdir hook dir failed", slog.String("dir", hookDir), logger.ErrAttr(err))
@@ -96,5 +100,12 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 		logger.Error("write hook file failed", slog.String("file", filePath), logger.ErrAttr(err))
 		return "", err
 	}
+
+	envfile := path.Join(hookDir, "env")
+	if err := os.WriteFile(envfile, []byte(strings.Join(hookEnvs, "\n")), 0644); err != nil {
+		logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
+		return "", err
+	}
+
 	return filePath, nil
 }
