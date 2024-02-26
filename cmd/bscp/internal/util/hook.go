@@ -102,7 +102,7 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 	}
 
 	envfile := path.Join(hookDir, "env")
-	if err := os.WriteFile(envfile, []byte(strings.Join(hookEnvs, "\n")), 0644); err != nil {
+	if err := os.WriteFile(envfile, []byte(strings.Join(hookEnvs, "\n")+"\n"), 0644); err != nil {
 		logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
 		return "", err
 	}

@@ -60,7 +60,7 @@ func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 
 	metaFilePath := path.Join(tempDir, "metadata.json")
 
-	metaFile, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
+	metaFile, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return fmt.Errorf("open metadata.json failed, err: %s", err.Error())
 	}
