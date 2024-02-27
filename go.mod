@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20230912015319-acb7495967f5
-	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240220073632-303c7a871f3b
+	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240227114116-5cf70c21cd04
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.7.0
@@ -47,6 +47,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
+	github.com/samber/lo v1.39.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
