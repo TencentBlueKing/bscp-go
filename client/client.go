@@ -255,6 +255,7 @@ func (c *client) PullKvs(app string, match []string, opts ...AppOption) (*Releas
 			KvType:       v.KvType,
 			Revision:     v.GetRevision(),
 			KvAttachment: v.GetKvAttachment(),
+			ContentSpec:  v.GetContentSpec(),
 		})
 	}
 
