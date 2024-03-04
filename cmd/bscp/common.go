@@ -52,6 +52,7 @@ var (
 	fileCache  = &config.FileCacheConfig{
 		Enabled: new(bool),
 	}
+	enableMonitorResourceUsage bool
 )
 
 var (
@@ -219,6 +220,7 @@ func initFromCmdArgs() error {
 	conf.LabelsFile = labelsFilePath
 	conf.Port = port
 	conf.FileCache = fileCache
+	conf.EnableMonitorResourceUsage = enableMonitorResourceUsage
 
 	apps := []*config.AppConfig{}
 	for _, app := range strings.Split(appName, ",") {

@@ -30,6 +30,8 @@ type options struct {
 	token string
 	// fileCache file cache option
 	fileCache FileCache
+	// EnableMonitorResourceUsage 是否采集/监控资源使用率
+	enableMonitorResourceUsage bool
 }
 
 // FileCache option for file cache
@@ -110,6 +112,14 @@ func WithToken(token string) Option {
 func WithFileCache(c FileCache) Option {
 	return func(o *options) error {
 		o.fileCache = c
+		return nil
+	}
+}
+
+// WithEnableMonitorResourceUsage 是否采集/监控资源使用率
+func WithEnableMonitorResourceUsage(enable bool) Option {
+	return func(o *options) error {
+		o.enableMonitorResourceUsage = enable
 		return nil
 	}
 }

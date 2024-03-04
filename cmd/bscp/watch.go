@@ -23,9 +23,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
@@ -33,9 +32,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/eventmeta"
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/util"
-	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
@@ -87,6 +84,7 @@ func Watch(cmd *cobra.Command, args []string) {
 			CacheDir:    conf.FileCache.CacheDir,
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
+		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -105,6 +103,7 @@ func Watch(cmd *cobra.Command, args []string) {
 			Lock:       sync.Mutex{},
 			TempDir:    tempDir,
 			AppTempDir: path.Join(tempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+			bscp:       bscp,
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
 			logger.Error("add watch", logger.ErrAttr(err))
@@ -126,7 +125,7 @@ func Watch(cmd *cobra.Command, args []string) {
 				logger.Error("reset labels failed", logger.ErrAttr(msg.Error))
 				continue
 			}
-			bscp.ResetLabels(pkgutil.MergeLabels(conf.Labels, msg.Labels))
+			bscp.ResetLabels(util.MergeLabels(conf.Labels, msg.Labels))
 			logger.Info("reset labels success, will reload watch")
 		}
 	}()
@@ -156,6 +155,7 @@ type WatchHandler struct {
 	AppTempDir string
 	// Lock lock for concurrent callback
 	Lock sync.Mutex
+	bscp client.Client
 }
 
 type refinedLabelsFile struct {
@@ -181,7 +181,7 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 	}
 	logger.Info("watching labels file", slog.String("file", absPath))
 
-	mergeLabels := pkgutil.MergeLabels(confLabels, labelsFromFile)
+	mergeLabels := util.MergeLabels(confLabels, labelsFromFile)
 	r := &refinedLabelsFile{
 		absPath:     absPath,
 		reloadChan:  reloadChan,
@@ -190,52 +190,19 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 	return r, nil
 }
 
-func (w *WatchHandler) watchCallback(release *client.Release) error {
+func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 	w.Lock.Lock()
-	defer w.Lock.Unlock()
+	defer func() {
+		w.Lock.Unlock()
+	}()
 
-	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(w.AppTempDir)
-	if err != nil {
-		logger.Warn("get latest release metadata failed, maybe you should exec pull command first", logger.ErrAttr(err))
-	} else if lastMetadata.ReleaseID == release.ReleaseID {
-		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", release.ReleaseID))
-		return nil
-	}
+	release.AppDir = w.AppTempDir
+	release.TempDir = w.TempDir
+	release.BizID = w.Biz
+	release.ClientMode = sfs.Watch
 
-	// 1. execute pre hook
-	if release.PreHook != nil {
-		if err := util.ExecuteHook(release.PreHook, table.PreHook, w.TempDir, w.Biz, w.App); err != nil {
-			logger.Error("execute pre hook", logger.ErrAttr(err))
-			return err
-		}
-	}
-
-	filesDir := path.Join(w.AppTempDir, "files")
-	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
-		logger.Error("update files", logger.ErrAttr(err))
-		return err
-	}
-	// 4. clear old files
-	if err := clearOldFiles(filesDir, release.FileItems); err != nil {
-		logger.Error("clear old files failed", logger.ErrAttr(err))
-		return err
-	}
-	// 5. execute post hook
-	if release.PostHook != nil {
-		if err := util.ExecuteHook(release.PostHook, table.PostHook, w.TempDir, w.Biz, w.App); err != nil {
-			logger.Error("execute post hook", logger.ErrAttr(err))
-			return err
-		}
-	}
-	// 6. reload app
-	// 6.1 append metadata to metadata.json
-	metadata := &eventmeta.EventMeta{
-		ReleaseID: release.ReleaseID,
-		Status:    eventmeta.EventStatusSuccess,
-		EventTime: time.Now().Format(time.RFC3339),
-	}
-	if err := eventmeta.AppendMetadataToFile(w.AppTempDir, metadata); err != nil {
-		logger.Error("append metadata to file failed", logger.ErrAttr(err))
+	if err := release.Execute(release.ExecuteHook(&client.PreScriptStrategy{}), release.UpdateFiles(),
+		release.ExecuteHook(&client.PostScriptStrategy{}), release.UpdateMetadata()); err != nil {
 		return err
 	}
 	// TODO: 6.2 call the callback notify api
@@ -248,37 +215,6 @@ func (w *WatchHandler) getSubscribeOptions() []client.AppOption {
 	options = append(options, client.WithAppLabels(w.Labels))
 	options = append(options, client.WithAppUID(w.UID))
 	return options
-}
-
-func clearOldFiles(dir string, files []*client.ConfigItemFile) error {
-	err := filepath.Walk(dir, func(filePath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			for _, file := range files {
-				absFileDir := filepath.Join(dir, file.Path)
-				if strings.HasPrefix(absFileDir, filePath) {
-					return nil
-				}
-			}
-			if err := os.RemoveAll(filePath); err != nil {
-				return err
-			}
-			return filepath.SkipDir
-		}
-
-		for _, file := range files {
-			absFile := filepath.Join(dir, file.Path, file.Name)
-			if absFile == filePath {
-				return nil
-			}
-		}
-		return os.Remove(filePath)
-	})
-
-	return err
 }
 
 func init() {
@@ -302,6 +238,7 @@ func init() {
 		constant.DefaultFileCacheDir, "bscp file cache dir")
 	WatchCmd.Flags().Float64VarP(&fileCache.ThresholdGB, "cache-threshold-gb", "",
 		constant.DefaultCacheThresholdGB, "bscp file cache threshold gigabyte")
+	WatchCmd.Flags().BoolVarP(&enableMonitorResourceUsage, "enable-resource", "e", true, "enable report resource usage")
 
 	envs := map[string]string{}
 	for env, f := range commonEnvs {

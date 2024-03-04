@@ -20,10 +20,11 @@ else ifeq ($(shell echo ${ENV_BK_BSCP_VERSION} | egrep "^v1\.[0-9]+\.[0-9]+"),)
 	VERSION=v1.0.0-devops-${ENV_BK_BSCP_VERSION}
 endif
 
-export LDVersionFLAG = "-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.VERSION=${VERSION} \
+export LDVersionFLAG = -X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.VERSION=${VERSION} \
     	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
     	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.GITHASH=${GITHASH} \
-    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.DEBUG=${DEBUG}"
+    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.DEBUG=${DEBUG}
+    	
 
 .PHONY: lint
 lint:
@@ -31,11 +32,15 @@ lint:
 
 .PHONY: build_initContainer
 build_initContainer:
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/initContainer/bscp cmd/bscp/*.go
+	${GOBUILD} -ldflags "${LDVersionFLAG} \
+	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=sidecar" \
+	-o build/initContainer/bscp cmd/bscp/*.go
 
 .PHONY: build_sidecar
 build_sidecar:
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/sidecar/bscp cmd/bscp/*.go
+	${GOBUILD} -ldflags "${LDVersionFLAG} \
+	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=sidecar" \
+	-o build/sidecar/bscp cmd/bscp/*.go
 
 .PHONY: build_docker
 build_docker: build_initContainer build_sidecar
@@ -44,7 +49,7 @@ build_docker: build_initContainer build_sidecar
 
 .PHONY: build
 build:
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o bin/${BIN_NAME} cmd/bscp/*.go
+	${GOBUILD} -ldflags "${LDVersionFLAG}" -o bin/${BIN_NAME} cmd/bscp/*.go
 
 .PHONY: test
 test:
@@ -56,6 +61,8 @@ build_nodeman_plugin:
 	mkdir -p "build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/etc" "build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/bin"
 	cp build/nodeman/project.yaml build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/project.yaml
 	cp build/nodeman/etc/bkbscp.conf.tpl build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/etc/bkbscp.conf.tpl
-	${GOBUILD} -ldflags ${LDVersionFLAG} -o build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/bin/bkbscp build/nodeman/build.go
+	${GOBUILD} -ldflags "${LDVersionFLAG} \
+	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=agent" \
+	-o build/nodeman/bkbscp/plugins_linux_x86_64/bkbscp/bin/bkbscp build/nodeman/build.go
 	cd build/nodeman/bkbscp && tar -zcf ../bkbscp.tar.gz .
 
