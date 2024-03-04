@@ -46,6 +46,8 @@ type ClientConfig struct {
 	Port int `json:"port" mapstructure:"port"`
 	// FileCache file cache config
 	FileCache *FileCacheConfig `json:"file_cache" mapstructure:"file_cache"`
+	// EnableMonitorResourceUsage 是否采集/监控资源使用率
+	EnableMonitorResourceUsage bool
 }
 
 // GetFeedAddrs 支持单个 FeedAddr

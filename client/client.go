@@ -190,12 +190,18 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 	if option.UID != "" {
 		req.AppMeta.Uid = option.UID
 	}
+	if req.AppMeta.Uid == "" {
+		req.AppMeta.Uid = c.opts.fingerprint
+	}
 	resp, err := c.upstream.PullAppFileMeta(vas, req)
 	if err != nil {
 		return nil, fmt.Errorf("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}
 	files := make([]*ConfigItemFile, len(resp.FileMetas))
+	// 计算总文件大小和总文件数
+	var totalFileSize uint64
 	for i, meta := range resp.FileMetas {
+		totalFileSize += meta.CommitSpec.GetContent().ByteSize
 		files[i] = &ConfigItemFile{
 			Name:       meta.ConfigItemSpec.Name,
 			Path:       meta.ConfigItemSpec.Path,
@@ -217,6 +223,16 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 		FileItems: files,
 		PreHook:   resp.PreHook,
 		PostHook:  resp.PostHook,
+		upstream:  c.upstream,
+		vas:       vas,
+		AppMate: &sfs.SideAppMeta{
+			App:             app,
+			Labels:          req.AppMeta.Labels,
+			Uid:             req.AppMeta.Uid,
+			TargetReleaseID: resp.ReleaseId,
+			TotalFileNum:    len(files),
+			TotalFileSize:   totalFileSize,
+		},
 	}
 	return r, nil
 }

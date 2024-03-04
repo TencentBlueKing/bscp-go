@@ -15,22 +15,29 @@ package util
 
 import (
 	"fmt"
+	"time"
 
-	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/denisbrodbeck/machineid"
 )
 
 // GenerateFingerPrint generate finger print
 func GenerateFingerPrint() (string, error) {
 	// 1. try to get machine id
+	// 2. 在 WSL 系统下获取 machineID 不会报错但是拿到的是空字符串
 	machineID, err := machineid.ID()
-	if err == nil {
+	if err == nil && machineID != "" {
 		return machineID, nil
 	}
 	// 2. try to get id from
-	fp, err := sfs.GetFingerPrint()
+	fp, err := GenerateClientID()
 	if err == nil {
-		return fp.Encode(), nil
+		return fp, nil
 	}
 	return "", fmt.Errorf("failed to generate fingerprint, err %s", err.Error())
+}
+
+// GenerateCursorID 生成cursorID
+func GenerateCursorID(bizID uint32) string {
+	timestamp := time.Now().UnixNano()
+	return fmt.Sprintf("%d%d", bizID, timestamp)
 }

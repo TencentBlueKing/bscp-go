@@ -13,23 +13,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 	"strconv"
 	"strings"
-	"time"
+	"sync/atomic"
 
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/eventmeta"
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/util"
-	pkgutil "github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -59,7 +58,7 @@ func Pull(cmd *cobra.Command, args []string) {
 			logger.Error("read labels file failed", logger.ErrAttr(err))
 			os.Exit(1)
 		}
-		conf.Labels = pkgutil.MergeLabels(conf.Labels, labels)
+		conf.Labels = util.MergeLabels(conf.Labels, labels)
 	}
 	bscp, err := client.New(
 		client.WithFeedAddrs(conf.FeedAddrs),
@@ -77,6 +76,12 @@ func Pull(cmd *cobra.Command, args []string) {
 		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	// 是否采集/监控资源使用率
+	if conf.EnableMonitorResourceUsage {
+		go util.MonitorCPUAndMemUsage(ctx)
+	}
 	for _, app := range conf.Apps {
 		opts := []client.AppOption{}
 		opts = append(opts, client.WithAppKey("**"))
@@ -85,47 +90,54 @@ func Pull(cmd *cobra.Command, args []string) {
 		if conf.TempDir != "" {
 			tempDir = conf.TempDir
 		}
-		if err = pullAppFiles(bscp, tempDir, conf.Biz, app.Name, opts); err != nil {
+		if err = pullAppFiles(ctx, bscp, tempDir, conf.Biz, app.Name, opts); err != nil {
+			cancel()
 			logger.Error("pull files failed", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	}
+	cancel()
 }
 
-func pullAppFiles(bscp client.Client, tempDir string, biz uint32, app string, opts []client.AppOption) error {
+func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz uint32, app string, opts []client.AppOption) error { // nolint
+
 	// 1. prepare app workspace dir
 	appDir := path.Join(tempDir, strconv.Itoa(int(biz)), app)
 	if e := os.MkdirAll(appDir, os.ModePerm); e != nil {
 		return e
 	}
+
 	release, err := bscp.PullFiles(app, opts...)
 	if err != nil {
 		return err
 	}
-	// 2. execute pre hook
-	if release.PreHook != nil {
-		if err := util.ExecuteHook(release.PreHook, table.PreHook, tempDir, biz, app); err != nil {
-			return err
+
+	release.AppDir = appDir
+	release.TempDir = tempDir
+	release.BizID = biz
+	release.ClientMode = sfs.Pull
+	// 生成事件ID
+	release.CursorID = util.GenerateCursorID(biz)
+	release.SemaphoreCh = make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-release.SemaphoreCh:
+				successDownloads := atomic.LoadInt32(&release.AppMate.DownloadFileNum)
+				successFileSize := atomic.LoadUint64(&release.AppMate.DownloadFileSize)
+				release.AppMate.DownloadFileNum = successDownloads
+				release.AppMate.DownloadFileSize = successFileSize
+			}
 		}
-	}
-	// 3. download files and save to temp dir
-	filesDir := path.Join(appDir, "files")
-	if err := util.UpdateFiles(filesDir, release.FileItems); err != nil {
-		return err
-	}
-	// 4. execute post hook
-	if release.PostHook != nil {
-		if err := util.ExecuteHook(release.PostHook, table.PostHook, tempDir, biz, app); err != nil {
-			return err
-		}
-	}
-	// 5. append metadata to metadata.json
-	metadata := &eventmeta.EventMeta{
-		ReleaseID: release.ReleaseID,
-		Status:    eventmeta.EventStatusSuccess,
-		EventTime: time.Now().Format(time.RFC3339),
-	}
-	if err := eventmeta.AppendMetadataToFile(appDir, metadata); err != nil {
+	}()
+	// 1.执行前置脚本
+	// 2.更新文件
+	// 3.执行后置脚本
+	// 4.更新Metadata
+	if err = release.Execute(release.ExecuteHook(&client.PreScriptStrategy{}), release.UpdateFiles(),
+		release.ExecuteHook(&client.PostScriptStrategy{}), release.UpdateMetadata()); err != nil {
 		return err
 	}
 	logger.Info("pull files success", slog.Any("releaseID", release.ReleaseID))
@@ -152,6 +164,7 @@ func init() {
 		constant.DefaultFileCacheDir, "bscp file cache dir")
 	PullCmd.Flags().Float64VarP(&fileCache.ThresholdGB, "cache-threshold-gb", "",
 		constant.DefaultCacheThresholdGB, "bscp file cache threshold gigabyte")
+	PullCmd.Flags().BoolVarP(&enableMonitorResourceUsage, "enable-resource", "e", true, "enable report resource usage")
 
 	for env, f := range commonEnvs {
 		flag := PullCmd.Flags().Lookup(f)

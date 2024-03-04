@@ -13,14 +13,15 @@
 package client
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"golang.org/x/exp/slog"
 
+	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -34,29 +35,12 @@ const (
 	maxHeartbeatRetryCount = 3
 )
 
-func (w *watcher) loopHeartbeat() error {
-
-	apps := make([]sfs.SideAppMeta, 0, len(w.subscribers))
-	for _, subscriber := range w.subscribers {
-		apps = append(apps, sfs.SideAppMeta{
-			App:              subscriber.App,
-			Labels:           subscriber.Labels,
-			Uid:              subscriber.UID,
-			CurrentReleaseID: subscriber.CurrentReleaseID,
-		})
-	}
-	heartbeatPayload := sfs.HeartbeatPayload{
-		FingerPrint:  w.opts.fingerprint,
-		Applications: apps,
-	}
-	payload, err := heartbeatPayload.Encode()
-	if err != nil {
-		logger.Error("stream start loop heartbeat failed by encode heartbeat payload", logger.ErrAttr(err))
-		return fmt.Errorf("encode heartbeat payload err, %s", err.Error())
-	}
-
+func (w *watcher) loopHeartbeat() error { // nolint
 	logger.Info("stream start loop heartbeat", slog.Duration("interval", defaultHeartbeatInterval))
-
+	var (
+		maxMemoryUsage, currentMemoryUsage uint64
+		maxCPUUsage, currentCPUUsage       float64
+	)
 	w.vas.Wg.Add(1)
 	go func() {
 		defer w.vas.Wg.Done()
@@ -72,6 +56,42 @@ func (w *watcher) loopHeartbeat() error {
 
 			case <-tick.C:
 				logger.Debug("stream will heartbeat", slog.String("rid", w.vas.Rid))
+
+				apps := make([]sfs.SideAppMeta, 0, len(w.subscribers))
+				for _, subscriber := range w.subscribers {
+					apps = append(apps, sfs.SideAppMeta{
+						App:                 subscriber.App,
+						Labels:              subscriber.Labels,
+						Uid:                 subscriber.UID,
+						CursorID:            subscriber.CursorID,
+						ReleaseChangeStatus: subscriber.ReleaseChangeStatus,
+						DownloadFileNum:     subscriber.DownloadFileNum,
+						DownloadFileSize:    subscriber.DownloadFileSize,
+					})
+				}
+				heartbeatPayload := sfs.HeartbeatPayload{
+					BasicData: sfs.BasicData{
+						BizID:         w.opts.bizID,
+						ClientMode:    sfs.Watch,
+						ClientVersion: version.Version().Version,
+						ClientType:    sfs.ClientType(version.CLIENTTYPE),
+						IP:            util.GetClientIP(),
+					},
+					Applications: apps,
+				}
+				currentCPUUsage, maxCPUUsage = util.GetCpuUsage()
+				currentMemoryUsage, maxMemoryUsage = util.GetMemUsage()
+				heartbeatPayload.ResourceUsage = sfs.ResourceUsage{
+					CpuMaxUsage:    maxCPUUsage,
+					CpuUsage:       currentCPUUsage,
+					MemoryMaxUsage: maxMemoryUsage,
+					MemoryUsage:    currentMemoryUsage,
+				}
+				payload, err := heartbeatPayload.Encode()
+				if err != nil {
+					logger.Error("stream start loop heartbeat failed by encode heartbeat payload", logger.ErrAttr(err))
+					return
+				}
 
 				if err := w.heartbeatOnce(w.vas, heartbeatPayload.MessagingType(), payload); err != nil {
 					logger.Warn("stream heartbeat failed, notify reconnect upstream",
