@@ -91,7 +91,7 @@ func GetLatestMetadataFromFile(tempDir string) (*EventMeta, error) {
 
 	metaFile, err := os.Open(metaFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("open metadata.json failed, err: %s", err.Error())
+		return nil, err
 	}
 	defer metaFile.Close()
 	var lastLine string
