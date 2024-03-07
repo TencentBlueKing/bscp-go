@@ -116,24 +116,32 @@ type Callback func(release *Release) error
 // Function 定义类型
 type Function func() error
 
-// CompareFile 对比文件信息
-func (r *Release) compareFile() error {
+// compareRelease 对比当前服务版本
+// 返回值: 是否跳过本次版本变更事件（本地版本和事件版本一致）, 错误信息
+func (r *Release) compareRelease() (bool, error) {
 	if r.ClientMode == sfs.Pull {
-		return nil
+		return false, nil
 	}
 	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(r.AppDir)
 	if err != nil {
+		// 如果 metadata 文件不存在，说明没有执行过 pull 操作
+		if os.IsNotExist(err) {
+			logger.Warn("can not find metadata file, maybe you should exec pull command first", logger.ErrAttr(err))
+			return false, nil
+		}
 		r.AppMate.FailedReason = sfs.DownloadFailed
-		logger.Warn("get latest release metadata failed, maybe you should exec pull command first", logger.ErrAttr(err))
-		return err
+		r.AppMate.FailedDetailReason = err.Error()
+		logger.Error("get metadata file failed", logger.ErrAttr(err))
+		return false, err
+
 	} else if lastMetadata.ReleaseID == r.ReleaseID {
 		r.AppMate.CurrentReleaseID = r.ReleaseID
 		r.AppMate.FailedReason = sfs.SkipFailed
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", r.ReleaseID))
-		return nil
+		return true, nil
 	}
 	r.AppMate.CurrentReleaseID = lastMetadata.ReleaseID
-	return nil
+	return false, nil
 }
 
 // ExecuteHook 1.执行脚本方法
@@ -309,12 +317,13 @@ func (r *Release) Execute(steps ...Function) error {
 
 	// 一定要在该位置
 	// 不然会导致current_release_id是0的问题
-	if err := r.compareFile(); err != nil {
+	skip, err := r.compareRelease()
+	if err != nil {
 		r.AppMate.FailedDetailReason = err.Error()
 		return err
 	}
 	// 发送拉取前事件
-	err := r.sendVersionChangeMessaging(bd, resource)
+	err = r.sendVersionChangeMessaging(bd, resource)
 	if err != nil {
 		logger.Error("failed to send the pull status event. biz: %d,app: %s, err: %s",
 			r.BizID, r.AppMate.App, err.Error())
@@ -323,6 +332,10 @@ func (r *Release) Execute(steps ...Function) error {
 	// 发送心跳数据
 	if r.ClientMode == sfs.Pull {
 		r.loopHeartbeat(bd, resource)
+	}
+
+	if skip {
+		return nil
 	}
 
 	for _, step := range steps {
