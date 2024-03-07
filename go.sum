@@ -2,8 +2,8 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Tencent/bk-bcs/bcs-common v0.0.0-20240304061708-905ae275ccd1 h1:9qdvWLTEgS3jN/DlPKCLmy0kPRCuRHkpjqwRMQsCCII=
 github.com/Tencent/bk-bcs/bcs-common v0.0.0-20240304061708-905ae275ccd1/go.mod h1:mXRM7Z4lSGKV4y9sW6XzriRQp4ZQAuA1vXnBdfGZizE=
-github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240304061708-905ae275ccd1 h1:E7n9fWNGXbbCgT4bet0WFW8IYOLCSCTRDMomZYY35e4=
-github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240304061708-905ae275ccd1/go.mod h1:N+2MnKgdnz9f7kmR+M/T9fF0FBKeGJVc0vWu1NR93Yw=
+github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240307085532-1e5c099088ee h1:iA9NY8rt+CGB0idfwnoc+R6aeLcC5Hrp/gHbtdUHx8U=
+github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240307085532-1e5c099088ee/go.mod h1:N+2MnKgdnz9f7kmR+M/T9fF0FBKeGJVc0vWu1NR93Yw=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=

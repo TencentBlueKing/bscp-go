@@ -41,17 +41,20 @@ const (
 	EnvBiz = "bk_bscp_biz"
 	// EnvApp bscp app name env
 	EnvApp = "bk_bscp_app"
+	// EnvRelName bscp release name env
+	EnvRelName = "bk_bscp_current_version_name"
 )
 
 // ExecuteHook executes the hook.
 func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
-	tempDir string, biz uint32, app string) error {
+	tempDir string, biz uint32, app string, relName string) error {
 	appTempDir := path.Join(tempDir, fmt.Sprintf("%d/%s", biz, app))
 	hookEnvs := []string{
 		fmt.Sprintf("%s=%s", EnvAppTempDir, appTempDir),
 		fmt.Sprintf("%s=%s", EnvTempDir, tempDir),
 		fmt.Sprintf("%s=%d", EnvBiz, biz),
 		fmt.Sprintf("%s=%s", EnvApp, app),
+		fmt.Sprintf("%s=%s", EnvRelName, relName),
 	}
 
 	hookPath, err := saveContentToFile(appTempDir, hook, hookType, hookEnvs)

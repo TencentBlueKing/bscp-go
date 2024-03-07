@@ -302,6 +302,7 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 
 			release := &Release{
 				ReleaseID:   pl.ReleaseMeta.ReleaseID,
+				ReleaseName: pl.ReleaseMeta.ReleaseName,
 				FileItems:   configItemFiles,
 				KvItems:     pl.ReleaseMeta.KvMetas,
 				PreHook:     pl.ReleaseMeta.PreHook,
