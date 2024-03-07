@@ -219,12 +219,13 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 	}
 
 	r := &Release{
-		ReleaseID: resp.ReleaseId,
-		FileItems: files,
-		PreHook:   resp.PreHook,
-		PostHook:  resp.PostHook,
-		upstream:  c.upstream,
-		vas:       vas,
+		ReleaseID:   resp.ReleaseId,
+		ReleaseName: resp.ReleaseName,
+		FileItems:   files,
+		PreHook:     resp.PreHook,
+		PostHook:    resp.PostHook,
+		upstream:    c.upstream,
+		vas:         vas,
 		AppMate: &sfs.SideAppMeta{
 			App:             app,
 			Labels:          req.AppMeta.Labels,

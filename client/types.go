@@ -48,6 +48,7 @@ const (
 // Release bscp 服务版本
 type Release struct {
 	ReleaseID   uint32            `json:"release_id"`
+	ReleaseName string            `json:"release_name"`
 	FileItems   []*ConfigItemFile `json:"files"`
 	KvItems     []*sfs.KvMetaV1   `json:"kvs"`
 	PreHook     *pbhook.HookSpec  `json:"pre_hook"`
@@ -193,7 +194,10 @@ type PreScriptStrategy struct{}
 
 // executeScript 执行前置脚本
 func (p *PreScriptStrategy) executeScript(r *Release) error {
-	err := util.ExecuteHook(r.PreHook, table.PreHook, r.TempDir, r.BizID, r.AppMate.App)
+	if r.PreHook == nil {
+		return nil
+	}
+	err := util.ExecuteHook(r.PreHook, table.PreHook, r.TempDir, r.BizID, r.AppMate.App, r.ReleaseName)
 	if err != nil {
 		r.AppMate.FailedReason = sfs.PreHookFailed
 		logger.Error("execute pre hook", logger.ErrAttr(err))
@@ -207,7 +211,10 @@ type PostScriptStrategy struct{}
 
 // executeScript 执行后置脚本
 func (p *PostScriptStrategy) executeScript(r *Release) error {
-	err := util.ExecuteHook(r.PostHook, table.PostHook, r.TempDir, r.BizID, r.AppMate.App)
+	if r.PostHook == nil {
+		return nil
+	}
+	err := util.ExecuteHook(r.PostHook, table.PostHook, r.TempDir, r.BizID, r.AppMate.App, r.ReleaseName)
 	if err != nil {
 		r.AppMate.FailedReason = sfs.PostHookFailed
 		logger.Error("execute post hook", logger.ErrAttr(err))
