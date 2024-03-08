@@ -81,10 +81,12 @@ func (w *watcher) callback(release *client.Release) error {
 	for _, item := range release.KvItems {
 		value, err := w.bscp.Get(w.app, item.Key)
 		if err != nil {
-			logger.Error("get value failed", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key), logger.ErrAttr(err))
+			logger.Error("get value failed", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key),
+				logger.ErrAttr(err))
 			continue
 		}
-		logger.Info("get value success", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key), slog.String("value", value))
+		logger.Info("get value success", slog.Any("releaseID", release.ReleaseID), slog.String("key", item.Key),
+			slog.String("value", value))
 	}
 
 	return nil

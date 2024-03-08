@@ -46,7 +46,8 @@ var (
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&watchMode, "watch", "w", false, "use watch mode")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log.level", "", "warn", "log filtering level.")
-	rootCmd.PersistentFlags().StringVarP(&keys, "keys", "k", "", "use commas to separate, like key1,key2. (watch mode empty key will get all values)")
+	rootCmd.PersistentFlags().StringVarP(&keys, "keys", "k", "",
+		"use commas to separate, like key1,key2. (watch mode empty key will get all values)")
 }
 
 func main() {
