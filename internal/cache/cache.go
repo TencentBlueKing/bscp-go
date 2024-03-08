@@ -199,7 +199,7 @@ func AutoCleanupFileCache(cacheDir string, cleanupIntervalSeconds int64, thresho
 			time.Sleep(time.Duration(cleanupIntervalSeconds) * time.Second)
 			continue
 		}
-		logger.Info("calculate current cache directory size", slog.String("currentSize",
+		logger.Debug("calculate current cache directory size", slog.String("currentSize",
 			humanize.IBytes(uint64(currentSize))))
 
 		if currentSize > int64(thresholdGB*GByte) {
