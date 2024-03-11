@@ -123,6 +123,15 @@ func initBaseConf() (*config.ClientConfig, error) {
 		}
 		baseConf.Biz = uint32(bizID)
 	}
+
+	// set and validate file cache config
+	if baseConf.FileCache == nil {
+		baseConf.FileCache = fileCache
+	}
+	if err := baseConf.FileCache.Validate(); err != nil {
+		return nil, err
+	}
+
 	return baseConf, nil
 }
 
