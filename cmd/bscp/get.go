@@ -24,6 +24,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/TencentBlueKing/bscp-go/client"
+	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -106,6 +107,14 @@ func init() {
 	getFileCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
 	getFileCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
 	getFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|content")
+	getFileCmd.Flags().BoolVarP(fileCache.Enabled, "file-cache-enabled", "",
+		constant.DefaultFileCacheEnabled, "enable file cache or not")
+	getFileCmd.Flags().StringVarP(&fileCache.CacheDir, "file-cache-dir", "",
+		constant.DefaultFileCacheDir, "bscp file cache dir")
+	getFileCmd.Flags().Float64VarP(&fileCache.ThresholdGB, "cache-threshold-gb", "",
+		constant.DefaultCacheThresholdGB, "bscp file cache threshold gigabyte")
+	getFileCmd.Flags().BoolVarP(&enableMonitorResourceUsage, "enable-resource", "e", true,
+		"enable report resource usage")
 
 	// kv 参数
 	getKvCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
