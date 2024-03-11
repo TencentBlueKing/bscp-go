@@ -113,8 +113,6 @@ func init() {
 		constant.DefaultFileCacheDir, "bscp file cache dir")
 	getFileCmd.Flags().Float64VarP(&fileCache.ThresholdGB, "cache-threshold-gb", "",
 		constant.DefaultCacheThresholdGB, "bscp file cache threshold gigabyte")
-	getFileCmd.Flags().BoolVarP(&enableMonitorResourceUsage, "enable-resource", "e", true,
-		"enable report resource usage")
 
 	// kv 参数
 	getKvCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
