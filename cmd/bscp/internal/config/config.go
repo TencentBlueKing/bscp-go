@@ -24,6 +24,7 @@ import (
 
 // ClientConfig config for bscp-go when run as daemon
 type ClientConfig struct {
+	ConfigFile string `json:"config_file" mapstructure:"config_file"`
 	// FeedAddrs bscp feed server addresses
 	FeedAddrs []string `json:"feed_addrs" mapstructure:"feed_addrs"`
 	// FeedAddr bscp feed server address
@@ -34,8 +35,12 @@ type ClientConfig struct {
 	Token string `json:"token" mapstructure:"token"`
 	// Apps bscp watched apps
 	Apps []*AppConfig `json:"apps" mapstructure:"apps"`
+	// Apps bscp watched app string
+	App string `json:"app" mapstructure:"app"`
 	// Labels bscp sdk labels
 	Labels map[string]string `json:"labels" mapstructure:"labels"`
+	// LabelsStr bscp sdk labels string
+	LabelsStr string `json:"labels_str" mapstructure:"labels_str"`
 	// UID bscp sdk uid
 	UID string `json:"uid" mapstructure:"uid"`
 	// TempDir config files temporary directory
@@ -47,25 +52,12 @@ type ClientConfig struct {
 	// FileCache file cache config
 	FileCache *FileCacheConfig `json:"file_cache" mapstructure:"file_cache"`
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
-	EnableMonitorResourceUsage bool
-}
-
-// GetFeedAddrs 支持单个 FeedAddr
-func (c *ClientConfig) GetFeedAddrs() []string {
-	if len(c.FeedAddrs) > 0 {
-		return c.FeedAddrs
-	}
-
-	if len(c.FeedAddr) > 0 {
-		return []string{c.FeedAddr}
-	}
-
-	return []string{}
+	EnableMonitorResourceUsage bool `json:"enable_resource" mapstructure:"enable_resource"`
 }
 
 // ValidateBase validate the watch config
 func (c *ClientConfig) ValidateBase() error {
-	if len(c.GetFeedAddrs()) == 0 {
+	if len(c.FeedAddrs) == 0 {
 		return fmt.Errorf("feed_addrs empty")
 	}
 	if c.Biz == 0 {
@@ -74,33 +66,7 @@ func (c *ClientConfig) ValidateBase() error {
 	if c.Token == "" {
 		return fmt.Errorf("token is empty")
 	}
-	return nil
-}
 
-// Validate validate the watch config
-func (c *ClientConfig) Validate() error {
-	if len(c.GetFeedAddrs()) == 0 {
-		return fmt.Errorf("feed_addrs is empty")
-	}
-	if c.Biz == 0 {
-		return fmt.Errorf("biz is empty")
-	}
-	if c.Token == "" {
-		return fmt.Errorf("token is empty")
-	}
-	if len(c.Apps) == 0 {
-		return fmt.Errorf("watched apps is empty")
-	}
-	exists := make(map[string]bool)
-	for _, app := range c.Apps {
-		if exists[app.Name] {
-			return fmt.Errorf("watch repeated for app %s: ", app.Name)
-		}
-		if err := app.Validate(); err != nil {
-			return err
-		}
-		exists[app.Name] = true
-	}
 	if c.TempDir == "" {
 		c.TempDir = constant.DefaultTempDir
 	}
@@ -112,6 +78,28 @@ func (c *ClientConfig) Validate() error {
 	}
 	if err := c.FileCache.Validate(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// Validate validate the client config
+func (c *ClientConfig) Validate() error {
+	if err := c.ValidateBase(); err != nil {
+		return err
+	}
+	if len(c.Apps) == 0 {
+		return fmt.Errorf("apps is empty")
+	}
+	exists := make(map[string]bool)
+	for _, app := range c.Apps {
+		if exists[app.Name] {
+			return fmt.Errorf("app %s is repeated ", app.Name)
+		}
+		if err := app.Validate(); err != nil {
+			return err
+		}
+		exists[app.Name] = true
 	}
 	return nil
 }
@@ -137,7 +125,7 @@ func (c *AppConfig) Validate() error {
 // FileCacheConfig config for file cache
 type FileCacheConfig struct {
 	// Enabled is whether enable file cache
-	Enabled *bool `json:"enabled" mapstructure:"enabled"`
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
 	// CacheDir is file cache dir
 	CacheDir string `json:"cache_dir" mapstructure:"cache_dir"`
 	// cleanupIntervalSeconds is interval seconds of cleanup, not exposed for configuration now, use default value
@@ -150,10 +138,6 @@ type FileCacheConfig struct {
 
 // Validate validate the file cache config
 func (c *FileCacheConfig) Validate() error {
-	if c.Enabled == nil {
-		c.Enabled = new(bool)
-		*c.Enabled = constant.DefaultFileCacheEnabled
-	}
 	if c.CacheDir == "" {
 		c.CacheDir = constant.DefaultFileCacheDir
 	}

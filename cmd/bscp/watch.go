@@ -52,8 +52,12 @@ func Watch(cmd *cobra.Command, args []string) {
 	// print bscp banner
 	fmt.Println(strings.TrimSpace(version.GetStartInfo()))
 
-	if err := initArgs(); err != nil {
-		logger.Error("init args", logger.ErrAttr(err))
+	if err := initConf(watchViper); err != nil {
+		logger.Error("init conf failed", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+	if err := conf.Validate(); err != nil {
+		logger.Error("validate config failed", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
@@ -80,7 +84,7 @@ func Watch(cmd *cobra.Command, args []string) {
 		client.WithLabels(confLabels),
 		client.WithUID(conf.UID),
 		client.WithFileCache(client.FileCache{
-			Enabled:     *conf.FileCache.Enabled,
+			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
@@ -92,17 +96,14 @@ func Watch(cmd *cobra.Command, args []string) {
 	}
 
 	for _, subscriber := range conf.Apps {
-		if conf.TempDir != "" {
-			tempDir = conf.TempDir
-		}
 		handler := &WatchHandler{
 			Biz:        conf.Biz,
 			App:        subscriber.Name,
 			Labels:     subscriber.Labels,
 			UID:        subscriber.UID,
 			Lock:       sync.Mutex{},
-			TempDir:    tempDir,
-			AppTempDir: path.Join(tempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+			TempDir:    conf.TempDir,
+			AppTempDir: path.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
 			bscp:       bscp,
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
@@ -211,7 +212,7 @@ func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 }
 
 func (w *WatchHandler) getSubscribeOptions() []client.AppOption {
-	options := []client.AppOption{}
+	var options []client.AppOption
 	options = append(options, client.WithAppLabels(w.Labels))
 	options = append(options, client.WithAppUID(w.UID))
 	return options
@@ -221,40 +222,41 @@ func init() {
 	// !important: promise of compatibility
 	WatchCmd.Flags().SortFlags = false
 
-	WatchCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
-		"feed server address, eg: 'bscp-feed.example.com:9510'")
-	WatchCmd.Flags().IntVarP(&bizID, "biz", "b", 0, "biz id")
-	WatchCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
-	WatchCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
-	WatchCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	WatchCmd.Flags().StringVarP(&labelsFilePath, "labels-file", "", "", "labels file path")
+	WatchCmd.Flags().StringP("feed-addrs", "f", "", "feed server address, eg: 'bscp-feed.example.com:9510'")
+	bindPFlag(watchViper, "feed_addrs", WatchCmd.Flags().Lookup("feed-addrs"))
+	WatchCmd.Flags().IntP("biz", "b", 0, "biz id")
+	bindPFlag(watchViper, "biz", WatchCmd.Flags().Lookup("biz"))
+	WatchCmd.Flags().StringP("app", "a", "", "app name")
+	bindPFlag(watchViper, "app", WatchCmd.Flags().Lookup("app"))
+	WatchCmd.Flags().StringP("token", "t", "", "sdk token")
+	bindPFlag(watchViper, "token", WatchCmd.Flags().Lookup("token"))
+	WatchCmd.Flags().StringP("labels", "l", "", "labels")
+	bindPFlag(watchViper, "labels_str", WatchCmd.Flags().Lookup("labels"))
+	WatchCmd.Flags().StringP("labels-file", "", "", "labels file path")
+	bindPFlag(watchViper, "labels_file", WatchCmd.Flags().Lookup("labels-file"))
 	// TODO: set client UID
-	WatchCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
-		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
-	WatchCmd.Flags().IntVarP(&port, "port", "p", constant.DefaultHttpPort, "sidecar http port")
-	WatchCmd.Flags().BoolVarP(fileCache.Enabled, "file-cache-enabled", "",
-		constant.DefaultFileCacheEnabled, "enable file cache or not")
-	WatchCmd.Flags().StringVarP(&fileCache.CacheDir, "file-cache-dir", "",
-		constant.DefaultFileCacheDir, "bscp file cache dir")
-	WatchCmd.Flags().Float64VarP(&fileCache.ThresholdGB, "cache-threshold-gb", "",
-		constant.DefaultCacheThresholdGB, "bscp file cache threshold gigabyte")
-	WatchCmd.Flags().BoolVarP(&enableMonitorResourceUsage, "enable-resource", "e", true, "enable report resource usage")
+	WatchCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
+	bindPFlag(watchViper, "temp_dir", WatchCmd.Flags().Lookup("temp-dir"))
+	WatchCmd.Flags().IntP("port", "p", constant.DefaultHttpPort, "sidecar http port")
+	WatchCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
+	bindPFlag(watchViper, "file_cache.enabled", WatchCmd.Flags().Lookup("file-cache-enabled"))
+	WatchCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")
+	bindPFlag(watchViper, "file_cache.cache_dir", WatchCmd.Flags().Lookup("file-cache-dir"))
+	WatchCmd.Flags().Float64P("cache-threshold-gb", "", constant.DefaultCacheThresholdGB,
+		"bscp file cache threshold gigabyte")
+	bindPFlag(watchViper, "file_cache.threshold_gb", WatchCmd.Flags().Lookup("cache-threshold-gb"))
+	WatchCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
+	bindPFlag(watchViper, "enable_resource", WatchCmd.Flags().Lookup("enable-resource"))
 
-	envs := map[string]string{}
-	for env, f := range commonEnvs {
-		envs[env] = f
+	// bind env variable with viper
+	for key, envName := range commonEnvs {
+		if err := watchViper.BindEnv(key, envName); err != nil {
+			panic(err)
+		}
 	}
-	for env, f := range watchEnvs {
-		envs[env] = f
-	}
-
-	for env, f := range envs {
-		flag := WatchCmd.Flags().Lookup(f)
-		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
-		if value := os.Getenv(env); value != "" {
-			if err := flag.Value.Set(value); err != nil {
-				panic(err)
-			}
+	for key, envName := range watchEnvs {
+		if err := watchViper.BindEnv(key, envName); err != nil {
+			panic(err)
 		}
 	}
 }

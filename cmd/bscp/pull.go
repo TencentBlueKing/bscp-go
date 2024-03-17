@@ -47,19 +47,15 @@ func Pull(cmd *cobra.Command, args []string) {
 	// print bscp banner
 	fmt.Println(strings.TrimSpace(version.GetStartInfo()))
 
-	if err := initArgs(); err != nil {
-		logger.Error("init", logger.ErrAttr(err))
+	if err := initConf(pullViper); err != nil {
+		logger.Error("init conf failed", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+	if err := conf.Validate(); err != nil {
+		logger.Error("validate config failed", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
-	if conf.LabelsFile != "" {
-		labels, err := readLabelsFile(conf.LabelsFile)
-		if err != nil {
-			logger.Error("read labels file failed", logger.ErrAttr(err))
-			os.Exit(1)
-		}
-		conf.Labels = util.MergeLabels(conf.Labels, labels)
-	}
 	bscp, err := client.New(
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
@@ -67,7 +63,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		client.WithLabels(conf.Labels),
 		client.WithUID(conf.UID),
 		client.WithFileCache(client.FileCache{
-			Enabled:     *conf.FileCache.Enabled,
+			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
@@ -87,10 +83,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		opts = append(opts, client.WithAppKey("**"))
 		opts = append(opts, client.WithAppLabels(app.Labels))
 		opts = append(opts, client.WithAppUID(app.UID))
-		if conf.TempDir != "" {
-			tempDir = conf.TempDir
-		}
-		if err = pullAppFiles(ctx, bscp, tempDir, conf.Biz, app.Name, opts); err != nil {
+		if err = pullAppFiles(ctx, bscp, conf.TempDir, conf.Biz, app.Name, opts); err != nil {
 			cancel()
 			logger.Error("pull files failed", logger.ErrAttr(err))
 			os.Exit(1)
@@ -147,32 +140,35 @@ func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz u
 func init() {
 	// !important: promise of compatibility
 	PullCmd.Flags().SortFlags = false
-
-	PullCmd.Flags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
-		"feed server address, eg: 'bscp-feed.example.com:9510'")
-	PullCmd.Flags().IntVarP(&bizID, "biz", "b", 0, "biz id")
-	PullCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
-	PullCmd.Flags().StringVarP(&token, "token", "t", "", "sdk token")
-	PullCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	PullCmd.Flags().StringVarP(&labelsFilePath, "labels-file", "", "", "labels file path")
+	PullCmd.Flags().StringP("feed-addrs", "f", "", "feed server address, eg: 'bscp-feed.example.com:9510'")
+	bindPFlag(pullViper, "feed_addrs", PullCmd.Flags().Lookup("feed-addrs"))
+	PullCmd.Flags().IntP("biz", "b", 0, "biz id")
+	bindPFlag(pullViper, "biz", PullCmd.Flags().Lookup("biz"))
+	PullCmd.Flags().StringP("app", "a", "", "app name")
+	bindPFlag(pullViper, "app", PullCmd.Flags().Lookup("app"))
+	PullCmd.Flags().StringP("token", "t", "", "sdk token")
+	bindPFlag(pullViper, "token", PullCmd.Flags().Lookup("token"))
+	PullCmd.Flags().StringP("labels", "l", "", "labels")
+	bindPFlag(pullViper, "labels_str", PullCmd.Flags().Lookup("labels"))
+	PullCmd.Flags().StringP("labels-file", "", "", "labels file path")
+	bindPFlag(pullViper, "labels_file", PullCmd.Flags().Lookup("labels-file"))
 	// TODO: set client UID
-	PullCmd.Flags().StringVarP(&tempDir, "temp-dir", "d", "",
-		fmt.Sprintf("bscp temp dir, default: '%s'", constant.DefaultTempDir))
-	PullCmd.Flags().BoolVarP(fileCache.Enabled, "file-cache-enabled", "",
-		constant.DefaultFileCacheEnabled, "enable file cache or not")
-	PullCmd.Flags().StringVarP(&fileCache.CacheDir, "file-cache-dir", "",
-		constant.DefaultFileCacheDir, "bscp file cache dir")
-	PullCmd.Flags().Float64VarP(&fileCache.ThresholdGB, "cache-threshold-gb", "",
-		constant.DefaultCacheThresholdGB, "bscp file cache threshold gigabyte")
-	PullCmd.Flags().BoolVarP(&enableMonitorResourceUsage, "enable-resource", "e", true, "enable report resource usage")
+	PullCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
+	bindPFlag(pullViper, "temp_dir", PullCmd.Flags().Lookup("temp-dir"))
+	PullCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
+	bindPFlag(pullViper, "file_cache.enabled", PullCmd.Flags().Lookup("file-cache-enabled"))
+	PullCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")
+	bindPFlag(pullViper, "file_cache.cache_dir", PullCmd.Flags().Lookup("file-cache-dir"))
+	PullCmd.Flags().Float64P("cache-threshold-gb", "", constant.DefaultCacheThresholdGB,
+		"bscp file cache threshold gigabyte")
+	bindPFlag(pullViper, "file_cache.threshold_gb", PullCmd.Flags().Lookup("cache-threshold-gb"))
+	PullCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
+	bindPFlag(pullViper, "enable_resource", PullCmd.Flags().Lookup("enable-resource"))
 
-	for env, f := range commonEnvs {
-		flag := PullCmd.Flags().Lookup(f)
-		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
-		if value := os.Getenv(env); value != "" {
-			if err := flag.Value.Set(value); err != nil {
-				panic(err)
-			}
+	// bind env variable with viper
+	for key, envName := range commonEnvs {
+		if err := pullViper.BindEnv(key, envName); err != nil {
+			panic(err)
 		}
 	}
 }
