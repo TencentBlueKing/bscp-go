@@ -84,7 +84,7 @@ type ReloadMessage struct {
 	Error  error
 }
 
-// bindPFlag binds viper's a specific key to a pflag (as used by cobra)
+// mustBindPFlag binds viper's a specific key to a pflag (as used by cobra)
 func mustBindPFlag(v *viper.Viper, key string, flag *pflag.Flag) {
 	if err := v.BindPFlag(key, flag); err != nil {
 		panic(err)
