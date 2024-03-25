@@ -134,6 +134,10 @@ func Watch(cmd *cobra.Command, args []string) {
 		}
 	}()
 
+	serveHttp()
+}
+
+func serveHttp() {
 	// register metrics
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
