@@ -85,7 +85,7 @@ type ReloadMessage struct {
 }
 
 // bindPFlag binds viper's a specific key to a pflag (as used by cobra)
-func bindPFlag(v *viper.Viper, key string, flag *pflag.Flag) {
+func mustBindPFlag(v *viper.Viper, key string, flag *pflag.Flag) {
 	if err := v.BindPFlag(key, flag); err != nil {
 		panic(err)
 	}
@@ -114,7 +114,6 @@ func initConf(v *viper.Viper) error {
 
 func initFromConfFile(v *viper.Viper) error {
 	c := v.GetString("config_file")
-	fmt.Println("use config file:", c)
 	v.SetConfigFile(c)
 	// 固定 yaml 格式
 	v.SetConfigType("yaml")

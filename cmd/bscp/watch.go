@@ -56,6 +56,9 @@ func Watch(cmd *cobra.Command, args []string) {
 		logger.Error("init conf failed", logger.ErrAttr(err))
 		os.Exit(1)
 	}
+	if conf.ConfigFile != "" {
+		fmt.Println("use config file:", conf.ConfigFile)
+	}
 	if err := conf.Validate(); err != nil {
 		logger.Error("validate config failed", logger.ErrAttr(err))
 		os.Exit(1)
@@ -223,40 +226,46 @@ func init() {
 	WatchCmd.Flags().SortFlags = false
 
 	WatchCmd.Flags().StringP("feed-addrs", "f", "", "feed server address, eg: 'bscp-feed.example.com:9510'")
-	bindPFlag(watchViper, "feed_addrs", WatchCmd.Flags().Lookup("feed-addrs"))
+	mustBindPFlag(watchViper, "feed_addrs", WatchCmd.Flags().Lookup("feed-addrs"))
 	WatchCmd.Flags().IntP("biz", "b", 0, "biz id")
-	bindPFlag(watchViper, "biz", WatchCmd.Flags().Lookup("biz"))
+	mustBindPFlag(watchViper, "biz", WatchCmd.Flags().Lookup("biz"))
 	WatchCmd.Flags().StringP("app", "a", "", "app name")
-	bindPFlag(watchViper, "app", WatchCmd.Flags().Lookup("app"))
+	mustBindPFlag(watchViper, "app", WatchCmd.Flags().Lookup("app"))
 	WatchCmd.Flags().StringP("token", "t", "", "sdk token")
-	bindPFlag(watchViper, "token", WatchCmd.Flags().Lookup("token"))
+	mustBindPFlag(watchViper, "token", WatchCmd.Flags().Lookup("token"))
 	WatchCmd.Flags().StringP("labels", "l", "", "labels")
-	bindPFlag(watchViper, "labels_str", WatchCmd.Flags().Lookup("labels"))
+	mustBindPFlag(watchViper, "labels_str", WatchCmd.Flags().Lookup("labels"))
 	WatchCmd.Flags().StringP("labels-file", "", "", "labels file path")
-	bindPFlag(watchViper, "labels_file", WatchCmd.Flags().Lookup("labels-file"))
+	mustBindPFlag(watchViper, "labels_file", WatchCmd.Flags().Lookup("labels-file"))
 	// TODO: set client UID
 	WatchCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
-	bindPFlag(watchViper, "temp_dir", WatchCmd.Flags().Lookup("temp-dir"))
+	mustBindPFlag(watchViper, "temp_dir", WatchCmd.Flags().Lookup("temp-dir"))
 	WatchCmd.Flags().IntP("port", "p", constant.DefaultHttpPort, "sidecar http port")
 	WatchCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
-	bindPFlag(watchViper, "file_cache.enabled", WatchCmd.Flags().Lookup("file-cache-enabled"))
+	mustBindPFlag(watchViper, "file_cache.enabled", WatchCmd.Flags().Lookup("file-cache-enabled"))
 	WatchCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")
-	bindPFlag(watchViper, "file_cache.cache_dir", WatchCmd.Flags().Lookup("file-cache-dir"))
+	mustBindPFlag(watchViper, "file_cache.cache_dir", WatchCmd.Flags().Lookup("file-cache-dir"))
 	WatchCmd.Flags().Float64P("cache-threshold-gb", "", constant.DefaultCacheThresholdGB,
 		"bscp file cache threshold gigabyte")
-	bindPFlag(watchViper, "file_cache.threshold_gb", WatchCmd.Flags().Lookup("cache-threshold-gb"))
+	mustBindPFlag(watchViper, "file_cache.threshold_gb", WatchCmd.Flags().Lookup("cache-threshold-gb"))
 	WatchCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
-	bindPFlag(watchViper, "enable_resource", WatchCmd.Flags().Lookup("enable-resource"))
+	mustBindPFlag(watchViper, "enable_resource", WatchCmd.Flags().Lookup("enable-resource"))
 
-	// bind env variable with viper
+	envs := map[string]string{}
 	for key, envName := range commonEnvs {
+		envs[key] = envName
+	}
+	for key, envName := range watchEnvs {
+		envs[key] = envName
+	}
+	for key, envName := range envs {
+		// bind env variable with viper
 		if err := watchViper.BindEnv(key, envName); err != nil {
 			panic(err)
 		}
-	}
-	for key, envName := range watchEnvs {
-		if err := watchViper.BindEnv(key, envName); err != nil {
-			panic(err)
+		// add env info for cmdline flags
+		if f := WatchCmd.Flags().Lookup(strings.ReplaceAll(key, "_", "-")); f != nil {
+			f.Usage = fmt.Sprintf("%v [env %v]", f.Usage, envName)
 		}
 	}
 }

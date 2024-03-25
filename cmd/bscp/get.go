@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
@@ -91,12 +92,12 @@ func init() {
 	getCmd.PersistentFlags().IntP("biz", "b", 0, "biz id")
 	getCmd.PersistentFlags().StringP("token", "t", "", "sdk token")
 	for _, v := range getVipers {
-		bindPFlag(v, "feed_addrs", getCmd.PersistentFlags().Lookup("feed-addrs"))
-		bindPFlag(v, "biz", getCmd.PersistentFlags().Lookup("biz"))
-		bindPFlag(v, "token", getCmd.PersistentFlags().Lookup("token"))
+		mustBindPFlag(v, "feed_addrs", getCmd.PersistentFlags().Lookup("feed-addrs"))
+		mustBindPFlag(v, "biz", getCmd.PersistentFlags().Lookup("biz"))
+		mustBindPFlag(v, "token", getCmd.PersistentFlags().Lookup("token"))
 
-		// bind env variable with viper
 		for key, envName := range commonEnvs {
+			// bind env variable with viper
 			if err := v.BindEnv(key, envName); err != nil {
 				panic(err)
 			}
@@ -108,24 +109,37 @@ func init() {
 
 	// file 参数
 	getFileCmd.Flags().StringP("app", "a", "", "app name")
-	bindPFlag(getFileViper, "app", getFileCmd.Flags().Lookup("app"))
+	mustBindPFlag(getFileViper, "app", getFileCmd.Flags().Lookup("app"))
 	getFileCmd.Flags().StringP("labels", "l", "", "labels")
-	bindPFlag(getFileViper, "labels_str", getFileCmd.Flags().Lookup("labels"))
+	mustBindPFlag(getFileViper, "labels_str", getFileCmd.Flags().Lookup("labels"))
 	getFileCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
-	bindPFlag(getFileViper, "file_cache.enabled", getFileCmd.Flags().Lookup("file-cache-enabled"))
+	mustBindPFlag(getFileViper, "file_cache.enabled", getFileCmd.Flags().Lookup("file-cache-enabled"))
 	getFileCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")
-	bindPFlag(getFileViper, "file_cache.cache_dir", getFileCmd.Flags().Lookup("file-cache-dir"))
+	mustBindPFlag(getFileViper, "file_cache.cache_dir", getFileCmd.Flags().Lookup("file-cache-dir"))
 	getFileCmd.Flags().Float64P("cache-threshold-gb", "", constant.DefaultCacheThresholdGB,
 		"bscp file cache threshold gigabyte")
-	bindPFlag(getFileViper, "file_cache.threshold_gb", getFileCmd.Flags().Lookup("cache-threshold-gb"))
+	mustBindPFlag(getFileViper, "file_cache.threshold_gb", getFileCmd.Flags().Lookup("cache-threshold-gb"))
 	getFileCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|content")
 
 	// kv 参数
 	getKvCmd.Flags().StringP("app", "a", "", "app name")
-	bindPFlag(getKvViper, "app", getKvCmd.Flags().Lookup("app"))
+	mustBindPFlag(getKvViper, "app", getKvCmd.Flags().Lookup("app"))
 	getKvCmd.Flags().StringP("labels", "l", "", "labels")
-	bindPFlag(getKvViper, "labels_str", getKvCmd.Flags().Lookup("labels"))
+	mustBindPFlag(getKvViper, "labels_str", getKvCmd.Flags().Lookup("labels"))
 	getKvCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|value|value_json")
+
+	for key, envName := range commonEnvs {
+		// add env info for cmdline flags
+		if f := getCmd.PersistentFlags().Lookup(strings.ReplaceAll(key, "_", "-")); f != nil {
+			f.Usage = fmt.Sprintf("%v [env %v]", f.Usage, envName)
+		}
+		if f := getFileCmd.Flags().Lookup(strings.ReplaceAll(key, "_", "-")); f != nil {
+			f.Usage = fmt.Sprintf("%v [env %v]", f.Usage, envName)
+		}
+		if f := getKvCmd.Flags().Lookup(strings.ReplaceAll(key, "_", "-")); f != nil {
+			f.Usage = fmt.Sprintf("%v [env %v]", f.Usage, envName)
+		}
+	}
 }
 
 // runGetApp executes the get app command.

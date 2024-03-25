@@ -51,6 +51,9 @@ func Pull(cmd *cobra.Command, args []string) {
 		logger.Error("init conf failed", logger.ErrAttr(err))
 		os.Exit(1)
 	}
+	if conf.ConfigFile != "" {
+		fmt.Println("use config file:", conf.ConfigFile)
+	}
 	if err := conf.Validate(); err != nil {
 		logger.Error("validate config failed", logger.ErrAttr(err))
 		os.Exit(1)
@@ -141,34 +144,38 @@ func init() {
 	// !important: promise of compatibility
 	PullCmd.Flags().SortFlags = false
 	PullCmd.Flags().StringP("feed-addrs", "f", "", "feed server address, eg: 'bscp-feed.example.com:9510'")
-	bindPFlag(pullViper, "feed_addrs", PullCmd.Flags().Lookup("feed-addrs"))
+	mustBindPFlag(pullViper, "feed_addrs", PullCmd.Flags().Lookup("feed-addrs"))
 	PullCmd.Flags().IntP("biz", "b", 0, "biz id")
-	bindPFlag(pullViper, "biz", PullCmd.Flags().Lookup("biz"))
+	mustBindPFlag(pullViper, "biz", PullCmd.Flags().Lookup("biz"))
 	PullCmd.Flags().StringP("app", "a", "", "app name")
-	bindPFlag(pullViper, "app", PullCmd.Flags().Lookup("app"))
+	mustBindPFlag(pullViper, "app", PullCmd.Flags().Lookup("app"))
 	PullCmd.Flags().StringP("token", "t", "", "sdk token")
-	bindPFlag(pullViper, "token", PullCmd.Flags().Lookup("token"))
+	mustBindPFlag(pullViper, "token", PullCmd.Flags().Lookup("token"))
 	PullCmd.Flags().StringP("labels", "l", "", "labels")
-	bindPFlag(pullViper, "labels_str", PullCmd.Flags().Lookup("labels"))
+	mustBindPFlag(pullViper, "labels_str", PullCmd.Flags().Lookup("labels"))
 	PullCmd.Flags().StringP("labels-file", "", "", "labels file path")
-	bindPFlag(pullViper, "labels_file", PullCmd.Flags().Lookup("labels-file"))
+	mustBindPFlag(pullViper, "labels_file", PullCmd.Flags().Lookup("labels-file"))
 	// TODO: set client UID
 	PullCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
-	bindPFlag(pullViper, "temp_dir", PullCmd.Flags().Lookup("temp-dir"))
+	mustBindPFlag(pullViper, "temp_dir", PullCmd.Flags().Lookup("temp-dir"))
 	PullCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
-	bindPFlag(pullViper, "file_cache.enabled", PullCmd.Flags().Lookup("file-cache-enabled"))
+	mustBindPFlag(pullViper, "file_cache.enabled", PullCmd.Flags().Lookup("file-cache-enabled"))
 	PullCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")
-	bindPFlag(pullViper, "file_cache.cache_dir", PullCmd.Flags().Lookup("file-cache-dir"))
+	mustBindPFlag(pullViper, "file_cache.cache_dir", PullCmd.Flags().Lookup("file-cache-dir"))
 	PullCmd.Flags().Float64P("cache-threshold-gb", "", constant.DefaultCacheThresholdGB,
 		"bscp file cache threshold gigabyte")
-	bindPFlag(pullViper, "file_cache.threshold_gb", PullCmd.Flags().Lookup("cache-threshold-gb"))
+	mustBindPFlag(pullViper, "file_cache.threshold_gb", PullCmd.Flags().Lookup("cache-threshold-gb"))
 	PullCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
-	bindPFlag(pullViper, "enable_resource", PullCmd.Flags().Lookup("enable-resource"))
+	mustBindPFlag(pullViper, "enable_resource", PullCmd.Flags().Lookup("enable-resource"))
 
-	// bind env variable with viper
 	for key, envName := range commonEnvs {
+		// bind env variable with viper
 		if err := pullViper.BindEnv(key, envName); err != nil {
 			panic(err)
+		}
+		// add env info for cmdline flags
+		if f := PullCmd.Flags().Lookup(strings.ReplaceAll(key, "_", "-")); f != nil {
+			f.Usage = fmt.Sprintf("%v [env %v]", f.Usage, envName)
 		}
 	}
 }

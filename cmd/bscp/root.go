@@ -13,6 +13,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
@@ -58,12 +60,15 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(
 		&logLevel, "log-level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
 	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")
+	cfgFlag := rootCmd.PersistentFlags().Lookup("config")
+	// add env info for cmdline flags
+	cfgFlag.Usage = fmt.Sprintf("%v [env %v]", cfgFlag.Usage, rootEnvs["config_file"])
 
 	for _, v := range allVipers {
-		bindPFlag(v, "config_file", rootCmd.PersistentFlags().Lookup("config"))
+		mustBindPFlag(v, "config_file", cfgFlag)
 
-		// bind env variable with viper
 		for key, envName := range rootEnvs {
+			// bind env variable with viper
 			if err := v.BindEnv(key, envName); err != nil {
 				panic(err)
 			}
