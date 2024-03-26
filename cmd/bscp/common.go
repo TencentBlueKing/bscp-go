@@ -25,43 +25,38 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/fsnotify/fsnotify"
 	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/config"
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
 var (
-	feedAddrs      string
-	bizID          int
-	appName        string
-	labelsStr      string
-	labelsFilePath string
-	labels         map[string]string
-	uid            string
-	token          string
-	tempDir        string
-	validArgs      []string
-	conf           = new(config.ClientConfig)
-	// flag values
-	configPath string
-	port       int
-	fileCache  = &config.FileCacheConfig{
-		Enabled: new(bool),
-	}
-	enableMonitorResourceUsage bool
+	conf = new(config.ClientConfig)
+)
+
+var (
+	pullViper    = viper.New()
+	watchViper   = viper.New()
+	getAppViper  = viper.New()
+	getFileViper = viper.New()
+	getKvViper   = viper.New()
+
+	allVipers = []*viper.Viper{pullViper, watchViper, getAppViper, getFileViper, getKvViper}
+	getVipers = []*viper.Viper{getAppViper, getFileViper, getKvViper}
 )
 
 var (
 	// !important: promise of compatibility
-	// priority: Config File -> Command Options -> Environment Variables -> Defaults
+	// priority is same with viper: https://github.com/spf13/viper/blob/v1.18.2/viper.go#L146
+	// priority: Command Flags > Environment Variables > Config File > Defaults
 
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
-		"BSCP_CONFIG": "config",
+		"config_file": "BSCP_CONFIG",
 	}
 
 	// commonEnvs variable definition
@@ -69,10 +64,10 @@ var (
 		"biz":         "biz",
 		"app":         "app",
 		"labels":      "labels",
-		"labels_file": "labels-file",
-		"feed_addrs":  "feed-addrs",
+		"labels_file": "labels_file",
+		"feed_addrs":  "feed_addrs",
 		"token":       "token",
-		"temp_dir":    "temp-dir",
+		"temp_dir":    "temp_dir",
 	}
 
 	watchEnvs = map[string]string{
@@ -89,157 +84,87 @@ type ReloadMessage struct {
 	Error  error
 }
 
-// initBaseConf 只检查基础参数
-func initBaseConf() (*config.ClientConfig, error) {
-	baseConf := new(config.ClientConfig)
-
-	if configPath != "" {
-		v := viper.New()
-		v.SetConfigFile(configPath)
-		// 固定 yaml 格式
-		v.SetConfigType("yaml")
-		if err := v.ReadInConfig(); err != nil {
-			return nil, fmt.Errorf("read config file failed, err: %s", err.Error())
-		}
-		if err := v.Unmarshal(baseConf); err != nil {
-			return nil, fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
-		}
-		if err := baseConf.ValidateBase(); err != nil {
-			return nil, fmt.Errorf("validate config file failed, err: %s", err.Error())
-		}
-	} else {
-		if feedAddrs == "" {
-			return nil, fmt.Errorf("feed server address must not be empty")
-		}
-		baseConf.FeedAddrs = strings.Split(feedAddrs, ",")
-
-		if token == "" {
-			return nil, fmt.Errorf("token must not be empty")
-		}
-		baseConf.Token = token
-
-		if bizID <= 0 {
-			return nil, fmt.Errorf("biz id must be greater than 0")
-		}
-		baseConf.Biz = uint32(bizID)
+// mustBindPFlag binds viper's a specific key to a pflag (as used by cobra)
+func mustBindPFlag(v *viper.Viper, key string, flag *pflag.Flag) {
+	if err := v.BindPFlag(key, flag); err != nil {
+		panic(err)
 	}
-
-	// set and validate file cache config
-	if baseConf.FileCache == nil {
-		baseConf.FileCache = fileCache
-	}
-	if err := baseConf.FileCache.Validate(); err != nil {
-		return nil, err
-	}
-
-	return baseConf, nil
 }
 
-// initArgs init the common args
-func initArgs() error {
-
-	if configPath != "" {
-		if err := initFromConfig(); err != nil {
-			return err
-		}
-	} else {
-		if err := initFromCmdArgs(); err != nil {
+// initConf init the bscp client config
+func initConf(v *viper.Viper) error {
+	if v.GetString("config_file") != "" {
+		if err := initFromConfFile(v); err != nil {
 			return err
 		}
 	}
-	initLabelsFromEnv()
+
+	if err := v.Unmarshal(conf); err != nil {
+		return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
+	}
+
+	updateConfFeedAddrs()
+	updateConfApps()
+	if err := updateConfLabels(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func initFromConfig() error {
-	fmt.Println("use config file:", configPath)
-	v := viper.New()
-	v.SetConfigFile(configPath)
+func initFromConfFile(v *viper.Viper) error {
+	c := v.GetString("config_file")
+	v.SetConfigFile(c)
 	// 固定 yaml 格式
 	v.SetConfigType("yaml")
 	if err := v.ReadInConfig(); err != nil {
 		return fmt.Errorf("read config file failed, err: %s", err.Error())
 	}
-	if err := v.Unmarshal(conf); err != nil {
-		return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
-	}
-	if err := conf.Validate(); err != nil {
-		return fmt.Errorf("validate watch config failed, err: %s", err.Error())
-	}
 	return nil
 }
 
-func initFromCmdArgs() error {
-	fmt.Println("use command line args or environment variables")
-	if bizID <= 0 {
-		return fmt.Errorf("biz id must be greater than 0")
+func updateConfFeedAddrs() {
+	// priority: FeedAddrs > FeedAddr, it has already exposed cmd flags "--feed-addrs"
+	if len(conf.FeedAddrs) == 0 && conf.FeedAddr != "" {
+		conf.FeedAddrs = strings.Split(conf.FeedAddr, ",")
 	}
-	validArgs = append(validArgs, fmt.Sprintf("--biz=%d", bizID))
+}
 
-	if appName == "" {
-		return fmt.Errorf("app must not be empty")
+func updateConfApps() {
+	// priority: App > Apps, it has already exposed cmd flags "--app"
+	if conf.App != "" {
+		var apps []*config.AppConfig
+		for _, app := range strings.Split(conf.App, ",") {
+			apps = append(apps, &config.AppConfig{Name: strings.TrimSpace(app)})
+		}
+		conf.Apps = apps
 	}
-	validArgs = append(validArgs, fmt.Sprintf("--app=%s", appName))
+}
 
+func updateConfLabels() error {
 	// labels is optional, if labels is not set, instance would match default group's release
-	if labelsStr != "" {
-		if json.Unmarshal([]byte(labelsStr), &labels) != nil {
+	if conf.LabelsStr != "" {
+		labels := make(map[string]string)
+		if json.Unmarshal([]byte(conf.LabelsStr), &labels) != nil {
 			return fmt.Errorf("labels is not a valid json string")
 		}
-		validArgs = append(validArgs, fmt.Sprintf("--labels=%s", labelsStr))
+		conf.Labels = util.MergeLabels(conf.Labels, labels)
 	}
 
-	if feedAddrs == "" {
-		return fmt.Errorf("feed server address must not be empty")
-	}
-	validArgs = append(validArgs, fmt.Sprintf("--feed-addrs=%s", feedAddrs))
+	updateLabelsFromEnv()
 
-	if token == "" {
-		return fmt.Errorf("token must not be empty")
-	}
-	validArgs = append(validArgs, fmt.Sprintf("--token=%s", "***"))
-
-	if tempDir == "" {
-		tempDir = constant.DefaultTempDir
-	}
-	validArgs = append(validArgs, fmt.Sprintf("--temp-dir=%s", tempDir))
-
-	if labelsFilePath != "" {
-		validArgs = append(validArgs, fmt.Sprintf("--labels-file=%s", labelsFilePath))
+	if conf.LabelsFile != "" {
+		labels, err := readLabelsFile(conf.LabelsFile)
+		if err != nil {
+			return fmt.Errorf("read labels file failed, err: %s", err)
+		}
+		conf.Labels = util.MergeLabels(conf.Labels, labels)
 	}
 
-	validArgs = append(validArgs, fmt.Sprintf("--port=%d", port))
-
-	if err := fileCache.Validate(); err != nil {
-		return err
-	}
-	validArgs = append(validArgs,
-		fmt.Sprintf("--file-cache-enabled=%t --file-cache-dir=%s --cache-threshold-gb=%f",
-			*fileCache.Enabled, fileCache.CacheDir, fileCache.ThresholdGB))
-
-	fmt.Println("args:", strings.Join(validArgs, " "))
-
-	// construct config
-	conf.Biz = uint32(bizID)
-	conf.FeedAddrs = strings.Split(feedAddrs, ",")
-	conf.Token = token
-	conf.Labels = labels
-	conf.UID = uid
-	conf.TempDir = tempDir
-	conf.LabelsFile = labelsFilePath
-	conf.Port = port
-	conf.FileCache = fileCache
-	conf.EnableMonitorResourceUsage = enableMonitorResourceUsage
-
-	apps := []*config.AppConfig{}
-	for _, app := range strings.Split(appName, ",") {
-		apps = append(apps, &config.AppConfig{Name: strings.TrimSpace(app)})
-	}
-	conf.Apps = apps
 	return nil
 }
 
-func initLabelsFromEnv() {
+func updateLabelsFromEnv() {
 	envLabels := make(map[string]string)
 	// get multi labels from environment variables
 	envs := os.Environ()

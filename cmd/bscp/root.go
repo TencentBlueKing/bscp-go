@@ -14,7 +14,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -60,13 +59,17 @@ func init() {
 	rootCmd.AddCommand(VersionCmd)
 	rootCmd.PersistentFlags().StringVarP(
 		&logLevel, "log-level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file path")
+	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")
+	cfgFlag := rootCmd.PersistentFlags().Lookup("config")
+	// add env info for cmdline flags
+	cfgFlag.Usage = fmt.Sprintf("%v [env %v]", cfgFlag.Usage, rootEnvs["config_file"])
 
-	for env, f := range rootEnvs {
-		flag := rootCmd.PersistentFlags().Lookup(f)
-		flag.Usage = fmt.Sprintf("%v [env %v]", flag.Usage, env)
-		if value := os.Getenv(env); value != "" {
-			if err := flag.Value.Set(value); err != nil {
+	for _, v := range allVipers {
+		mustBindPFlag(v, "config_file", cfgFlag)
+
+		for key, envName := range rootEnvs {
+			// bind env variable with viper
+			if err := v.BindEnv(key, envName); err != nil {
 				panic(err)
 			}
 		}

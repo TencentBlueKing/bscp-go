@@ -14,10 +14,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
@@ -54,13 +54,6 @@ var (
 			level := logger.GetLevelByName(logLevel)
 			logger.SetLevel(level)
 
-			// 校验&反序列化 labels
-			if labelsStr != "" {
-				if err := json.Unmarshal([]byte(labelsStr), &labels); err != nil {
-					return fmt.Errorf("invalid labels: %w", err)
-				}
-			}
-
 			return nil
 		},
 	}
@@ -95,42 +88,75 @@ var (
 
 func init() {
 	// 公共参数
-	getCmd.PersistentFlags().StringVarP(&feedAddrs, "feed-addrs", "f", "",
-		"feed server address, eg: 'bscp-feed.example.com:9510'")
-	getCmd.PersistentFlags().IntVarP(&bizID, "biz", "b", 0, "biz id")
-	getCmd.PersistentFlags().StringVarP(&token, "token", "t", "", "sdk token")
+	getCmd.PersistentFlags().StringP("feed-addrs", "f", "", "feed server address, eg: 'bscp-feed.example.com:9510'")
+	getCmd.PersistentFlags().IntP("biz", "b", 0, "biz id")
+	getCmd.PersistentFlags().StringP("token", "t", "", "sdk token")
+	for _, v := range getVipers {
+		mustBindPFlag(v, "feed_addrs", getCmd.PersistentFlags().Lookup("feed-addrs"))
+		mustBindPFlag(v, "biz", getCmd.PersistentFlags().Lookup("biz"))
+		mustBindPFlag(v, "token", getCmd.PersistentFlags().Lookup("token"))
+
+		for key, envName := range commonEnvs {
+			// bind env variable with viper
+			if err := v.BindEnv(key, envName); err != nil {
+				panic(err)
+			}
+		}
+	}
 
 	// app 参数
-	getAppCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json")
+	getAppCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json")
 
 	// file 参数
-	getFileCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
-	getFileCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	getFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|content")
-	getFileCmd.Flags().BoolVarP(fileCache.Enabled, "file-cache-enabled", "",
-		constant.DefaultFileCacheEnabled, "enable file cache or not")
-	getFileCmd.Flags().StringVarP(&fileCache.CacheDir, "file-cache-dir", "",
-		constant.DefaultFileCacheDir, "bscp file cache dir")
-	getFileCmd.Flags().Float64VarP(&fileCache.ThresholdGB, "cache-threshold-gb", "",
-		constant.DefaultCacheThresholdGB, "bscp file cache threshold gigabyte")
+	getFileCmd.Flags().StringP("app", "a", "", "app name")
+	mustBindPFlag(getFileViper, "app", getFileCmd.Flags().Lookup("app"))
+	getFileCmd.Flags().StringP("labels", "l", "", "labels")
+	mustBindPFlag(getFileViper, "labels_str", getFileCmd.Flags().Lookup("labels"))
+	getFileCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
+	mustBindPFlag(getFileViper, "file_cache.enabled", getFileCmd.Flags().Lookup("file-cache-enabled"))
+	getFileCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")
+	mustBindPFlag(getFileViper, "file_cache.cache_dir", getFileCmd.Flags().Lookup("file-cache-dir"))
+	getFileCmd.Flags().Float64P("cache-threshold-gb", "", constant.DefaultCacheThresholdGB,
+		"bscp file cache threshold gigabyte")
+	mustBindPFlag(getFileViper, "file_cache.threshold_gb", getFileCmd.Flags().Lookup("cache-threshold-gb"))
+	getFileCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|content")
 
 	// kv 参数
-	getKvCmd.Flags().StringVarP(&appName, "app", "a", "", "app name")
-	getKvCmd.Flags().StringVarP(&labelsStr, "labels", "l", "", "labels")
-	getKvCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|value|value_json")
+	getKvCmd.Flags().StringP("app", "a", "", "app name")
+	mustBindPFlag(getKvViper, "app", getKvCmd.Flags().Lookup("app"))
+	getKvCmd.Flags().StringP("labels", "l", "", "labels")
+	mustBindPFlag(getKvViper, "labels_str", getKvCmd.Flags().Lookup("labels"))
+	getKvCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|value|value_json")
+
+	for key, envName := range commonEnvs {
+		// add env info for cmdline flags
+		if f := getCmd.PersistentFlags().Lookup(strings.ReplaceAll(key, "_", "-")); f != nil {
+			f.Usage = fmt.Sprintf("%v [env %v]", f.Usage, envName)
+		}
+		if f := getFileCmd.Flags().Lookup(strings.ReplaceAll(key, "_", "-")); f != nil {
+			f.Usage = fmt.Sprintf("%v [env %v]", f.Usage, envName)
+		}
+		if f := getKvCmd.Flags().Lookup(strings.ReplaceAll(key, "_", "-")); f != nil {
+			f.Usage = fmt.Sprintf("%v [env %v]", f.Usage, envName)
+		}
+	}
 }
 
 // runGetApp executes the get app command.
 func runGetApp(args []string) error {
-	baseConf, err := initBaseConf()
-	if err != nil {
-		return err
+	if err := initConf(getAppViper); err != nil {
+		logger.Error("init conf failed", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+	if err := conf.ValidateBase(); err != nil {
+		logger.Error("validate base config failed", logger.ErrAttr(err))
+		os.Exit(1)
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(baseConf.GetFeedAddrs()),
-		client.WithBizID(baseConf.Biz),
-		client.WithToken(baseConf.Token),
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
 	)
 
 	if err != nil {
@@ -175,7 +201,7 @@ func runGetFileList(bscp client.Client, app string, match []string) error {
 	if len(match) > 0 {
 		opts = append(opts, client.WithAppKey(match[0]))
 	}
-	opts = append(opts, client.WithAppLabels(labels))
+	opts = append(opts, client.WithAppLabels(conf.Labels))
 
 	release, err := bscp.PullFiles(app, opts...)
 	if err != nil {
@@ -212,7 +238,7 @@ func runGetFileList(bscp client.Client, app string, match []string) error {
 }
 
 func runGetFileContents(bscp client.Client, app string, contentIDs []string) error {
-	release, err := bscp.PullFiles(app, client.WithAppLabels(labels))
+	release, err := bscp.PullFiles(app, client.WithAppLabels(conf.Labels))
 	if err != nil {
 		return err
 	}
@@ -280,23 +306,27 @@ func getfileContents(files []*client.ConfigItemFile) ([][]byte, error) {
 
 // runGetFile executes the get file command.
 func runGetFile(args []string) error {
-	baseConf, err := initBaseConf()
-	if err != nil {
-		return err
+	if err := initConf(getFileViper); err != nil {
+		logger.Error("init conf failed", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+	if err := conf.ValidateBase(); err != nil {
+		logger.Error("validate base config failed", logger.ErrAttr(err))
+		os.Exit(1)
 	}
 
-	if appName == "" {
+	if conf.App == "" {
 		return fmt.Errorf("app must not be empty")
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(baseConf.GetFeedAddrs()),
-		client.WithBizID(baseConf.Biz),
-		client.WithToken(baseConf.Token),
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
 		client.WithFileCache(client.FileCache{
-			Enabled:     *baseConf.FileCache.Enabled,
-			CacheDir:    baseConf.FileCache.CacheDir,
-			ThresholdGB: baseConf.FileCache.ThresholdGB,
+			Enabled:     conf.FileCache.Enabled,
+			CacheDir:    conf.FileCache.CacheDir,
+			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
 	)
 
@@ -305,14 +335,14 @@ func runGetFile(args []string) error {
 	}
 
 	if outputFormat == outputFormatContent {
-		return runGetFileContents(bscp, appName, args)
+		return runGetFileContents(bscp, conf.App, args)
 	}
 
-	return runGetFileList(bscp, appName, args)
+	return runGetFileList(bscp, conf.App, args)
 }
 
 func runGetKvList(bscp client.Client, app string, match []string) error {
-	release, err := bscp.PullKvs(app, match, client.WithAppLabels(labels))
+	release, err := bscp.PullKvs(app, match, client.WithAppLabels(conf.Labels))
 	if err != nil {
 		return err
 	}
@@ -347,7 +377,7 @@ func runGetKvList(bscp client.Client, app string, match []string) error {
 }
 
 func runGetKvValue(bscp client.Client, app, key string) error {
-	value, err := bscp.Get(app, key, client.WithAppLabels(labels))
+	value, err := bscp.Get(app, key, client.WithAppLabels(conf.Labels))
 	if err != nil {
 		return err
 	}
@@ -357,7 +387,7 @@ func runGetKvValue(bscp client.Client, app, key string) error {
 }
 
 func runGetKvValues(bscp client.Client, app string, keys []string) error {
-	release, err := bscp.PullKvs(app, []string{}, client.WithAppLabels(labels))
+	release, err := bscp.PullKvs(app, []string{}, client.WithAppLabels(conf.Labels))
 	if err != nil {
 		return err
 	}
@@ -399,7 +429,7 @@ func getKvValues(bscp client.Client, app string, keys []string) ([]string, error
 	for i, k := range keys {
 		idx, key := i, k
 		g.Go(func() error {
-			value, err := bscp.Get(app, key, client.WithAppLabels(labels))
+			value, err := bscp.Get(app, key, client.WithAppLabels(conf.Labels))
 			if err != nil {
 				return err
 			}
@@ -413,19 +443,23 @@ func getKvValues(bscp client.Client, app string, keys []string) ([]string, error
 
 // runGetKv executes the get kv command.
 func runGetKv(args []string) error {
-	baseConf, err := initBaseConf()
-	if err != nil {
-		return err
+	if err := initConf(getKvViper); err != nil {
+		logger.Error("init conf failed", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+	if err := conf.ValidateBase(); err != nil {
+		logger.Error("validate base config failed", logger.ErrAttr(err))
+		os.Exit(1)
 	}
 
-	if appName == "" {
+	if conf.App == "" {
 		return fmt.Errorf("app must not be empty")
 	}
 
 	bscp, err := client.New(
-		client.WithFeedAddrs(baseConf.GetFeedAddrs()),
-		client.WithBizID(baseConf.Biz),
-		client.WithToken(baseConf.Token),
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
 	)
 
 	if err != nil {
@@ -440,10 +474,10 @@ func runGetKv(args []string) error {
 		if len(args) > 1 {
 			return fmt.Errorf("multiple res are not supported")
 		}
-		return runGetKvValue(bscp, appName, args[0])
+		return runGetKvValue(bscp, conf.App, args[0])
 	case outputFormatValueJson:
-		return runGetKvValues(bscp, appName, args)
+		return runGetKvValues(bscp, conf.App, args)
 	default:
-		return runGetKvList(bscp, appName, args)
+		return runGetKvList(bscp, conf.App, args)
 	}
 }
