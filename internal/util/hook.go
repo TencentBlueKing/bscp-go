@@ -59,7 +59,8 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 
 	hookPath, err := saveContentToFile(appTempDir, hook, hookType, hookEnvs)
 	if err != nil {
-		logger.Error("save hook content to file failed", logger.ErrAttr(err))
+		logger.Error("save hook content to file failed", logger.BizIDAttr(biz), logger.AppNameAttr(app),
+			logger.ErrAttr(err))
 		return err
 	}
 	var command string
@@ -79,7 +80,8 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	if err != nil {
 		return fmt.Errorf("exec %s error: %s, output: %s", hookType.String(), err.Error(), string(out))
 	}
-	logger.Info("exec hook success", slog.String("script", hookType.String()), slog.String("output", string(out)))
+	logger.Info("exec hook success", logger.BizIDAttr(biz), logger.AppNameAttr(app), slog.String("script",
+		hookType.String()), slog.String("output", string(out)))
 	return nil
 }
 

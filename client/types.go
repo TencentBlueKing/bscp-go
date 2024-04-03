@@ -80,7 +80,10 @@ type ConfigItemFile struct {
 func (c *ConfigItemFile) GetContent() ([]byte, error) {
 	if cache.Enable {
 		if hit, bytes := cache.GetCache().GetFileContent(c.FileMeta); hit {
-			logger.Info("get file content from cache success", slog.String("file", path.Join(c.Path, c.Name)))
+			logger.Debug("get file content from cache success",
+				logger.BizIDAttr(c.FileMeta.ConfigItemAttachment.BizId),
+				logger.AppIDAttr(c.FileMeta.ConfigItemAttachment.AppId),
+				slog.String("file", path.Join(c.Path, c.Name)))
 			return bytes, nil
 		}
 	}
@@ -90,7 +93,10 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 		c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToBytes, bytes, ""); err != nil {
 		return nil, fmt.Errorf("download file failed, err: %s", err.Error())
 	}
-	logger.Info("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
+	logger.Debug("get file content by downloading from repo success",
+		logger.BizIDAttr(c.FileMeta.ConfigItemAttachment.BizId),
+		logger.AppIDAttr(c.FileMeta.ConfigItemAttachment.AppId),
+		slog.String("file", path.Join(c.Path, c.Name)))
 	return bytes, nil
 }
 
@@ -98,7 +104,10 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 func (c *ConfigItemFile) SaveToFile(dst string) error {
 	// 1. check if cache hit, copy from cache
 	if cache.Enable && cache.GetCache().CopyToFile(c.FileMeta, dst) {
-		logger.Info("copy file from cache success", slog.String("dst", dst))
+		logger.Debug("copy file from cache success",
+			logger.BizIDAttr(c.FileMeta.ConfigItemAttachment.BizId),
+			logger.AppIDAttr(c.FileMeta.ConfigItemAttachment.AppId),
+			slog.String("dst", dst))
 	} else {
 		// 2. if cache not hit, download file from remote
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
@@ -250,7 +259,7 @@ func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
 	}
 
 	if sha != ci.ContentSpec.Signature {
-		logger.Info("configuration item's SHA256 is not match, need to update",
+		logger.Debug("configuration item's SHA256 is not match, need to update",
 			slog.String("localHash", sha), slog.String("remoteHash", ci.ContentSpec.Signature))
 		return false, nil
 	}
@@ -510,12 +519,15 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 					return fmt.Errorf("download file failed, err: %s", err.Error())
 				}
 			} else {
-				logger.Info("file is already exists and has not been modified, skip download", slog.String("file", filePath))
+				logger.Debug("file is already exists and has not been modified, skip download", slog.String("file",
+					filePath))
 			}
 			// 3. set file permission
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
 				logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
 			}
+			logger.Info("download/update file success", logger.BizIDAttr(file.FileMeta.ConfigItemAttachment.BizId),
+				logger.AppIDAttr(file.FileMeta.ConfigItemAttachment.AppId), slog.String("file", filePath))
 			atomic.AddInt32(successDownloads, 1)
 			atomic.AddUint64(successFileSize, file.FileMeta.ContentSpec.ByteSize)
 			semaphoreCh <- struct{}{}

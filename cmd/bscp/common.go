@@ -199,7 +199,8 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 		for {
 			select {
 			case <-ctx.Done():
-				logger.Info("watch labels file stoped because of ctx done", slog.String("file", path), logger.ErrAttr(ctx.Err()))
+				logger.Info("watch labels file stopped because of ctx done", slog.String("file", path),
+					logger.ErrAttr(ctx.Err()))
 				if err := watcher.Close(); err != nil {
 					logger.Warn("close watcher failed", logger.ErrAttr(err))
 				}

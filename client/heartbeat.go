@@ -100,7 +100,8 @@ func (w *watcher) loopHeartbeat() error { // nolint
 					w.NotifyReconnect(reconnectSignal{Reason: "stream heartbeat failed"})
 					return
 				}
-				logger.Debug("stream heartbeat successfully", slog.String("rid", w.vas.Rid))
+				logger.Debug("stream heartbeat successfully", slog.String("rid", w.vas.Rid),
+					slog.String("payload", string(payload)))
 			}
 		}
 	}()
