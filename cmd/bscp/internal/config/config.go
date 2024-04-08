@@ -59,7 +59,7 @@ type ClientConfig struct {
 // String get config string
 func (c *ClientConfig) String() string {
 	conf := *c
-	conf.Token = "invisible"
+	conf.Token = "******"
 	cb, _ := json.Marshal(conf)
 	return string(cb)
 }
