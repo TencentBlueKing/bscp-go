@@ -14,6 +14,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 
 	// for unmarshal yaml config file
@@ -53,6 +54,14 @@ type ClientConfig struct {
 	FileCache *FileCacheConfig `json:"file_cache" mapstructure:"file_cache"`
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
 	EnableMonitorResourceUsage bool `json:"enable_resource" mapstructure:"enable_resource"`
+}
+
+// String get config string
+func (c *ClientConfig) String() string {
+	conf := *c
+	conf.Token = "******"
+	cb, _ := json.Marshal(conf)
+	return string(cb)
 }
 
 // ValidateBase validate the watch config

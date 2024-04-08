@@ -59,11 +59,11 @@ var (
 		"config_file": "BSCP_CONFIG",
 	}
 
-	// commonEnvs variable definition
+	// commonEnvs variable definition, viper key => envName
 	commonEnvs = map[string]string{
 		"biz":         "biz",
 		"app":         "app",
-		"labels":      "labels",
+		"labels_str":  "labels",
 		"labels_file": "labels_file",
 		"feed_addrs":  "feed_addrs",
 		"token":       "token",
@@ -109,6 +109,7 @@ func initConf(v *viper.Viper) error {
 		return err
 	}
 
+	logger.Debug("init conf", slog.String("conf", conf.String()))
 	return nil
 }
 
