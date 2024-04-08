@@ -56,6 +56,7 @@ type ClientConfig struct {
 	EnableMonitorResourceUsage bool `json:"enable_resource" mapstructure:"enable_resource"`
 }
 
+// String get config string
 func (c *ClientConfig) String() string {
 	conf := *c
 	conf.Token = "invisible"
