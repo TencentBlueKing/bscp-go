@@ -65,6 +65,10 @@ func Pull(cmd *cobra.Command, args []string) {
 		client.WithToken(conf.Token),
 		client.WithLabels(conf.Labels),
 		client.WithUID(conf.UID),
+		client.WithBkAgentID(conf.BkAgentID),
+		client.WithClusterID(conf.ClusterID),
+		client.WithPodID(conf.PodID),
+		client.WithContainerName(conf.ContainerName),
 		client.WithFileCache(client.FileCache{
 			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,
@@ -158,6 +162,14 @@ func init() {
 	// TODO: set client UID
 	PullCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
 	mustBindPFlag(pullViper, "temp_dir", PullCmd.Flags().Lookup("temp-dir"))
+	PullCmd.Flags().StringP("bk-agent-id", "", "", "bk agent id")
+	mustBindPFlag(pullViper, "bk_agent_id", PullCmd.Flags().Lookup("bk-agent-id"))
+	PullCmd.Flags().StringP("cluster-id", "", "", "cluster id")
+	mustBindPFlag(pullViper, "cluster_id", PullCmd.Flags().Lookup("cluster-id"))
+	PullCmd.Flags().StringP("pod-id", "", "", "pod id")
+	mustBindPFlag(pullViper, "pod_id", PullCmd.Flags().Lookup("pod-id"))
+	PullCmd.Flags().StringP("container-name", "", "", "container name")
+	mustBindPFlag(pullViper, "container_name", PullCmd.Flags().Lookup("container-name"))
 	PullCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
 	mustBindPFlag(pullViper, "file_cache.enabled", PullCmd.Flags().Lookup("file-cache-enabled"))
 	PullCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")

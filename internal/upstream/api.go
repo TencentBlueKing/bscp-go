@@ -120,3 +120,19 @@ func (uc *upstreamClient) ListApps(vas *kit.Vas, req *pbfs.ListAppsReq) (*pbfs.L
 
 	return uc.client.ListApps(vas.Ctx, req)
 }
+
+func (uc *upstreamClient) AsyncDownload(vas *kit.Vas, req *pbfs.AsyncDownloadReq) (*pbfs.AsyncDownloadResp, error) {
+	if err := uc.wait.WaitWithContext(vas.Ctx); err != nil {
+		return nil, err
+	}
+
+	return uc.client.AsyncDownload(vas.Ctx, req)
+}
+func (uc *upstreamClient) AsyncDownloadStatus(vas *kit.Vas, req *pbfs.AsyncDownloadStatusReq) (
+	*pbfs.AsyncDownloadStatusResp, error) {
+	if err := uc.wait.WaitWithContext(vas.Ctx); err != nil {
+		return nil, err
+	}
+
+	return uc.client.AsyncDownloadStatus(vas.Ctx, req)
+}

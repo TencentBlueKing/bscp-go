@@ -51,6 +51,8 @@ type Upstream interface {
 	GetDownloadURL(vas *kit.Vas, req *pbfs.GetDownloadURLReq) (*pbfs.GetDownloadURLResp, error)
 	Version() *pbbase.Versioning
 	ListApps(vas *kit.Vas, req *pbfs.ListAppsReq) (*pbfs.ListAppsResp, error)
+	AsyncDownload(vas *kit.Vas, req *pbfs.AsyncDownloadReq) (*pbfs.AsyncDownloadResp, error)
+	AsyncDownloadStatus(vas *kit.Vas, req *pbfs.AsyncDownloadStatusReq) (*pbfs.AsyncDownloadStatusResp, error)
 }
 
 // New create a rolling client instance.

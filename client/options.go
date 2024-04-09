@@ -28,6 +28,14 @@ type options struct {
 	dialTimeoutMS int64
 	// Token sdk token
 	token string
+	// bkAgentID bk gse agent id
+	bkAgentID string
+	// clusterID bcs cluster id
+	clusterID string
+	// podID id of the pod where the bscp container resides
+	podID string
+	// containerName bscp container name
+	containerName string
 	// fileCache file cache option
 	fileCache FileCache
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
@@ -104,6 +112,38 @@ func WithUID(uid string) Option {
 func WithToken(token string) Option {
 	return func(o *options) error {
 		o.token = token
+		return nil
+	}
+}
+
+// WithBkAgentID set bk gse agent id
+func WithBkAgentID(agentID string) Option {
+	return func(o *options) error {
+		o.bkAgentID = agentID
+		return nil
+	}
+}
+
+// WithClusterID set bcs cluster id
+func WithClusterID(clusterID string) Option {
+	return func(o *options) error {
+		o.clusterID = clusterID
+		return nil
+	}
+}
+
+// WithPodID set pod id where the bscp container resides
+func WithPodID(podID string) Option {
+	return func(o *options) error {
+		o.podID = podID
+		return nil
+	}
+}
+
+// WithContainerName set container name of the bscp container
+func WithContainerName(name string) Option {
+	return func(o *options) error {
+		o.containerName = name
 		return nil
 	}
 }
