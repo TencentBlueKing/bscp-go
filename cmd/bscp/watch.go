@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
@@ -86,6 +87,10 @@ func Watch(cmd *cobra.Command, args []string) {
 		client.WithToken(conf.Token),
 		client.WithLabels(confLabels),
 		client.WithUID(conf.UID),
+		client.WithBkAgentID(conf.BkAgentID),
+		client.WithClusterID(conf.ClusterID),
+		client.WithPodID(conf.PodID),
+		client.WithContainerName(conf.ContainerName),
 		client.WithFileCache(client.FileCache{
 			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,
@@ -114,6 +119,12 @@ func Watch(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 	}
+
+	if conf.BkAgentID != "" || (conf.ClusterID != "" && conf.PodID != "" && conf.ContainerName != "") {
+		// enable gse p2p download, wait for container to report itself's containerID to bcs storage
+		time.Sleep(5 * time.Second)
+	}
+	
 	if e := bscp.StartWatch(); e != nil {
 		logger.Error("start watch", logger.ErrAttr(e))
 		os.Exit(1)
@@ -245,6 +256,15 @@ func init() {
 	WatchCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
 	mustBindPFlag(watchViper, "temp_dir", WatchCmd.Flags().Lookup("temp-dir"))
 	WatchCmd.Flags().IntP("port", "p", constant.DefaultHttpPort, "sidecar http port")
+	mustBindPFlag(watchViper, "port", WatchCmd.Flags().Lookup("port"))
+	WatchCmd.Flags().StringP("bk-agent-id", "", "", "bk agent id")
+	mustBindPFlag(watchViper, "bk_agent_id", WatchCmd.Flags().Lookup("bk-agent-id"))
+	WatchCmd.Flags().StringP("cluster-id", "", "", "cluster id")
+	mustBindPFlag(watchViper, "cluster_id", WatchCmd.Flags().Lookup("cluster-id"))
+	WatchCmd.Flags().StringP("pod-id", "", "", "pod id")
+	mustBindPFlag(watchViper, "pod_id", WatchCmd.Flags().Lookup("pod-id"))
+	WatchCmd.Flags().StringP("container-name", "", "", "container name")
+	mustBindPFlag(watchViper, "container_name", WatchCmd.Flags().Lookup("container-name"))
 	WatchCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
 	mustBindPFlag(watchViper, "file_cache.enabled", WatchCmd.Flags().Lookup("file-cache-enabled"))
 	WatchCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")

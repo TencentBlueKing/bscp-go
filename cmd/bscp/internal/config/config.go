@@ -50,6 +50,14 @@ type ClientConfig struct {
 	LabelsFile string `json:"labels_file" mapstructure:"labels_file"`
 	// Port sidecar http server port
 	Port int `json:"port" mapstructure:"port"`
+	// BkAgentID bk gse agent id
+	BkAgentID string `json:"bk_agent_id" mapstructure:"bk_agent_id"`
+	// ClusterID bcs cluster id
+	ClusterID string `json:"cluster_id" mapstructure:"cluster_id"`
+	// PodID id of the pod where the bscp container resides
+	PodID string `json:"pod_id" mapstructure:"pod_id"`
+	// ContainerName bscp container name
+	ContainerName string `json:"container_name" mapstructure:"container_name"`
 	// FileCache file cache config
 	FileCache *FileCacheConfig `json:"file_cache" mapstructure:"file_cache"`
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
