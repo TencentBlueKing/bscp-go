@@ -33,7 +33,6 @@ const (
 )
 
 func main() {
-
 	args := os.Args
 	var isVersion bool
 

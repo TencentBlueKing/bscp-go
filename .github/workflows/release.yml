@@ -7,7 +7,7 @@ on:
       - created
 
 jobs:
-  release:
+  release-cli:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -41,4 +41,22 @@ jobs:
           build_command: make build GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION=${{ github.event.release.tag_name }}
           extra_files: LICENSE.txt readme.md readme_en.md bin/${{ matrix.bin_name }}
           asset_name: bscp-${{ github.event.release.tag_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          md5sum: false
+
+  release-gsePlugin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v3
+
+      - name: release gse plugin
+        uses: wangyoucao577/go-release-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goversion: 1.20.4
+          goos: linux
+          goarch: amd64
+          build_command: make build GOOS=linux GOARCH=amd64 VERSION=${{ github.event.release.tag_name }}
+          extra_files: LICENSE.txt readme.md readme_en.md bin/bkbscp
+          asset_name: bscp-${{ github.event.release.tag_name }}-gsePlugin
           md5sum: false
