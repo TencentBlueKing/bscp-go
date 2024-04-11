@@ -20,6 +20,9 @@ else ifeq ($(shell echo ${ENV_BK_BSCP_VERSION} | egrep "^v1\.[0-9]+\.[0-9]+"),)
 	VERSION=v1.0.0-devops-${ENV_BK_BSCP_VERSION}
 endif
 
+# 语义化版本, 使用 sed 去掉版本前缀v
+SEM_VERSION = $(shell echo $(VERSION) | sed 's/^v//')
+
 export LDVersionFLAG = -X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.VERSION=${VERSION} \
     	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
     	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.GITHASH=${GITHASH} \
@@ -50,12 +53,11 @@ build_docker: build_initContainer build_sidecar
 # 语义化版本, 使用 sed 去掉版本前缀v
 .PHONY: build_gsePlugin
 build_gsePlugin: build
-	@echo Building gsePlugin version: $(VERSION)
+	@echo "Building gsePlugin version: ${SEM_VERSION}"
 	rm -rf build/gsePlugin/bkbscp/plugins_linux_x86_64
 	mkdir -p "build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/etc" "build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin"
 	cp bin/bkbscp build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin
-	VERSION=`echo $(VERSION) | sed 's/^v//'` \
-		envsubst < build/gsePlugin/project.yaml > build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/project.yaml
+	sed 's/__VERSION__/$(SEM_VERSION)/' build/gsePlugin/project.yaml > build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/project.yaml
 	cp build/gsePlugin/etc/bkbscp.conf.tpl build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/etc/bkbscp.conf.tpl
 	cd build/gsePlugin/bkbscp && tar -zcf ../bkbscp.tar.gz .
 

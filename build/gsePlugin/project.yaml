@@ -1,5 +1,5 @@
 name: bkbscp
-version: "${VERSION}"
+version: "__VERSION__"
 description: bscp 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，配置热更新，执行前后置脚本的官方命令行工具
 scenario: bscp 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，配置热更新，执行前后置脚本的官方命令行工具
 category: official
@@ -10,9 +10,9 @@ launch_node: proxy
 is_binary: true
 use_db: false
 config_templates:
-  - plugin_version: "${VERSION}"
+  - plugin_version: "__VERSION__"
     name: bkbscp.conf
-    version: "${VERSION}"
+    version: "__VERSION__"
     file_path: etc
     format: yaml
     is_main_config: 1
