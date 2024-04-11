@@ -3,7 +3,6 @@ module github.com/TencentBlueKing/bscp-go
 go 1.20
 
 require (
-	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20240304061708-905ae275ccd1
 	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240312090747-8a1cd1c172cc
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/dustin/go-humanize v1.0.1
@@ -22,8 +21,8 @@ require (
 )
 
 require (
+	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20240304061708-905ae275ccd1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
