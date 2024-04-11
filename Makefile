@@ -47,10 +47,15 @@ build_docker: build_initContainer build_sidecar
 	cd build/initContainer && docker build . -t bscp-init
 	cd build/sidecar && docker build . -t bscp-sidecar
 
+# 语义化版本, 使用 sed 去掉版本前缀v
 .PHONY: build_gsePlugin
 build_gsePlugin: build
+	@echo Building gsePlugin version: $(VERSION)
+	rm -rf build/gsePlugin/bkbscp/plugins_linux_x86_64
 	mkdir -p "build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/etc" "build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin"
-	cp build/gsePlugin/project.yaml build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/project.yaml
+	cp bin/bkbscp build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin
+	VERSION=`echo $(VERSION) | sed 's/^v//'` \
+		envsubst < build/gsePlugin/project.yaml > build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/project.yaml
 	cp build/gsePlugin/etc/bkbscp.conf.tpl build/gsePlugin/bkbscp/plugins_linux_x86_64/bkbscp/etc/bkbscp.conf.tpl
 	cd build/gsePlugin/bkbscp && tar -zcf ../bkbscp.tar.gz .
 
