@@ -15,7 +15,6 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -25,14 +24,15 @@ import (
 
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/config"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
