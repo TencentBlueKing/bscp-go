@@ -53,6 +53,10 @@ config_templates:
                       title: value
                       type: string
                       required: false
+        feedAddr:
+          title: 服务feed-server地址
+          type: string
+          required: true
         服务密钥:
           title: 服务密钥
           type: string
