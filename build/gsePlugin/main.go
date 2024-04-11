@@ -39,13 +39,15 @@ const (
 	// pluginName represents the name of the plugin
 	pluginName = "bkbscp"
 	// configPath represents the path to the configuration files
-	configPath = "../etc/"
+	configPathPrefix = "../etc/"
+	logPath          = "../logs/bkbscp/bkbscp.log"
 	// pidPath represents the path to the process identification (PID) file
 	pidPath = "/var/run/gse"
 )
 
 var (
 	logLevel   string
+	configPath string
 	conf       = new(config.ClientConfig)
 	watchViper = viper.New()
 	rootCmd    = &cobra.Command{
@@ -221,7 +223,7 @@ func init() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	rootCmd.PersistentFlags().StringVarP(
+		&configPath, "config", "c", "../etc/bkbscp.conf", "config file path")
+	rootCmd.PersistentFlags().StringVarP(
 		&logLevel, "log-level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
-	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")
-
 }
