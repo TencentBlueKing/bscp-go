@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/config"
+	"github.com/TencentBlueKing/bscp-go/internal/config"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
