@@ -15,6 +15,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -28,6 +29,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/config"
@@ -36,17 +38,15 @@ import (
 )
 
 const (
-	// pluginName represents the name of the plugin
-	pluginName = "bkbscp"
-	// configPath represents the path to the configuration files
-	configPathPrefix = "../etc/"
-	logPath          = "../logs/bkbscp/bkbscp.log"
-	// pidPath represents the path to the process identification (PID) file
-	pidPath = "/var/run/gse"
+	defaultConfigPath    = "../etc/bkbscp.conf"
+	defaultPidPath       = "/var/run/gse"
+	defaultLogPath       = "../logs/bkbscp/bkbscp.log"
+	defaultLogMaxSize    = 500 // megabytes
+	defaultLogMaxBackups = 3
+	defaultLogMaxAge     = 15 // days
 )
 
 var (
-	logLevel   string
 	configPath string
 	conf       = new(config.ClientConfig)
 	watchViper = viper.New()
@@ -54,18 +54,23 @@ var (
 		Use:   "bkbscp",
 		Short: "bkbscp is a bscp command line tool for gse plugin",
 		Long:  `bkbscp is a bscp command line tool for gse plugin`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// 设置日志等级
-			level := logger.GetLevelByName(logLevel)
-			logger.SetLevel(level)
-
-			return nil
-		},
-		Run: Watch,
+		Run:   Watch,
 	}
 )
 
 func main() {
+	r := &lumberjack.Logger{
+		Filename:   defaultLogPath,
+		MaxSize:    defaultLogMaxSize,
+		MaxBackups: defaultLogMaxBackups,
+		MaxAge:     defaultLogMaxAge,
+	}
+	defer r.Close() // nolint
+
+	// 同时打印标准输出和日志文件
+	w := io.MultiWriter(os.Stdout, r)
+	setLogger(w)
+
 	cobra.CheckErr(rootCmd.Execute())
 }
 
@@ -216,7 +221,15 @@ func init() {
 	rootCmd.SetVersionTemplate(`{{println .Version}}`)
 
 	rootCmd.PersistentFlags().StringVarP(
-		&configPath, "config", "c", "../etc/bkbscp.conf", "config file path")
-	rootCmd.PersistentFlags().StringVarP(
-		&logLevel, "log-level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
+		&configPath, "config", "c", defaultConfigPath, "config file path")
+}
+
+func setLogger(w io.Writer) {
+	textHandler := slog.NewTextHandler(w, &slog.HandlerOptions{
+		AddSource:   false,
+		Level:       slog.LevelInfo,
+		ReplaceAttr: logger.ReplaceSourceAttr,
+	})
+
+	logger.SetHandler(textHandler)
 }
