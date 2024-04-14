@@ -162,13 +162,19 @@ func serveHttp() {
 	http.Handle("/metrics", promhttp.Handler())
 
 	if err := util.EnsureDir(filepath.Dir(deafultUnitSocketPath)); err != nil {
-		logger.Error("create dir error", logger.ErrAttr(err))
+		logger.Error("create dir failed", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
 	listen, err := net.Listen("unix", deafultUnitSocketPath)
 	if err != nil {
 		logger.Error("start http server failed", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+
+	pid := os.Getpid()
+	if err := os.WriteFile(defaultPidPath, []byte(strconv.Itoa(pid)), 0664); err != nil {
+		logger.Error("write to pid failed", logger.ErrAttr(err))
 		os.Exit(1)
 	}
 
