@@ -222,6 +222,10 @@ func init() {
 	rootCmd.SilenceErrors = true
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
+	// 添加版本
+	rootCmd.Version = version.FormatVersion("", version.Row)
+	rootCmd.SetVersionTemplate(`{{println .Version}}`)
+
 	rootCmd.PersistentFlags().StringVarP(
 		&configPath, "config", "c", "../etc/bkbscp.conf", "config file path")
 	rootCmd.PersistentFlags().StringVarP(
