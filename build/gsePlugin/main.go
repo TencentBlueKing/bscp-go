@@ -16,9 +16,11 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,17 +35,19 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/config"
+	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
 
 const (
-	defaultConfigPath    = "../etc/bkbscp.conf"
-	defaultPidPath       = "/var/run/gse"
-	defaultLogPath       = "../logs/bkbscp/bkbscp.log"
-	defaultLogMaxSize    = 500 // megabytes
-	defaultLogMaxBackups = 3
-	defaultLogMaxAge     = 15 // days
+	defaultConfigPath     = "../etc/bkbscp.conf"
+	defaultPidPath        = "../run/bkbscp.pid"
+	deafultUnitSocketPath = "../run/bkbscp.sock"
+	defaultLogPath        = "../logs/bkbscp/bkbscp.log"
+	defaultLogMaxSize     = 500 // megabytes
+	defaultLogMaxBackups  = 3
+	defaultLogMaxAge      = 15 // days
 )
 
 var (
@@ -156,7 +160,19 @@ func serveHttp() {
 	// register metrics
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
-	if e := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil); e != nil {
+
+	if err := util.EnsureDir(filepath.Dir(deafultUnitSocketPath)); err != nil {
+		logger.Error("create dir error", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+
+	listen, err := net.Listen("unix", deafultUnitSocketPath)
+	if err != nil {
+		logger.Error("start http server failed", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+
+	if e := http.Serve(listen, nil); e != nil {
 		logger.Error("start http server failed", logger.ErrAttr(e))
 		os.Exit(1)
 	}

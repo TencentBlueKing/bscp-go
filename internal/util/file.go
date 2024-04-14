@@ -14,6 +14,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -61,6 +62,23 @@ func SetFilePermission(filePath string, pm *pbci.FilePermission) error {
 
 	if err := file.Chown(uid, gid); err != nil {
 		return fmt.Errorf("file chown %s %s failed, err: %v", ur.Uid, gp.Gid, err)
+	}
+
+	return nil
+}
+
+// EnsureDir autocreate dir
+func EnsureDir(dirName string) error {
+	info, err := os.Stat(dirName)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return os.MkdirAll(dirName, os.ModeDir)
+		}
+		return err
+	}
+
+	if !info.IsDir() {
+		return errors.New("path exists but is not a directory")
 	}
 
 	return nil
