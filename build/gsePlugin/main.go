@@ -71,10 +71,12 @@ func main() {
 
 // initConf init the bscp client config
 func initConf(v *viper.Viper) error {
-	if v.GetString("config_file") != "" {
-		if err := initFromConfFile(v); err != nil {
-			return err
-		}
+	v.SetConfigFile(configPath)
+
+	// 固定 yaml 格式
+	v.SetConfigType("yaml")
+	if err := v.ReadInConfig(); err != nil {
+		return fmt.Errorf("read config file failed, err: %s", err.Error())
 	}
 
 	if err := v.Unmarshal(conf); err != nil {
@@ -82,17 +84,6 @@ func initConf(v *viper.Viper) error {
 	}
 
 	logger.Debug("init conf", slog.String("conf", conf.String()))
-	return nil
-}
-
-func initFromConfFile(v *viper.Viper) error {
-	c := v.GetString("config_file")
-	v.SetConfigFile(c)
-	// 固定 yaml 格式
-	v.SetConfigType("yaml")
-	if err := v.ReadInConfig(); err != nil {
-		return fmt.Errorf("read config file failed, err: %s", err.Error())
-	}
 	return nil
 }
 
@@ -113,13 +104,11 @@ func Watch(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	confLabels := conf.Labels
-
 	bscp, err := client.New(
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
-		client.WithLabels(confLabels),
+		client.WithLabels(conf.Labels),
 		client.WithUID(conf.UID),
 		client.WithFileCache(client.FileCache{
 			Enabled:     conf.FileCache.Enabled,
