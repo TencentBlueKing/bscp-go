@@ -50,7 +50,6 @@ build_docker: build_initContainer build_sidecar
 	cd build/initContainer && docker build . -t bscp-init
 	cd build/sidecar && docker build . -t bscp-sidecar
 
-# 语义化版本, 使用 sed 去掉版本前缀v
 .PHONY: build_gsePlugin
 build_gsePlugin: build
 	@echo "Building gsePlugin version: ${SEM_VERSION}"

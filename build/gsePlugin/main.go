@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-// program nodeman defines the bscp node manager plugin main entry.
+// program gsePlugin defines the bscp plugin main entry.
 package main
 
 import (
@@ -155,7 +155,7 @@ func Watch(cmd *cobra.Command, args []string) {
 	serveHttp()
 }
 
-// serveHttp gse插件绑定到本地的 sock 文件
+// serveHttp gse插件绑定到本地的 sock/pid 文件
 func serveHttp() {
 	// register metrics
 	metrics.RegisterMetrics()
@@ -246,6 +246,7 @@ func init() {
 		&configPath, "config", "c", defaultConfigPath, "config file path")
 }
 
+// setLogger 自定义日志
 func setLogger(w io.Writer) {
 	textHandler := slog.NewTextHandler(w, &slog.HandlerOptions{
 		AddSource:   false,
