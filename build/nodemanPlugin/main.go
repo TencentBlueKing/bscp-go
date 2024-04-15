@@ -56,8 +56,8 @@ var (
 	watchViper = viper.New()
 	rootCmd    = &cobra.Command{
 		Use:   "bkbscp",
-		Short: "bkbscp is a bscp command line tool for nodeman plugin",
-		Long:  `bkbscp is a bscp command line tool for nodeman plugin`,
+		Short: "bkbscp is a bscp nodeman plugin",
+		Long:  `bkbscp is a bscp nodeman plugin`,
 		Run:   Watch,
 	}
 )
