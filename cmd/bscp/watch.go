@@ -110,8 +110,7 @@ func Watch(cmd *cobra.Command, args []string) {
 			bscp:       bscp,
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
-			logger.Error("add watch", logger.BizIDAttr(conf.Biz), logger.AppNameAttr(subscriber.Name),
-				logger.ErrAttr(err))
+			logger.Error("add watch", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	}

@@ -88,8 +88,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		opts = append(opts, client.WithAppUID(app.UID))
 		if err = pullAppFiles(ctx, bscp, conf.TempDir, conf.Biz, app.Name, opts); err != nil {
 			cancel()
-			logger.Error("pull files failed", logger.BizIDAttr(conf.Biz), logger.AppNameAttr(app.Name),
-				logger.ErrAttr(err))
+			logger.Error("pull files failed", logger.ErrAttr(err))
 			os.Exit(1)
 		}
 	}
@@ -137,8 +136,7 @@ func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz u
 		release.ExecuteHook(&client.PostScriptStrategy{}), release.UpdateMetadata()); err != nil {
 		return err
 	}
-	logger.Info("pull files success", logger.BizIDAttr(biz), logger.AppNameAttr(app),
-		slog.Any("releaseID", release.ReleaseID))
+	logger.Info("pull files success", slog.Any("releaseID", release.ReleaseID))
 	return nil
 }
 

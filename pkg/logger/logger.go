@@ -138,21 +138,6 @@ func ErrAttr(err error) slog.Attr {
 	return slog.String("err", err.Error())
 }
 
-// BizIDAttr return bizID attr
-func BizIDAttr(bizID uint32) slog.Attr {
-	return slog.Uint64("bizID", uint64(bizID))
-}
-
-// AppIDAttr return appID attr
-func AppIDAttr(appID uint32) slog.Attr {
-	return slog.Uint64("appID", uint64(appID))
-}
-
-// AppNameAttr return app name attr
-func AppNameAttr(appName string) slog.Attr {
-	return slog.String("app", appName)
-}
-
 // ReplaceSourceAttr source 格式化为 dir/file:line 格式
 func ReplaceSourceAttr(groups []string, a slog.Attr) slog.Attr {
 	if a.Key != slog.SourceKey {
