@@ -56,8 +56,8 @@ var (
 	watchViper = viper.New()
 	rootCmd    = &cobra.Command{
 		Use:   "bkbscp",
-		Short: "bkbscp is a bscp command line tool for gse plugin",
-		Long:  `bkbscp is a bscp command line tool for gse plugin`,
+		Short: "bkbscp is a bscp command line tool for nodeman plugin",
+		Long:  `bkbscp is a bscp command line tool for nodeman plugin`,
 		Run:   Watch,
 	}
 )
@@ -155,7 +155,7 @@ func Watch(cmd *cobra.Command, args []string) {
 	serveHttp()
 }
 
-// serveHttp gse插件绑定到本地的 sock/pid 文件
+// serveHttp nodeman插件绑定到本地的 sock/pid 文件
 func serveHttp() {
 	// register metrics
 	metrics.RegisterMetrics()
