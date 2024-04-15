@@ -41,6 +41,7 @@ const (
 )
 
 var (
+	// getCmd is parent cmd for other sub cmds
 	getCmd = &cobra.Command{
 		Use:   "get",
 		Short: "Display app, file or kv resources",
@@ -58,6 +59,7 @@ var (
 		},
 	}
 
+	// getAppCmd is get cmd for app
 	getAppCmd = &cobra.Command{
 		Use:   "app [res...]",
 		Short: "Display app resources",
@@ -67,6 +69,7 @@ var (
 		},
 	}
 
+	// getFileCmd is get cmd for file
 	getFileCmd = &cobra.Command{
 		Use:   "file [res...]",
 		Short: "Display file resources",
@@ -76,6 +79,7 @@ var (
 		},
 	}
 
+	// getKvCmd is get cmd for kv
 	getKvCmd = &cobra.Command{
 		Use:   "kv [res...]",
 		Short: "Display kv resources",
@@ -196,6 +200,7 @@ func runGetApp(args []string) error {
 	}
 }
 
+// runGetFileList gets file list
 func runGetFileList(bscp client.Client, app string, match []string) error {
 	var opts []client.AppOption
 	if len(match) > 0 {
@@ -237,6 +242,7 @@ func runGetFileList(bscp client.Client, app string, match []string) error {
 	}
 }
 
+// runGetFileContents gets file contents
 func runGetFileContents(bscp client.Client, app string, contentIDs []string) error {
 	release, err := bscp.PullFiles(app, client.WithAppLabels(conf.Labels))
 	if err != nil {
@@ -341,6 +347,7 @@ func runGetFile(args []string) error {
 	return runGetFileList(bscp, conf.App, args)
 }
 
+// runGetKvList gets kv list
 func runGetKvList(bscp client.Client, app string, match []string) error {
 	release, err := bscp.PullKvs(app, match, client.WithAppLabels(conf.Labels))
 	if err != nil {
@@ -376,6 +383,7 @@ func runGetKvList(bscp client.Client, app string, match []string) error {
 	}
 }
 
+// runGetKvValue gets single kv value
 func runGetKvValue(bscp client.Client, app, key string) error {
 	value, err := bscp.Get(app, key, client.WithAppLabels(conf.Labels))
 	if err != nil {
@@ -386,6 +394,7 @@ func runGetKvValue(bscp client.Client, app, key string) error {
 	return err
 }
 
+// runGetKvValues gets kv values
 func runGetKvValues(bscp client.Client, app string, keys []string) error {
 	release, err := bscp.PullKvs(app, []string{}, client.WithAppLabels(conf.Labels))
 	if err != nil {
