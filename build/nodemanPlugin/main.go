@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-// program gsePlugin defines the bscp plugin main entry.
+// program nodemanPlugin defines the bscp plugin main entry.
 package main
 
 import (
