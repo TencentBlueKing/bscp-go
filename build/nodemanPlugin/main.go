@@ -182,14 +182,13 @@ func serveHttp() error {
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 
-	unitSocketPath := filepath.Join(conf.LogPath, unitSocketFile)
-
-	if err := os.MkdirAll(filepath.Dir(unitSocketPath), os.ModeDir); err != nil {
-		logger.Error("create dir failed", logger.ErrAttr(err))
+	if err := os.MkdirAll(conf.LogPath, os.ModeDir); err != nil {
+		logger.Error("create log dir failed", logger.ErrAttr(err))
 		return err
 	}
 
 	// 强制清理老的sock文件
+	unitSocketPath := filepath.Join(conf.LogPath, unitSocketFile)
 	_ = os.Remove(unitSocketPath)
 	listen, err := net.Listen("unix", unitSocketPath)
 	if err != nil {
@@ -197,7 +196,12 @@ func serveHttp() error {
 		return err
 	}
 
-	pidPath := filepath.Join(conf.LogPath, pidFile)
+	if e := os.MkdirAll(conf.PidPath, os.ModeDir); e != nil {
+		logger.Error("create pid dir failed", logger.ErrAttr(e))
+		return e
+	}
+
+	pidPath := filepath.Join(conf.PidPath, pidFile)
 	pid := os.Getpid()
 	if e := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); e != nil {
 		logger.Error("write to pid failed", logger.ErrAttr(e))
