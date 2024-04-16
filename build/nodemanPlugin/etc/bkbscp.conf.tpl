@@ -1,3 +1,8 @@
+# 插件全局配置
+path.logs: /var/log/gse
+path.data: /var/lib/gse
+path.pid: /var/run/gse
+
 # 业务id
 biz: {{ 业务ID }}
 apps: {% for app in 服务 %}
@@ -14,4 +19,4 @@ temp_dir: {{ 临时目录 }}
 {% endif %}
 
 feed_addrs:
-  - {{ feedAddr }}
+  - {{ Feed服务地址 }}

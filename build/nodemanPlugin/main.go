@@ -40,40 +40,36 @@ import (
 )
 
 const (
-	defaultConfigPath     = "../etc/bkbscp.conf"
-	defaultPidPath        = "../run/bkbscp.pid"
-	deafultUnitSocketPath = "../run/bkbscp.sock"
-	defaultLogPath        = "../logs/bkbscp/bkbscp.log"
-	defaultLogMaxSize     = 500 // megabytes
-	defaultLogMaxBackups  = 3
-	defaultLogMaxAge      = 15 // days
+	defaultConfigPath    = "../etc/bkbscp.conf"
+	pidFile              = "bkbscp.pid"
+	unitSocketFile       = "bkbscp.sock"
+	logFile              = "bkbscp/bkbscp.log"
+	defaultLogMaxSize    = 500 // megabytes
+	defaultLogMaxBackups = 3
+	defaultLogMaxAge     = 15 // days
 )
+
+// ClientConfig 新增插件自定义配置
+type ClientConfig struct {
+	config.ClientConfig `json:",inline" mapstructure:",squash"`
+	LogPath             string `json:"path.logs" mapstructure:"path.logs"`
+	DataPath            string `json:"path.data" mapstructure:"path.data"`
+	PidPath             string `json:"path.pid" mapstructure:"path.pid"`
+}
 
 var (
 	configPath string
-	conf       = new(config.ClientConfig)
+	conf       = new(ClientConfig)
 	watchViper = viper.New()
 	rootCmd    = &cobra.Command{
 		Use:   "bkbscp",
 		Short: "bkbscp is a bscp nodeman plugin",
 		Long:  `bkbscp is a bscp nodeman plugin`,
-		Run:   Watch,
+		RunE:  Watch,
 	}
 )
 
 func main() {
-	r := &lumberjack.Logger{
-		Filename:   defaultLogPath,
-		MaxSize:    defaultLogMaxSize,
-		MaxBackups: defaultLogMaxBackups,
-		MaxAge:     defaultLogMaxAge,
-	}
-	defer r.Close() // nolint
-
-	// 同时打印标准输出和日志文件
-	w := io.MultiWriter(os.Stdout, r)
-	setLogger(w)
-
 	cobra.CheckErr(rootCmd.Execute())
 }
 
@@ -92,25 +88,32 @@ func initConf(v *viper.Viper) error {
 	}
 
 	logger.Debug("init conf", slog.String("conf", conf.String()))
+
+	if err := conf.Validate(); err != nil {
+		logger.Error("validate config failed", logger.ErrAttr(err))
+		return err
+	}
 	return nil
 }
 
 // Watch run as a daemon to watch the config changes.
-func Watch(cmd *cobra.Command, args []string) {
+func Watch(cmd *cobra.Command, args []string) error {
+	r := &lumberjack.Logger{
+		Filename:   filepath.Join(conf.LogPath, logFile),
+		MaxSize:    defaultLogMaxSize,
+		MaxBackups: defaultLogMaxBackups,
+		MaxAge:     defaultLogMaxAge,
+	}
+	defer r.Close() // nolint
+
+	// 同时打印标准输出和日志文件
+	w := io.MultiWriter(os.Stdout, r)
+	setLogger(w)
+
 	// print bscp banner
 	fmt.Println(strings.TrimSpace(version.GetStartInfo()))
 
-	if err := initConf(watchViper); err != nil {
-		logger.Error("init conf failed", logger.ErrAttr(err))
-		os.Exit(1)
-	}
-	if conf.ConfigFile != "" {
-		fmt.Println("use config file:", conf.ConfigFile)
-	}
-	if err := conf.Validate(); err != nil {
-		logger.Error("validate config failed", logger.ErrAttr(err))
-		os.Exit(1)
-	}
+	logger.Info("use config file", "path", watchViper.ConfigFileUsed())
 
 	bscp, err := client.New(
 		client.WithFeedAddrs(conf.FeedAddrs),
@@ -127,7 +130,7 @@ func Watch(cmd *cobra.Command, args []string) {
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
-		os.Exit(1)
+		return err
 	}
 
 	for _, subscriber := range conf.Apps {
@@ -141,48 +144,54 @@ func Watch(cmd *cobra.Command, args []string) {
 			AppTempDir: path.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
 			bscp:       bscp,
 		}
-		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
-			logger.Error("add watch", logger.ErrAttr(err))
-			os.Exit(1)
+		if e := bscp.AddWatcher(
+			handler.watchCallback, handler.App, handler.getSubscribeOptions()...); e != nil {
+			logger.Error("add watch", logger.ErrAttr(e))
+			return e
 		}
 	}
 	if e := bscp.StartWatch(); e != nil {
 		logger.Error("start watch", logger.ErrAttr(e))
-		os.Exit(1)
+		return err
 	}
 
-	serveHttp()
+	return serveHttp()
 }
 
 // serveHttp nodeman插件绑定到本地的 sock/pid 文件
-func serveHttp() {
+func serveHttp() error {
 	// register metrics
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 
-	if err := os.MkdirAll(filepath.Dir(deafultUnitSocketPath), os.ModeDir); err != nil {
+	unitSocketPath := filepath.Join(conf.LogPath, unitSocketFile)
+
+	if err := os.MkdirAll(filepath.Dir(unitSocketPath), os.ModeDir); err != nil {
 		logger.Error("create dir failed", logger.ErrAttr(err))
-		os.Exit(1)
+		return err
 	}
 
 	// 强制清理老的sock文件
-	_ = os.Remove(deafultUnitSocketPath)
-	listen, err := net.Listen("unix", deafultUnitSocketPath)
+	_ = os.Remove(unitSocketPath)
+	listen, err := net.Listen("unix", unitSocketPath)
 	if err != nil {
 		logger.Error("start http server failed", logger.ErrAttr(err))
-		os.Exit(1)
+		return err
 	}
 
+	pidPath := filepath.Join(conf.LogPath, pidFile)
 	pid := os.Getpid()
-	if err := os.WriteFile(defaultPidPath, []byte(strconv.Itoa(pid)), 0664); err != nil {
-		logger.Error("write to pid failed", logger.ErrAttr(err))
-		os.Exit(1)
+	if e := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); e != nil {
+		logger.Error("write to pid failed", logger.ErrAttr(e))
+		return err
 	}
 
 	if e := http.Serve(listen, nil); e != nil {
 		logger.Error("start http server failed", logger.ErrAttr(e))
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }
 
 // WatchHandler watch handler
@@ -232,6 +241,10 @@ func (w *WatchHandler) getSubscribeOptions() []client.AppOption {
 }
 
 func init() {
+	cobra.OnInitialize(func() {
+		cobra.CheckErr(initConf(watchViper))
+	})
+
 	// 不开启 自动排序
 	cobra.EnableCommandSorting = false
 	// 不开启 completion 子命令
