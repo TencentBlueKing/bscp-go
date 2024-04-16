@@ -251,9 +251,8 @@ func ensurePid() error {
 	pidPath := filepath.Join(conf.PidPath, pidFile)
 
 	process, err := getProcess(pidPath)
-
 	if err != nil {
-		logger.Error("create pid dir failed", logger.ErrAttr(err))
+		logger.Error("get pid failed", logger.ErrAttr(err))
 		return err
 	}
 	if process != nil {
@@ -292,9 +291,7 @@ type WatchHandler struct {
 
 func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 	w.Lock.Lock()
-	defer func() {
-		w.Lock.Unlock()
-	}()
+	defer w.Lock.Unlock()
 
 	release.AppDir = w.AppTempDir
 	release.TempDir = w.TempDir
@@ -305,7 +302,6 @@ func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 		release.ExecuteHook(&client.PostScriptStrategy{}), release.UpdateMetadata()); err != nil {
 		return err
 	}
-	// TODO: 6.2 call the callback notify api
 	logger.Info("watch release change success", slog.Any("currentReleaseID", release.ReleaseID))
 	return nil
 }
