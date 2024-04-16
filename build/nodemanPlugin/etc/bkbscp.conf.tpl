@@ -1,7 +1,7 @@
 # 插件全局配置
-path.logs: /var/log/gse
-path.data: /var/lib/gse
-path.pid: /var/run/gse
+path.pid: "{{ plugin_path.pid_path }}"
+path.logs: "{{ plugin_path.log_path }}"
+path.data: "{{ plugin_path.data_path }}"
 
 # 业务id
 biz: {{ 业务ID }}
