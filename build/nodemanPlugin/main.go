@@ -14,6 +14,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -28,6 +29,7 @@ import (
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
@@ -88,7 +90,11 @@ var (
 )
 
 func main() {
-	cobra.CheckErr(rootCmd.Execute())
+	err := rootCmd.Execute()
+	if err != nil {
+		logger.Error("start bkbscp failed", logger.ErrAttr(err))
+		os.Exit(1)
+	}
 }
 
 // initConf init the bscp client config
@@ -183,7 +189,6 @@ func serveHttp() error {
 	http.Handle("/metrics", promhttp.Handler())
 
 	if err := ensurePid(); err != nil {
-		fmt.Println("eleijaomin123")
 		return err
 	}
 
@@ -201,8 +206,6 @@ func serveHttp() error {
 		return err
 	}
 
-	fmt.Println("eleijaomin12311")
-
 	if e := http.Serve(listen, nil); e != nil {
 		logger.Error("start http server failed", logger.ErrAttr(e))
 		return err
@@ -211,7 +214,7 @@ func serveHttp() error {
 	return nil
 }
 
-func getProcess(pidPath string) (*os.Process, error) {
+func getProcess(pidPath string) (*process.Process, error) {
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -226,7 +229,16 @@ func getProcess(pidPath string) (*os.Process, error) {
 		return nil, fmt.Errorf("parsing PID from %s failed, err: %w", pidStr, err)
 	}
 
-	return os.FindProcess(pid)
+	p, err := process.NewProcess(int32(pid))
+	if err != nil {
+		if errors.Is(err, process.ErrorProcessNotRunning) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return p, nil
 }
 
 // ensurePid 检查pid文件，如果里面的进程存活, 退出启动; 如果不存在，覆盖写入
@@ -240,13 +252,11 @@ func ensurePid() error {
 
 	process, err := getProcess(pidPath)
 
-	fmt.Println("leijiaomin", process, process != nil, err)
 	if err != nil {
 		logger.Error("create pid dir failed", logger.ErrAttr(err))
 		return err
 	}
 	if process != nil {
-		fmt.Println("lei1")
 		return fmt.Errorf("pid %d still alive, stop first", process.Pid)
 	}
 
