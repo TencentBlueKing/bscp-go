@@ -43,7 +43,7 @@ const (
 	defaultConfigPath    = "../etc/bkbscp.conf"
 	pidFile              = "bkbscp.pid"
 	unitSocketFile       = "bkbscp.sock"
-	logFile              = "bkbscp/bkbscp.log"
+	logFile              = "bkbscp.log"
 	defaultLogMaxSize    = 500 // megabytes
 	defaultLogMaxBackups = 3
 	defaultLogMaxAge     = 15 // days
@@ -188,7 +188,7 @@ func serveHttp() error {
 	}
 
 	// 强制清理老的sock文件
-	unitSocketPath := filepath.Join(conf.LogPath, unitSocketFile)
+	unitSocketPath := filepath.Join(conf.PidPath, unitSocketFile)
 	_ = os.Remove(unitSocketPath)
 	listen, err := net.Listen("unix", unitSocketPath)
 	if err != nil {
