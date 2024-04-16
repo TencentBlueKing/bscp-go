@@ -211,7 +211,7 @@ func serveHttp() error {
 	return nil
 }
 
-func getProcess(pidPath string) error {
+func checkProcess(pidPath string) error {
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -241,17 +241,17 @@ func getProcess(pidPath string) error {
 // ensurePid 检查pid文件，如果里面的进程存活, 退出启动; 如果不存在，覆盖写入
 func ensurePid() error {
 	if err := os.MkdirAll(conf.PidPath, os.ModeDir); err != nil {
-		return fmt.Errorf("create pid dir %w", err)
+		return fmt.Errorf("create pid dir: %w", err)
 	}
 
 	pidPath := filepath.Join(conf.PidPath, pidFile)
-	if err := getProcess(pidPath); err != nil {
-		return err
+	if err := checkProcess(pidPath); err != nil {
+		return fmt.Errorf("check pid: %w", err)
 	}
 
 	pid := os.Getpid()
 	if e := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); e != nil {
-		return fmt.Errorf("write to pid %w", e)
+		return fmt.Errorf("write to pid: %w", e)
 	}
 
 	logger.Info("write to pid success", "path", pidPath, "pid", pid)
