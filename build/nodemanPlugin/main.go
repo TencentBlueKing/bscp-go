@@ -182,6 +182,11 @@ func serveHttp() error {
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 
+	if err := ensurePid(); err != nil {
+		fmt.Println("eleijaomin123")
+		return err
+	}
+
 	if err := os.MkdirAll(conf.LogPath, os.ModeDir); err != nil {
 		logger.Error("create log dir failed", logger.ErrAttr(err))
 		return err
@@ -196,22 +201,62 @@ func serveHttp() error {
 		return err
 	}
 
+	fmt.Println("eleijaomin12311")
+
+	if e := http.Serve(listen, nil); e != nil {
+		logger.Error("start http server failed", logger.ErrAttr(e))
+		return err
+	}
+
+	return nil
+}
+
+func getProcess(pidPath string) (*os.Process, error) {
+	data, err := os.ReadFile(pidPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	pidStr := strings.TrimSpace(string(data))
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PID from %s failed, err: %w", pidStr, err)
+	}
+
+	return os.FindProcess(pid)
+}
+
+// ensurePid 检查pid文件，如果里面的进程存活, 退出启动; 如果不存在，覆盖写入
+func ensurePid() error {
 	if e := os.MkdirAll(conf.PidPath, os.ModeDir); e != nil {
 		logger.Error("create pid dir failed", logger.ErrAttr(e))
 		return e
 	}
 
 	pidPath := filepath.Join(conf.PidPath, pidFile)
+
+	process, err := getProcess(pidPath)
+
+	fmt.Println("leijiaomin", process, process != nil, err)
+	if err != nil {
+		logger.Error("create pid dir failed", logger.ErrAttr(err))
+		return err
+	}
+	if process != nil {
+		fmt.Println("lei1")
+		return fmt.Errorf("pid %d still alive, stop first", process.Pid)
+	}
+
 	pid := os.Getpid()
 	if e := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); e != nil {
 		logger.Error("write to pid failed", logger.ErrAttr(e))
-		return err
+		return e
 	}
 
-	if e := http.Serve(listen, nil); e != nil {
-		logger.Error("start http server failed", logger.ErrAttr(e))
-		return err
-	}
+	logger.Info("write to pid success", "path", pidPath, "pid", pid)
 
 	return nil
 }
