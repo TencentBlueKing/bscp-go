@@ -90,11 +90,7 @@ var (
 )
 
 func main() {
-	err := rootCmd.Execute()
-	if err != nil {
-		logger.Error("start bkbscp failed", logger.ErrAttr(err))
-		os.Exit(1)
-	}
+	cobra.CheckErr(rootCmd.Execute())
 }
 
 // initConf init the bscp client config
@@ -189,6 +185,7 @@ func serveHttp() error {
 	http.Handle("/metrics", promhttp.Handler())
 
 	if err := ensurePid(); err != nil {
+		logger.Error("ensure pid failed", logger.ErrAttr(err))
 		return err
 	}
 
@@ -214,55 +211,47 @@ func serveHttp() error {
 	return nil
 }
 
-func getProcess(pidPath string) (*process.Process, error) {
+func getProcess(pidPath string) error {
 	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil
 		}
-		return nil, err
+		return err
 	}
 
 	pidStr := strings.TrimSpace(string(data))
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
-		return nil, fmt.Errorf("parsing PID from %s failed, err: %w", pidStr, err)
+		return fmt.Errorf("parsing PID from %s failed, err: %w", pidStr, err)
 	}
 
 	p, err := process.NewProcess(int32(pid))
 	if err != nil {
 		if errors.Is(err, process.ErrorProcessNotRunning) {
-			return nil, nil
+			return nil
 		}
 
-		return nil, err
+		return err
 	}
 
-	return p, nil
+	return fmt.Errorf("pid %d still alive, stop first", p.Pid)
 }
 
 // ensurePid 检查pid文件，如果里面的进程存活, 退出启动; 如果不存在，覆盖写入
 func ensurePid() error {
-	if e := os.MkdirAll(conf.PidPath, os.ModeDir); e != nil {
-		logger.Error("create pid dir failed", logger.ErrAttr(e))
-		return e
+	if err := os.MkdirAll(conf.PidPath, os.ModeDir); err != nil {
+		return fmt.Errorf("create pid dir %w", err)
 	}
 
 	pidPath := filepath.Join(conf.PidPath, pidFile)
-
-	process, err := getProcess(pidPath)
-	if err != nil {
-		logger.Error("get pid failed", logger.ErrAttr(err))
+	if err := getProcess(pidPath); err != nil {
 		return err
-	}
-	if process != nil {
-		return fmt.Errorf("pid %d still alive, stop first", process.Pid)
 	}
 
 	pid := os.Getpid()
 	if e := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); e != nil {
-		logger.Error("write to pid failed", logger.ErrAttr(e))
-		return e
+		return fmt.Errorf("write to pid %w", e)
 	}
 
 	logger.Info("write to pid success", "path", pidPath, "pid", pid)
