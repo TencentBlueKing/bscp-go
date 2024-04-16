@@ -52,15 +52,33 @@ const (
 // ClientConfig 新增插件自定义配置
 type ClientConfig struct {
 	config.ClientConfig `json:",inline" mapstructure:",squash"`
+	PidPath             string `json:"path.pid" mapstructure:"path.pid"`
 	LogPath             string `json:"path.logs" mapstructure:"path.logs"`
 	DataPath            string `json:"path.data" mapstructure:"path.data"`
-	PidPath             string `json:"path.pid" mapstructure:"path.pid"`
+}
+
+// Validate validate the client config
+func (c *ClientConfig) Validate() error {
+	if err := c.ClientConfig.Validate(); err != nil {
+		return err
+	}
+
+	if c.PidPath == "" {
+		return fmt.Errorf("path.pid not set")
+	}
+
+	if c.LogPath == "" {
+		return fmt.Errorf("path.logs not set")
+	}
+
+	return nil
 }
 
 var (
 	configPath string
 	conf       = new(ClientConfig)
-	watchViper = viper.New()
+	// gse插件使用.好分割, viper特殊设置#以区分
+	watchViper = viper.NewWithOptions(viper.KeyDelimiter("$"))
 	rootCmd    = &cobra.Command{
 		Use:   "bkbscp",
 		Short: "bkbscp is a bscp nodeman plugin",
