@@ -84,5 +84,5 @@ control:
   start: "./start.sh bkbscp"
   stop: "./stop.sh bkbscp"
   restart: "./restart.sh bkbscp"
-  reload: "./restart.sh bkbscp"
+  reload: "./reload.sh bkbscp"
   version: "./bkbscp -v"
