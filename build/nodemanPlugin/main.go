@@ -35,7 +35,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/config"
-	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
@@ -161,7 +160,7 @@ func serveHttp() {
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 
-	if err := util.EnsureDir(filepath.Dir(deafultUnitSocketPath)); err != nil {
+	if err := os.MkdirAll(filepath.Dir(deafultUnitSocketPath), os.ModeDir); err != nil {
 		logger.Error("create dir failed", logger.ErrAttr(err))
 		os.Exit(1)
 	}
