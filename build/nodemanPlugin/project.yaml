@@ -6,7 +6,7 @@ category: official
 config_file: bkbscp.conf
 config_format: yaml
 auto_launch: false
-launch_node: proxy
+launch_node: all
 is_binary: true
 use_db: false
 config_templates:
