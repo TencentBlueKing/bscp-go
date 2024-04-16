@@ -166,6 +166,8 @@ func serveHttp() {
 		os.Exit(1)
 	}
 
+	// 强制清理老的sock文件
+	_ = os.Remove(deafultUnitSocketPath)
 	listen, err := net.Listen("unix", deafultUnitSocketPath)
 	if err != nil {
 		logger.Error("start http server failed", logger.ErrAttr(err))
