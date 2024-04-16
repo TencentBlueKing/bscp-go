@@ -1,7 +1,7 @@
 name: bkbscp
-version: 1.0.1.11
-description: bscp 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，配置热更新，执行前后置脚本的官方命令行工具
-scenario: bscp 是蓝鲸基础配置平台(BK-BSCP)提供的用于快速接入KV SDK，配置热更新，执行前后置脚本的官方命令行工具
+version: "__VERSION__"
+description: bscp服务配置分发和热更新
+scenario: bscp服务配置分发和热更新
 category: official
 config_file: bkbscp.conf
 config_format: yaml
@@ -10,9 +10,9 @@ launch_node: proxy
 is_binary: true
 use_db: false
 config_templates:
-  - plugin_version: 1.0.1.11
+  - plugin_version: "__VERSION__"
     name: bkbscp.conf
-    version: 1.0.1.11
+    version: "__VERSION__"
     file_path: etc
     format: yaml
     is_main_config: 1
@@ -53,6 +53,10 @@ config_templates:
                       title: value
                       type: string
                       required: false
+        feedAddr:
+          title: 服务feed-server地址
+          type: string
+          required: true
         服务密钥:
           title: 服务密钥
           type: string
@@ -81,4 +85,4 @@ control:
   stop: "./stop.sh bkbscp"
   restart: "./restart.sh bkbscp"
   reload: "./restart.sh bkbscp"
-  version: "./bkbscp version"
+  version: "./bkbscp -v"

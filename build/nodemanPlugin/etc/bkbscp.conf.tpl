@@ -14,4 +14,4 @@ temp_dir: {{ 临时目录 }}
 {% endif %}
 
 feed_addrs:
-  - bscp-feed.site.bktencent.com:9511
+  - {{ feedAddr }}

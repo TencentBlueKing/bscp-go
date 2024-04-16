@@ -23,7 +23,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-var defaultLogger atomic.Value
+var defaultLogger atomic.Pointer[slog.Logger]
 
 func init() {
 	textHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -56,7 +56,7 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func getLogger() *slog.Logger {
-	return defaultLogger.Load().(*slog.Logger)
+	return defaultLogger.Load()
 }
 
 // SetHandler set logger
