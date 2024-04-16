@@ -6,7 +6,7 @@ category: official
 config_file: bkbscp.conf
 config_format: yaml
 auto_launch: false
-launch_node: proxy
+launch_node: all
 is_binary: true
 use_db: false
 config_templates:
@@ -53,7 +53,7 @@ config_templates:
                       title: value
                       type: string
                       required: false
-        feedAddr:
+        Feed服务地址:
           title: 服务feed-server地址
           type: string
           required: true
@@ -80,6 +80,7 @@ config_templates:
           title: 临时目录
           type: string
           required: false
+          default: /data/bscp
 control:
   start: "./start.sh bkbscp"
   stop: "./stop.sh bkbscp"
