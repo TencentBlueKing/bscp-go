@@ -231,7 +231,6 @@ func checkProcess(pidPath string) error {
 		if errors.Is(err, process.ErrorProcessNotRunning) {
 			return nil
 		}
-
 		return err
 	}
 
@@ -250,7 +249,7 @@ func ensurePid() error {
 	}
 
 	pid := os.Getpid()
-	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); err != nil {
+	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0644); err != nil {
 		return fmt.Errorf("write to pid: %w", err)
 	}
 
