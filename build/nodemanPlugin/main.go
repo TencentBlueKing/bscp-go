@@ -223,7 +223,7 @@ func checkProcess(pidPath string) error {
 	pidStr := strings.TrimSpace(string(data))
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
-		return fmt.Errorf("parsing PID from %s failed, err: %w", pidStr, err)
+		return err
 	}
 
 	p, err := process.NewProcess(int32(pid))
@@ -250,8 +250,8 @@ func ensurePid() error {
 	}
 
 	pid := os.Getpid()
-	if e := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); e != nil {
-		return fmt.Errorf("write to pid: %w", e)
+	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); err != nil {
+		return fmt.Errorf("write to pid: %w", err)
 	}
 
 	logger.Info("write to pid success", "path", pidPath, "pid", pid)
