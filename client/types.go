@@ -485,7 +485,7 @@ func (r *Release) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType
 // updateFiles updates the files to the target directory.
 func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int32, successFileSize *uint64,
 	semaphoreCh chan struct{}) error {
-	// var successDownloads int32
+	var update, skip, failed int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(updateFileConcurrentLimit)
 	for _, f := range files {
@@ -496,20 +496,25 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 			filePath := path.Join(fileDir, file.Name)
 			err := os.MkdirAll(fileDir, os.ModePerm)
 			if err != nil {
+				atomic.AddInt32(&failed, 1)
 				return fmt.Errorf("create dir %s failed, err: %s", fileDir, err.Error())
 			}
 			// 2. check and download file
 			exists, err := checkFileExists(fileDir, file.FileMeta)
 			if err != nil {
+				atomic.AddInt32(&failed, 1)
 				return fmt.Errorf("check file exists failed, err: %s", err.Error())
 			}
 			if !exists {
 				err := downloader.GetDownloader().Download(file.FileMeta.PbFileMeta(), file.FileMeta.RepositoryPath,
 					file.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, filePath)
 				if err != nil {
+					atomic.AddInt32(&failed, 1)
 					return fmt.Errorf("download file failed, err: %s", err.Error())
 				}
+				atomic.AddInt32(&update, 1)
 			} else {
+				atomic.AddInt32(&skip, 1)
 				logger.Debug("file is already exists and has not been modified, skip download",
 					slog.String("file", filePath))
 			}
@@ -517,12 +522,15 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
 				logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
 			}
-			logger.Info("download/update file success", slog.String("file", filePath))
+			logger.Info("consume file success", slog.String("file", filePath))
 			atomic.AddInt32(successDownloads, 1)
 			atomic.AddUint64(successFileSize, file.FileMeta.ContentSpec.ByteSize)
 			semaphoreCh <- struct{}{}
 			return nil
 		})
 	}
-	return g.Wait()
+	err := g.Wait()
+	logger.Info("consume files summary", slog.Int("total", len(files)), slog.Int("update", int(update)),
+		slog.Int("skip", int(skip)), slog.Int("failed", int(failed)))
+	return err
 }
