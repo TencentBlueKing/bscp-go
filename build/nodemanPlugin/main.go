@@ -135,6 +135,11 @@ func Watch(cmd *cobra.Command, args []string) error {
 
 	logger.Info("use config file", "path", watchViper.ConfigFileUsed())
 
+	if err := ensurePid(); err != nil {
+		logger.Error("ensure pid failed", logger.ErrAttr(err))
+		return err
+	}
+
 	bscp, err := client.New(
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
@@ -183,11 +188,6 @@ func serveHttp() error {
 	// register metrics
 	metrics.RegisterMetrics()
 	http.Handle("/metrics", promhttp.Handler())
-
-	if err := ensurePid(); err != nil {
-		logger.Error("ensure pid failed", logger.ErrAttr(err))
-		return err
-	}
 
 	if err := os.MkdirAll(conf.LogPath, os.ModeDir); err != nil {
 		logger.Error("create log dir failed", logger.ErrAttr(err))
