@@ -111,7 +111,6 @@ func initConf(v *viper.Viper) error {
 		return fmt.Errorf("validate config: %w", err)
 	}
 
-	logger.Debug("init conf", slog.String("conf", conf.String()))
 	return nil
 }
 
