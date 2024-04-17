@@ -70,6 +70,11 @@ type pluginConfig struct {
 	PidPath             string `json:"path.pid" mapstructure:"path.pid"`
 	LogPath             string `json:"path.logs" mapstructure:"path.logs"`
 	DataPath            string `json:"path.data" mapstructure:"path.data"`
+	HostIP              string `json:"hostip" mapstructure:"hostip"`             // cmdb 内网 IP
+	CloudId             int    `json:"cloudid" mapstructure:"cloudid"`           // cmdb 云区域ID
+	HostId              int    `json:"hostid" mapstructure:"hostid"`             // cmdb hostid
+	HostIdPath          string `json:"host_id_path" mapstructure:"host_id_path"` // cmdb 主机元数据文件路径
+	BKAgentId           string `json:"bk_agent_id" mapstructure:"bk_agent_id"`   // gse agent id, 可能为空
 }
 
 // Validate validate the client config

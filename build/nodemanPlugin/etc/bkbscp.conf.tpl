@@ -2,6 +2,15 @@
 path.pid: "{{ plugin_path.pid_path }}"
 path.logs: "{{ plugin_path.log_path }}"
 path.data: "{{ plugin_path.data_path }}"
+host_id_path: "{{ plugin_path.host_id }}"
+{%- if nodeman is defined %}
+hostip: {{ nodeman.host.inner_ip }}
+{%- else %}
+hostip: {{ cmdb_instance.host.bk_host_innerip_v6 if cmdb_instance.host.bk_host_innerip_v6 and not cmdb_instance.host.bk_host_innerip else cmdb_instance.host.bk_host_innerip }}
+{%- endif %}
+cloudid: {{ cmdb_instance.host.bk_cloud_id[0].id if cmdb_instance.host.bk_cloud_id is iterable and cmdb_instance.host.bk_cloud_id is not string else cmdb_instance.host.bk_cloud_id }}
+hostid: {{ cmdb_instance.host.bk_host_id }}
+bk_agent_id: "{{ cmdb_instance.host.bk_agent_id }}"
 
 # 业务id
 biz: {{ 业务ID }}
