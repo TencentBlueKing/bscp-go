@@ -54,7 +54,7 @@ const (
 var (
 	configPath string
 	conf       = new(pluginConfig)
-	// gse插件使用.符号分割, viper特殊设置#以区分
+	// gse插件使用.符号分割, viper特殊设置$以区分
 	watchViper = viper.NewWithOptions(viper.KeyDelimiter("$"))
 	rootCmd    = &cobra.Command{
 		Use:   "bkbscp",
