@@ -512,6 +512,7 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 					return fmt.Errorf("download file failed, err: %s", err.Error())
 				}
 				atomic.AddInt32(&update, 1)
+				logger.Info("update file success", slog.String("file", filePath))
 			} else {
 				atomic.AddInt32(&skip, 1)
 				logger.Debug("file is already exists and has not been modified, skip download",
@@ -521,7 +522,6 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
 				logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
 			}
-			logger.Info("consume file success", slog.String("file", filePath))
 			atomic.AddInt32(successDownloads, 1)
 			atomic.AddUint64(successFileSize, file.FileMeta.ContentSpec.ByteSize)
 			semaphoreCh <- struct{}{}
