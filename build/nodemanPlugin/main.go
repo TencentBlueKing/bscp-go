@@ -51,8 +51,21 @@ const (
 	defaultLogMaxAge     = 15 // days
 )
 
-// ClientConfig 新增插件自定义配置
-type ClientConfig struct {
+var (
+	configPath string
+	conf       = new(pluginConfig)
+	// gse插件使用.符号分割, viper特殊设置#以区分
+	watchViper = viper.NewWithOptions(viper.KeyDelimiter("$"))
+	rootCmd    = &cobra.Command{
+		Use:   "bkbscp",
+		Short: "bkbscp is a bscp nodeman plugin",
+		Long:  `bkbscp is a bscp nodeman plugin`,
+		RunE:  Watch,
+	}
+)
+
+// pluginConfig 新增插件自定义配置
+type pluginConfig struct {
 	config.ClientConfig `json:",inline" mapstructure:",squash"`
 	PidPath             string `json:"path.pid" mapstructure:"path.pid"`
 	LogPath             string `json:"path.logs" mapstructure:"path.logs"`
@@ -60,7 +73,7 @@ type ClientConfig struct {
 }
 
 // Validate validate the client config
-func (c *ClientConfig) Validate() error {
+func (c *pluginConfig) Validate() error {
 	if err := c.ClientConfig.Validate(); err != nil {
 		return err
 	}
@@ -76,19 +89,6 @@ func (c *ClientConfig) Validate() error {
 	return nil
 }
 
-var (
-	configPath string
-	conf       = new(ClientConfig)
-	// gse插件使用.符号分割, viper特殊设置#以区分
-	watchViper = viper.NewWithOptions(viper.KeyDelimiter("$"))
-	rootCmd    = &cobra.Command{
-		Use:   "bkbscp",
-		Short: "bkbscp is a bscp nodeman plugin",
-		Long:  `bkbscp is a bscp nodeman plugin`,
-		RunE:  Watch,
-	}
-)
-
 func main() {
 	cobra.CheckErr(rootCmd.Execute())
 }
@@ -100,19 +100,18 @@ func initConf(v *viper.Viper) error {
 	// 固定 yaml 格式
 	v.SetConfigType("yaml")
 	if err := v.ReadInConfig(); err != nil {
-		return fmt.Errorf("read config file failed, err: %s", err.Error())
+		return fmt.Errorf("read config file: %w", err)
 	}
 
 	if err := v.Unmarshal(conf); err != nil {
-		return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
+		return fmt.Errorf("unmarshal config file: %w", err)
+	}
+
+	if err := conf.Validate(); err != nil {
+		return fmt.Errorf("validate config: %w", err)
 	}
 
 	logger.Debug("init conf", slog.String("conf", conf.String()))
-
-	if err := conf.Validate(); err != nil {
-		logger.Error("validate config failed", logger.ErrAttr(err))
-		return err
-	}
 	return nil
 }
 
