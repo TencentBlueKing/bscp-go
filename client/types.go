@@ -506,8 +506,7 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 				return fmt.Errorf("check file exists failed, err: %s", err.Error())
 			}
 			if !exists {
-				err := downloader.GetDownloader().Download(file.FileMeta.PbFileMeta(), file.FileMeta.RepositoryPath,
-					file.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, filePath)
+				err := file.SaveToFile(filePath)
 				if err != nil {
 					atomic.AddInt32(&failed, 1)
 					return fmt.Errorf("download file failed, err: %s", err.Error())
