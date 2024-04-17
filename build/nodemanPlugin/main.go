@@ -14,6 +14,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -28,6 +29,7 @@ import (
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
@@ -49,16 +51,34 @@ const (
 	defaultLogMaxAge     = 15 // days
 )
 
-// ClientConfig 新增插件自定义配置
-type ClientConfig struct {
+var (
+	configPath string
+	conf       = new(pluginConfig)
+	// gse插件使用.符号分割, viper特殊设置$以区分
+	watchViper = viper.NewWithOptions(viper.KeyDelimiter("$"))
+	rootCmd    = &cobra.Command{
+		Use:   "bkbscp",
+		Short: "bkbscp is a bscp nodeman plugin",
+		Long:  `bkbscp is a bscp nodeman plugin`,
+		RunE:  Watch,
+	}
+)
+
+// pluginConfig 新增插件自定义配置
+type pluginConfig struct {
 	config.ClientConfig `json:",inline" mapstructure:",squash"`
 	PidPath             string `json:"path.pid" mapstructure:"path.pid"`
 	LogPath             string `json:"path.logs" mapstructure:"path.logs"`
 	DataPath            string `json:"path.data" mapstructure:"path.data"`
+	HostIP              string `json:"hostip" mapstructure:"hostip"`             // cmdb 内网 IP
+	CloudId             int    `json:"cloudid" mapstructure:"cloudid"`           // cmdb 云区域ID
+	HostId              int    `json:"hostid" mapstructure:"hostid"`             // cmdb hostid
+	HostIdPath          string `json:"host_id_path" mapstructure:"host_id_path"` // cmdb 主机元数据文件路径
+	BKAgentId           string `json:"bk_agent_id" mapstructure:"bk_agent_id"`   // gse agent id, 可能为空
 }
 
 // Validate validate the client config
-func (c *ClientConfig) Validate() error {
+func (c *pluginConfig) Validate() error {
 	if err := c.ClientConfig.Validate(); err != nil {
 		return err
 	}
@@ -74,19 +94,6 @@ func (c *ClientConfig) Validate() error {
 	return nil
 }
 
-var (
-	configPath string
-	conf       = new(ClientConfig)
-	// gse插件使用.符号分割, viper特殊设置#以区分
-	watchViper = viper.NewWithOptions(viper.KeyDelimiter("$"))
-	rootCmd    = &cobra.Command{
-		Use:   "bkbscp",
-		Short: "bkbscp is a bscp nodeman plugin",
-		Long:  `bkbscp is a bscp nodeman plugin`,
-		RunE:  Watch,
-	}
-)
-
 func main() {
 	cobra.CheckErr(rootCmd.Execute())
 }
@@ -98,19 +105,17 @@ func initConf(v *viper.Viper) error {
 	// 固定 yaml 格式
 	v.SetConfigType("yaml")
 	if err := v.ReadInConfig(); err != nil {
-		return fmt.Errorf("read config file failed, err: %s", err.Error())
+		return fmt.Errorf("read config file: %w", err)
 	}
 
 	if err := v.Unmarshal(conf); err != nil {
-		return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
+		return fmt.Errorf("unmarshal config file: %w", err)
 	}
-
-	logger.Debug("init conf", slog.String("conf", conf.String()))
 
 	if err := conf.Validate(); err != nil {
-		logger.Error("validate config failed", logger.ErrAttr(err))
-		return err
+		return fmt.Errorf("validate config: %w", err)
 	}
+
 	return nil
 }
 
@@ -132,6 +137,11 @@ func Watch(cmd *cobra.Command, args []string) error {
 	fmt.Println(strings.TrimSpace(version.GetStartInfo()))
 
 	logger.Info("use config file", "path", watchViper.ConfigFileUsed())
+
+	if err := ensurePid(); err != nil {
+		logger.Error("ensure pid failed", logger.ErrAttr(err))
+		return err
+	}
 
 	bscp, err := client.New(
 		client.WithFeedAddrs(conf.FeedAddrs),
@@ -196,22 +206,57 @@ func serveHttp() error {
 		return err
 	}
 
-	if e := os.MkdirAll(conf.PidPath, os.ModeDir); e != nil {
-		logger.Error("create pid dir failed", logger.ErrAttr(e))
-		return e
-	}
-
-	pidPath := filepath.Join(conf.PidPath, pidFile)
-	pid := os.Getpid()
-	if e := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0664); e != nil {
-		logger.Error("write to pid failed", logger.ErrAttr(e))
-		return err
-	}
-
 	if e := http.Serve(listen, nil); e != nil {
 		logger.Error("start http server failed", logger.ErrAttr(e))
 		return err
 	}
+
+	return nil
+}
+
+func checkProcess(pidPath string) error {
+	data, err := os.ReadFile(pidPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	pidStr := strings.TrimSpace(string(data))
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		return err
+	}
+
+	p, err := process.NewProcess(int32(pid))
+	if err != nil {
+		if errors.Is(err, process.ErrorProcessNotRunning) {
+			return nil
+		}
+		return err
+	}
+
+	return fmt.Errorf("pid %d still alive, stop first", p.Pid)
+}
+
+// ensurePid 检查pid文件，如果里面的进程存活, 退出启动; 如果不存在，覆盖写入
+func ensurePid() error {
+	if err := os.MkdirAll(conf.PidPath, os.ModeDir); err != nil {
+		return fmt.Errorf("create pid dir: %w", err)
+	}
+
+	pidPath := filepath.Join(conf.PidPath, pidFile)
+	if err := checkProcess(pidPath); err != nil {
+		return fmt.Errorf("check pid: %w", err)
+	}
+
+	pid := os.Getpid()
+	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)), 0644); err != nil {
+		return fmt.Errorf("write to pid: %w", err)
+	}
+
+	logger.Info("write to pid success", "path", pidPath, "pid", pid)
 
 	return nil
 }
@@ -237,9 +282,7 @@ type WatchHandler struct {
 
 func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 	w.Lock.Lock()
-	defer func() {
-		w.Lock.Unlock()
-	}()
+	defer w.Lock.Unlock()
 
 	release.AppDir = w.AppTempDir
 	release.TempDir = w.TempDir
@@ -250,7 +293,6 @@ func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 		release.ExecuteHook(&client.PostScriptStrategy{}), release.UpdateMetadata()); err != nil {
 		return err
 	}
-	// TODO: 6.2 call the callback notify api
 	logger.Info("watch release change success", slog.Any("currentReleaseID", release.ReleaseID))
 	return nil
 }

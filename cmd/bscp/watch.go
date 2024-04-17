@@ -200,9 +200,7 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 
 func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 	w.Lock.Lock()
-	defer func() {
-		w.Lock.Unlock()
-	}()
+	defer w.Lock.Unlock()
 
 	release.AppDir = w.AppTempDir
 	release.TempDir = w.TempDir
