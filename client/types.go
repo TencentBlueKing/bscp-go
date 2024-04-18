@@ -485,7 +485,8 @@ func (r *Release) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType
 // updateFiles updates the files to the target directory.
 func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int32, successFileSize *uint64,
 	semaphoreCh chan struct{}) error {
-	var update, skip, failed int32
+	start := time.Now()
+	var success, failed, skip int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(updateFileConcurrentLimit)
 	for _, f := range files {
@@ -511,7 +512,7 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 					atomic.AddInt32(&failed, 1)
 					return fmt.Errorf("download file failed, err: %s", err.Error())
 				}
-				atomic.AddInt32(&update, 1)
+				atomic.AddInt32(&success, 1)
 				logger.Info("update file success", slog.String("file", filePath))
 			} else {
 				atomic.AddInt32(&skip, 1)
@@ -529,7 +530,8 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 		})
 	}
 	err := g.Wait()
-	logger.Info("consume files summary", slog.Int("total", len(files)), slog.Int("update", int(update)),
-		slog.Int("skip", int(skip)), slog.Int("failed", int(failed)))
+	logger.Info("update files done", slog.Int("success", int(success)), slog.Int("skip", int(skip)),
+		slog.Int("failed", int(failed)), slog.Int("total", len(files)),
+		slog.String("duration", time.Since(start).String()))
 	return err
 }
