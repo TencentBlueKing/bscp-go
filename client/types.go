@@ -80,7 +80,7 @@ type ConfigItemFile struct {
 func (c *ConfigItemFile) GetContent() ([]byte, error) {
 	if cache.Enable {
 		if hit, bytes := cache.GetCache().GetFileContent(c.FileMeta); hit {
-			logger.Info("get file content from cache success", slog.String("file", path.Join(c.Path, c.Name)))
+			logger.Debug("get file content from cache success", slog.String("file", path.Join(c.Path, c.Name)))
 			return bytes, nil
 		}
 	}
@@ -90,7 +90,7 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 		c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToBytes, bytes, ""); err != nil {
 		return nil, fmt.Errorf("download file failed, err: %s", err.Error())
 	}
-	logger.Info("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
+	logger.Debug("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
 	return bytes, nil
 }
 
@@ -98,7 +98,7 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 func (c *ConfigItemFile) SaveToFile(dst string) error {
 	// 1. check if cache hit, copy from cache
 	if cache.Enable && cache.GetCache().CopyToFile(c.FileMeta, dst) {
-		logger.Info("copy file from cache success", slog.String("dst", dst))
+		logger.Debug("copy file from cache success", slog.String("dst", dst))
 	} else {
 		// 2. if cache not hit, download file from remote
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
@@ -250,7 +250,7 @@ func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
 	}
 
 	if sha != ci.ContentSpec.Signature {
-		logger.Info("configuration item's SHA256 is not match, need to update",
+		logger.Debug("configuration item's SHA256 is not match, need to update",
 			slog.String("localHash", sha), slog.String("remoteHash", ci.ContentSpec.Signature))
 		return false, nil
 	}
@@ -485,7 +485,8 @@ func (r *Release) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType
 // updateFiles updates the files to the target directory.
 func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int32, successFileSize *uint64,
 	semaphoreCh chan struct{}) error {
-	// var successDownloads int32
+	start := time.Now()
+	var success, failed, skip int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(updateFileConcurrentLimit)
 	for _, f := range files {
@@ -496,21 +497,27 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 			filePath := path.Join(fileDir, file.Name)
 			err := os.MkdirAll(fileDir, os.ModePerm)
 			if err != nil {
+				atomic.AddInt32(&failed, 1)
 				return fmt.Errorf("create dir %s failed, err: %s", fileDir, err.Error())
 			}
 			// 2. check and download file
 			exists, err := checkFileExists(fileDir, file.FileMeta)
 			if err != nil {
+				atomic.AddInt32(&failed, 1)
 				return fmt.Errorf("check file exists failed, err: %s", err.Error())
 			}
 			if !exists {
-				err := downloader.GetDownloader().Download(file.FileMeta.PbFileMeta(), file.FileMeta.RepositoryPath,
-					file.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, filePath)
+				err := file.SaveToFile(filePath)
 				if err != nil {
+					atomic.AddInt32(&failed, 1)
 					return fmt.Errorf("download file failed, err: %s", err.Error())
 				}
+				atomic.AddInt32(&success, 1)
+				logger.Info("update file success", slog.String("file", filePath))
 			} else {
-				logger.Info("file is already exists and has not been modified, skip download", slog.String("file", filePath))
+				atomic.AddInt32(&skip, 1)
+				logger.Debug("file is already exists and has not been modified, skip download",
+					slog.String("file", filePath))
 			}
 			// 3. set file permission
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
@@ -522,5 +529,9 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 			return nil
 		})
 	}
-	return g.Wait()
+	err := g.Wait()
+	logger.Info("update files done", slog.Int("success", int(success)), slog.Int("skip", int(skip)),
+		slog.Int("failed", int(failed)), slog.Int("total", len(files)),
+		slog.String("duration", time.Since(start).String()))
+	return err
 }

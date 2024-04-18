@@ -191,7 +191,7 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 	for {
 		select {
 		case <-w.vas.Ctx.Done():
-			logger.Info("watch stream will closed because of ctx done", logger.ErrAttr(w.vas.Ctx.Err()))
+			logger.Info("watch stream will be closed because of ctx done", logger.ErrAttr(w.vas.Ctx.Err()))
 			return
 
 		case result := <-resultChan:
@@ -212,7 +212,7 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 				return
 			}
 
-			logger.Info("received upstream event",
+			logger.Debug("received upstream event",
 				slog.String("apiVersion", event.ApiVersion.Format()),
 				slog.Any("payload", event.Payload),
 				slog.String("rid", event.Rid))
