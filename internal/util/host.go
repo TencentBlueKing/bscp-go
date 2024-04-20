@@ -13,94 +13,14 @@
 package util
 
 import (
-	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
-	"sync"
-	"time"
 
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/logs"
-	"github.com/shirou/gopsutil/v3/process"
+	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
-
-var (
-	monitorOnce sync.Once
-	// 当前cpu使用率
-	cpuUsage float64
-	// 最大cpu使用率
-	cpuMaxUsage float64
-	// 当前内存使用量
-	memoryUsage uint64
-	// 最大内存使用量
-	memoryMaxUsage uint64
-)
-
-// MonitorCPUAndMemUsage Monitor cpu and memory resources
-func MonitorCPUAndMemUsage(ctx context.Context) {
-	monitorOnce.Do(func() {
-		pid := os.Getpid()
-		// 获取当前进程的实例
-		p, err := process.NewProcess(int32(pid))
-		if err != nil {
-			logs.Errorf("failed to obtain the current process, err: %s", err.Error())
-			return
-		}
-		for {
-			select {
-			case <-time.After(time.Second):
-				// 获取cpu使用情况
-				percentages, err := p.Percent(time.Second)
-				if err != nil {
-					logs.Errorf("get cpu info failed, err: %s", err.Error())
-					return
-				}
-				setCpuUsage(percentages)
-
-				// 获取内存使用情况
-				memoryInfo, err := p.MemoryInfo()
-				if err != nil {
-					logs.Errorf("get memory info failed, err: %s", err.Error())
-					return
-				}
-				setMemUsage(memoryInfo.RSS)
-			case <-ctx.Done():
-				// 如果收到了取消信号，退出循环
-				return
-			}
-		}
-	})
-}
-
-// setCpuUsage 设置当前cpu和最大cpu使用率
-func setCpuUsage(usage float64) {
-	cpuUsage = usage
-	logs.V(1).Infof("current cpu usage: %.2f%%\n", cpuUsage)
-	if cpuUsage > cpuMaxUsage {
-		cpuMaxUsage = cpuUsage
-	}
-}
-
-// setMemUsage 设置当前内存和最大内存使用量
-func setMemUsage(usage uint64) {
-	memoryUsage = usage
-	logs.V(1).Infof("current memory usage: %d bytes\n", memoryUsage)
-	if memoryUsage > memoryMaxUsage {
-		memoryMaxUsage = memoryUsage
-	}
-}
-
-// GetCpuUsage 获取当前cpu和最大cpu使用率
-func GetCpuUsage() (float64, float64) {
-	return cpuUsage, cpuMaxUsage
-}
-
-// GetMemUsage 获取当前内存和最大内存使用量
-func GetMemUsage() (uint64, uint64) {
-	return memoryUsage, memoryMaxUsage
-}
 
 // getMACAddress 获取MAC地址
 func getMACAddress() (string, error) {
@@ -129,7 +49,7 @@ func GetClientIP() string {
 	)
 	// 获取所有网卡
 	if adders, err = net.InterfaceAddrs(); err != nil {
-		logs.Errorf("net.Interfaces failed, err: %s", err.Error())
+		logger.Error("net.Interfaces failed", logger.ErrAttr(err))
 		return ""
 	}
 	// 取第一个非lo的网卡IP

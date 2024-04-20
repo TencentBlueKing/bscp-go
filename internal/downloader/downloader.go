@@ -29,11 +29,14 @@ import (
 	"time"
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
+	pbbase "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/base"
 	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 	"golang.org/x/exp/slog"
 	"golang.org/x/sync/semaphore"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
@@ -163,17 +166,23 @@ func (dl *downloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, file
 	switch to {
 	case DownloadToFile:
 		if len(toFile) == 0 {
-			return fmt.Errorf("target file path is empty")
+			return sfs.WrapPrimaryError(sfs.DownloadFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.FilePathNotFound,
+					Err: fmt.Errorf("target file path is empty")})
 		}
 		file, err := os.OpenFile(toFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("open the target file failed, err: %s", err.Error())
+			return sfs.WrapPrimaryError(sfs.DownloadFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
+					Err: fmt.Errorf("open the target file failed, err: %s", err.Error())})
 		}
 		defer file.Close()
 		exec.file = file
 	case DownloadToBytes:
 		if len(bytes) != int(fileSize) {
-			return fmt.Errorf("the size of bytes is not equal to the file size")
+			return sfs.WrapPrimaryError(sfs.DownloadFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.ValidateDownloadFailed,
+					Err: fmt.Errorf("the size of bytes is not equal to the file size")})
 		}
 		exec.bytes = bytes
 	}
@@ -224,13 +233,36 @@ func (exec *execDownload) do() error {
 	}
 	resp, err := exec.dl.upstream.GetDownloadURL(exec.dl.vas, getUrlReq)
 	if err != nil {
-		return fmt.Errorf("get temporary download url failed, err: %s", err.Error())
+		if st, ok := status.FromError(err); ok {
+			if st.Code() == codes.PermissionDenied || st.Code() == codes.Unauthenticated {
+				return sfs.WrapPrimaryError(sfs.TokenFailed,
+					sfs.SecondaryError{SpecificFailedReason: sfs.TokenPermissionFailed,
+						Err: st.Err()})
+			}
+
+			if st.Code() == codes.FailedPrecondition {
+				for _, detail := range st.Details() {
+					if d, ok := detail.(*pbbase.ErrDetails); ok {
+						return sfs.WrapPrimaryError(sfs.FailedReason(d.PrimaryError),
+							sfs.SecondaryError{SpecificFailedReason: sfs.SpecificFailedReason(d.SecondaryError),
+								Err: st.Err()})
+					}
+				}
+			}
+		}
+
+		// 否则下载错误，没有下载的权限
+		return sfs.WrapPrimaryError(sfs.DownloadFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.NoDownloadPermission,
+				Err: fmt.Errorf("get temporary download url failed, err: %s", err.Error())})
 	}
 	exec.downloadUri = resp.Url
 	if exec.fileSize <= exec.dl.balanceDownloadByteSize {
 		// the file size is not big enough, download directly
 		if e := exec.downloadDirectlyWithRetry(); e != nil {
-			return fmt.Errorf("download directly failed, err: %s", e.Error())
+			return sfs.WrapPrimaryError(sfs.DownloadFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.RetryDownloadFailed,
+					Err: fmt.Errorf("download directly failed, err: %s", e.Error())})
 		}
 
 		return nil
@@ -243,11 +275,15 @@ func (exec *execDownload) do() error {
 
 	if yes {
 		if size != exec.fileSize {
-			return fmt.Errorf("the to be download file size: %d is not as what we expected %d", size, exec.fileSize)
+			return sfs.WrapPrimaryError(sfs.DownloadFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.ValidateDownloadFailed,
+					Err: fmt.Errorf("the to be download file size: %d is not as what we expected %d", size, exec.fileSize)})
 		}
 
 		if err := exec.downloadWithRange(); err != nil {
-			return fmt.Errorf("download with range failed, err: %s", err.Error())
+			return sfs.WrapPrimaryError(sfs.DownloadFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.DownloadChunkFailed,
+					Err: fmt.Errorf("download with range failed, err: %s", err.Error())})
 		}
 
 		return nil
@@ -256,7 +292,9 @@ func (exec *execDownload) do() error {
 	logger.Warn("provider does not support download with range policy, download directly now.")
 
 	if err := exec.downloadDirectlyWithRetry(); err != nil {
-		return fmt.Errorf("download directly failed, err: %s", err.Error())
+		return sfs.WrapPrimaryError(sfs.DownloadFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.RetryDownloadFailed,
+				Err: fmt.Errorf("download directly failed, err: %s", err.Error())})
 	}
 
 	return nil

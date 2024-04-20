@@ -22,6 +22,7 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util/process_collect"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -37,10 +38,7 @@ const (
 
 func (w *watcher) loopHeartbeat() error { // nolint
 	logger.Info("stream start loop heartbeat", slog.Duration("interval", defaultHeartbeatInterval))
-	var (
-		maxMemoryUsage, currentMemoryUsage uint64
-		maxCPUUsage, currentCPUUsage       float64
-	)
+
 	w.vas.Wg.Add(1)
 	go func() {
 		defer w.vas.Wg.Done()
@@ -57,6 +55,8 @@ func (w *watcher) loopHeartbeat() error { // nolint
 			case <-tick.C:
 				logger.Debug("stream will heartbeat", slog.String("rid", w.vas.Rid))
 
+				cpuUsage, cpuMaxUsage, cpuMinUsage, cpuAvgUsage := process_collect.GetCpuUsage()
+				memoryUsage, memoryMaxUsage, memoryMinUsage, memoryAvgUsage := process_collect.GetMemUsage()
 				apps := make([]sfs.SideAppMeta, 0, len(w.subscribers))
 				for _, subscriber := range w.subscribers {
 					apps = append(apps, sfs.SideAppMeta{
@@ -78,15 +78,18 @@ func (w *watcher) loopHeartbeat() error { // nolint
 						IP:            util.GetClientIP(),
 					},
 					Applications: apps,
+					ResourceUsage: sfs.ResourceUsage{
+						MemoryUsage:    memoryUsage,
+						MemoryMaxUsage: memoryMaxUsage,
+						MemoryMinUsage: memoryMinUsage,
+						MemoryAvgUsage: memoryAvgUsage,
+						CpuUsage:       cpuUsage,
+						CpuMaxUsage:    cpuMaxUsage,
+						CpuMinUsage:    cpuMinUsage,
+						CpuAvgUsage:    cpuAvgUsage,
+					},
 				}
-				currentCPUUsage, maxCPUUsage = util.GetCpuUsage()
-				currentMemoryUsage, maxMemoryUsage = util.GetMemUsage()
-				heartbeatPayload.ResourceUsage = sfs.ResourceUsage{
-					CpuMaxUsage:    maxCPUUsage,
-					CpuUsage:       currentCPUUsage,
-					MemoryMaxUsage: maxMemoryUsage,
-					MemoryUsage:    currentMemoryUsage,
-				}
+
 				payload, err := heartbeatPayload.Encode()
 				if err != nil {
 					logger.Error("stream start loop heartbeat failed by encode heartbeat payload", logger.ErrAttr(err))
