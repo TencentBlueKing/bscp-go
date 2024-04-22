@@ -109,7 +109,6 @@ func initConf(v *viper.Viper) error {
 		return err
 	}
 
-	logger.Debug("init conf", slog.String("conf", conf.String()))
 	return nil
 }
 

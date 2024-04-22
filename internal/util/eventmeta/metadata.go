@@ -22,6 +22,7 @@ import (
 	"os"
 	"path"
 
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
@@ -52,29 +53,41 @@ const (
 // AppendMetadataToFile append metadata to file.
 func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 	if tempDir == "" {
-		return errors.New("metadata file path can not be empty")
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.FilePathNotFound,
+				Err: errors.New("metadata file path can not be empty")})
 	}
 	if metadata == nil {
-		return errors.New("metadata is nil")
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.DataEmpty,
+				Err: errors.New("metadata is nil")})
 	}
 
 	metaFilePath := path.Join(tempDir, "metadata.json")
 
 	metaFile, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		return fmt.Errorf("open metadata.json failed, err: %s", err.Error())
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
+				Err: fmt.Errorf("open metadata.json failed, err: %s", err.Error())})
 	}
 	defer metaFile.Close()
 	b, err := json.Marshal(metadata)
 	if err != nil {
-		return fmt.Errorf("marshal metadata failed, err: %s", err.Error())
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.SerializationFailed,
+				Err: fmt.Errorf("marshal metadata failed, err: %s", err.Error())})
 	}
 	compress := bytes.NewBuffer([]byte{})
 	if err := json.Compact(compress, b); err != nil {
-		return fmt.Errorf("compress metadata failed, err: %s", err.Error())
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.FormattingFailed,
+				Err: fmt.Errorf("compress metadata failed, err: %s", err.Error())})
 	}
 	if _, err := metaFile.WriteString(compress.String() + "\n"); err != nil {
-		return fmt.Errorf("append metadata to metadata.json failed, err: %s", err.Error())
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.WriteFileFailed,
+				Err: fmt.Errorf("append metadata to metadata.json failed, err: %s", err.Error())})
 	}
 	logger.Info("append event metadata to metadata.json success", slog.String("event", compress.String()))
 
@@ -84,14 +97,18 @@ func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 // GetLatestMetadataFromFile get latest metadata from file.
 func GetLatestMetadataFromFile(tempDir string) (*EventMeta, error) {
 	if tempDir == "" {
-		return nil, errors.New("metadata file path can not be empty")
+		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.DataEmpty,
+				Err: errors.New("metadata file path can not be empty")})
 	}
 
 	metaFilePath := path.Join(tempDir, "metadata.json")
 
 	metaFile, err := os.Open(metaFilePath)
 	if err != nil {
-		return nil, err
+		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
+				Err: err})
 	}
 	defer metaFile.Close()
 	var lastLine string
@@ -100,12 +117,16 @@ func GetLatestMetadataFromFile(tempDir string) (*EventMeta, error) {
 		lastLine = scanner.Text()
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.ReadFileFailed,
+				Err: err})
 	}
 
 	metadata := &EventMeta{}
 	if err := json.Unmarshal([]byte(lastLine), metadata); err != nil {
-		return nil, fmt.Errorf("unmarshal metadata failed, err: %s", err.Error())
+		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.SerializationFailed,
+				Err: fmt.Errorf("unmarshal metadata failed, err: %s", err.Error())})
 	}
 
 	return metadata, nil
