@@ -28,8 +28,9 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
+	"github.com/TencentBlueKing/bscp-go/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util/process_collect"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -87,7 +88,7 @@ func Pull(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	// 是否采集/监控资源使用率
 	if conf.EnableMonitorResourceUsage {
-		go util.MonitorCPUAndMemUsage(ctx)
+		go process_collect.NewProcessCollector(ctx)
 	}
 
 	if conf.P2PDownload.Enabled {
@@ -142,6 +143,7 @@ func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz u
 			}
 		}
 	}()
+
 	// 1.执行前置脚本
 	// 2.更新文件
 	// 3.执行后置脚本

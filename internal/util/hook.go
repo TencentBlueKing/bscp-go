@@ -21,6 +21,7 @@ import (
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
 	pbhook "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
+	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
@@ -69,7 +70,7 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	case "python":
 		command = executePythonCmd
 	default:
-		return fmt.Errorf("invalid hook type: %s", hook.Type)
+		return sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))
 	}
 	args := []string{hookPath}
 	cmd := exec.Command(command, args...)
@@ -77,7 +78,8 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	cmd.Env = append(os.Environ(), hookEnvs...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("exec %s error: %s, output: %s", hookType.String(), err.Error(), string(out))
+		return sfs.WrapSecondaryError(sfs.ScriptExecutionFailed,
+			fmt.Errorf("exec %s error: %s, output: %s", hookType.String(), err.Error(), string(out)))
 	}
 	logger.Info("exec hook success", slog.String("script", hookType.String()), slog.String("output", string(out)))
 	return nil
@@ -88,7 +90,7 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 	hookDir := path.Join(workspace, "hooks")
 	if err := os.MkdirAll(hookDir, os.ModePerm); err != nil {
 		logger.Error("mkdir hook dir failed", slog.String("dir", hookDir), logger.ErrAttr(err))
-		return "", err
+		return "", sfs.WrapSecondaryError(sfs.NewFolderFailed, err)
 	}
 	var filePath string
 	switch hook.Type {
@@ -97,17 +99,17 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 	case "python":
 		filePath = path.Join(hookDir, hookType.String()+".py")
 	default:
-		return "", fmt.Errorf("invalid hook type: %s", hook.Type)
+		return "", sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))
 	}
 	if err := os.WriteFile(filePath, []byte(hook.Content), os.ModePerm); err != nil {
 		logger.Error("write hook file failed", slog.String("file", filePath), logger.ErrAttr(err))
-		return "", err
+		return "", sfs.WrapSecondaryError(sfs.WriteFileFailed, err)
 	}
 
 	envfile := path.Join(hookDir, "env")
 	if err := os.WriteFile(envfile, []byte("export "+strings.Join(hookEnvs, "\nexport ")+"\n"), 0644); err != nil {
 		logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
-		return "", err
+		return "", sfs.WrapSecondaryError(sfs.WriteEnvFileFailed, err)
 	}
 
 	return filePath, nil

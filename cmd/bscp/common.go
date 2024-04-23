@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/config"
+	"github.com/TencentBlueKing/bscp-go/internal/config"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
@@ -114,7 +114,6 @@ func initConf(v *viper.Viper) error {
 		return err
 	}
 
-	logger.Debug("init conf", slog.String("conf", conf.String()))
 	return nil
 }
 
@@ -205,7 +204,8 @@ func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]stri
 		for {
 			select {
 			case <-ctx.Done():
-				logger.Info("watch labels file stoped because of ctx done", slog.String("file", path), logger.ErrAttr(ctx.Err()))
+				logger.Info("watch labels file stopped because of ctx done", slog.String("file", path),
+					logger.ErrAttr(ctx.Err()))
 				if err := watcher.Close(); err != nil {
 					logger.Warn("close watcher failed", logger.ErrAttr(err))
 				}

@@ -34,6 +34,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util/process_collect"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
@@ -125,7 +126,7 @@ func (w *watcher) StartWatch() error {
 
 	// Determine whether to collect resources
 	if w.opts.enableMonitorResourceUsage {
-		go util.MonitorCPUAndMemUsage(w.vas.Ctx)
+		go process_collect.NewProcessCollector(w.vas.Ctx)
 	}
 
 	// 发送客户端连接信息
@@ -191,7 +192,7 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 	for {
 		select {
 		case <-w.vas.Ctx.Done():
-			logger.Info("watch stream will closed because of ctx done", logger.ErrAttr(w.vas.Ctx.Err()))
+			logger.Info("watch stream will be closed because of ctx done", logger.ErrAttr(w.vas.Ctx.Err()))
 			return
 
 		case result := <-resultChan:
@@ -212,7 +213,7 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 				return
 			}
 
-			logger.Info("received upstream event",
+			logger.Debug("received upstream event",
 				slog.String("apiVersion", event.ApiVersion.Format()),
 				slog.Any("payload", event.Payload),
 				slog.String("rid", event.Rid))
@@ -340,6 +341,7 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 					}
 				}
 			}(ctx)
+
 			subscriber.ReleaseChangeStatus = sfs.Processing
 			if err := subscriber.Callback(release); err != nil {
 				cancel()
@@ -468,6 +470,7 @@ func (w *watcher) sendClientMessaging(meta []sfs.SideAppMeta, annotations map[st
 	if err != nil {
 		return err
 	}
+
 	_, err = w.upstream.Messaging(w.vas, clientInfoPayload.MessagingType(), payload)
 	if err != nil {
 		return err

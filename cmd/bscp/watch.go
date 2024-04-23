@@ -33,8 +33,8 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/config"
-	"github.com/TencentBlueKing/bscp-go/cmd/bscp/internal/constant"
+	"github.com/TencentBlueKing/bscp-go/internal/config"
+	"github.com/TencentBlueKing/bscp-go/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
@@ -225,9 +225,7 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 
 func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 	w.Lock.Lock()
-	defer func() {
-		w.Lock.Unlock()
-	}()
+	defer w.Lock.Unlock()
 
 	release.AppDir = w.AppTempDir
 	release.TempDir = w.TempDir

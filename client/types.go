@@ -14,6 +14,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -38,6 +39,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/internal/util/eventmeta"
+	"github.com/TencentBlueKing/bscp-go/internal/util/process_collect"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -81,7 +83,7 @@ type ConfigItemFile struct {
 func (c *ConfigItemFile) GetContent() ([]byte, error) {
 	if cache.Enable {
 		if hit, bytes := cache.GetCache().GetFileContent(c.FileMeta); hit {
-			logger.Info("get file content from cache success", slog.String("file", path.Join(c.Path, c.Name)))
+			logger.Debug("get file content from cache success", slog.String("file", path.Join(c.Path, c.Name)))
 			return bytes, nil
 		}
 	}
@@ -91,7 +93,7 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 		c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToBytes, bytes, ""); err != nil {
 		return nil, fmt.Errorf("download file failed, err: %s", err.Error())
 	}
-	logger.Info("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
+	logger.Debug("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
 	return bytes, nil
 }
 
@@ -99,12 +101,12 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 func (c *ConfigItemFile) SaveToFile(dst string) error {
 	// 1. check if cache hit, copy from cache
 	if cache.Enable && cache.GetCache().CopyToFile(c.FileMeta, dst) {
-		logger.Info("copy file from cache success", slog.String("dst", dst))
+		logger.Debug("copy file from cache success", slog.String("dst", dst))
 	} else {
 		// 2. if cache not hit, download file from remote
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 			c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, dst); err != nil {
-			return fmt.Errorf("download file failed, err %s", err.Error())
+			return err
 		}
 	}
 
@@ -120,9 +122,6 @@ type Function func() error
 // compareRelease 对比当前服务版本
 // 返回值: 是否跳过本次版本变更事件（本地版本和事件版本一致）, 错误信息
 func (r *Release) compareRelease() (bool, error) {
-	if r.ClientMode == sfs.Pull {
-		return false, nil
-	}
 	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(r.AppDir)
 	if err != nil {
 		// 如果 metadata 文件不存在，说明没有执行过 pull 操作
@@ -130,67 +129,16 @@ func (r *Release) compareRelease() (bool, error) {
 			logger.Warn("can not find metadata file, maybe you should exec pull command first", logger.ErrAttr(err))
 			return false, nil
 		}
-		r.AppMate.FailedReason = sfs.DownloadFailed
-		r.AppMate.FailedDetailReason = err.Error()
 		logger.Error("get metadata file failed", logger.ErrAttr(err))
 		return false, err
 
 	} else if lastMetadata.ReleaseID == r.ReleaseID {
 		r.AppMate.CurrentReleaseID = r.ReleaseID
-		r.AppMate.FailedReason = sfs.SkipFailed
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", r.ReleaseID))
 		return true, nil
 	}
 	r.AppMate.CurrentReleaseID = lastMetadata.ReleaseID
 	return false, nil
-}
-
-// ExecuteHook 1.执行脚本方法
-// 根据策略执行不同脚本
-func (r *Release) ExecuteHook(hook ScriptStrategy) Function {
-	return func() error {
-		return hook.executeScript(r)
-	}
-}
-
-// UpdateFiles 2.下载文件方法
-func (r *Release) UpdateFiles() Function {
-	return func() error {
-		filesDir := path.Join(r.AppDir, "files")
-		if err := updateFiles(filesDir, r.FileItems, &r.AppMate.DownloadFileNum,
-			&r.AppMate.DownloadFileSize, r.SemaphoreCh); err != nil {
-			r.AppMate.FailedReason = sfs.DownloadFailed
-			logger.Error("update files", logger.ErrAttr(err))
-			return err
-		}
-		if r.ClientMode == sfs.Pull {
-			return nil
-		}
-		if err := clearOldFiles(filesDir, r.FileItems); err != nil {
-			r.AppMate.FailedReason = sfs.DeleteOldFilesFailed
-			logger.Error("clear old files failed", logger.ErrAttr(err))
-			return err
-		}
-		return nil
-	}
-}
-
-// UpdateMetadata 4.更新meatdata数据方法
-func (r *Release) UpdateMetadata() Function {
-	return func() error {
-		metadata := &eventmeta.EventMeta{
-			ReleaseID: r.ReleaseID,
-			Status:    eventmeta.EventStatusSuccess,
-			EventTime: time.Now().Format(time.RFC3339),
-		}
-		err := eventmeta.AppendMetadataToFile(r.AppDir, metadata)
-		if err != nil {
-			r.AppMate.FailedReason = sfs.UpdateMetadataFailed
-			logger.Error("append metadata to file failed", logger.ErrAttr(err))
-			return err
-		}
-		return nil
-	}
 }
 
 // ScriptStrategy 定义脚本接口
@@ -208,9 +156,14 @@ func (p *PreScriptStrategy) executeScript(r *Release) error {
 	}
 	err := util.ExecuteHook(r.PreHook, table.PreHook, r.TempDir, r.BizID, r.AppMate.App, r.ReleaseName)
 	if err != nil {
-		r.AppMate.FailedReason = sfs.PreHookFailed
 		logger.Error("execute pre hook", logger.ErrAttr(err))
-		return err
+		// 断言错误
+		var smallErr sfs.SecondaryError
+		if errors.As(err, &smallErr) {
+			return sfs.WrapPrimaryError(sfs.PreHookFailed, smallErr)
+		}
+		// 前置未知错误
+		return sfs.WrapPrimaryError(sfs.PreHookFailed, sfs.SecondaryError{Err: err})
 	}
 	return nil
 }
@@ -225,11 +178,69 @@ func (p *PostScriptStrategy) executeScript(r *Release) error {
 	}
 	err := util.ExecuteHook(r.PostHook, table.PostHook, r.TempDir, r.BizID, r.AppMate.App, r.ReleaseName)
 	if err != nil {
-		r.AppMate.FailedReason = sfs.PostHookFailed
 		logger.Error("execute post hook", logger.ErrAttr(err))
-		return err
+		// 断言错误
+		var smallErr sfs.SecondaryError
+		if errors.As(err, &smallErr) {
+			return sfs.WrapPrimaryError(sfs.PostHookFailed, smallErr)
+		}
+		// 后置未知错误
+		return sfs.WrapPrimaryError(sfs.PostHookFailed, sfs.SecondaryError{Err: err})
 	}
 	return nil
+}
+
+// ExecuteHook 1.执行脚本方法
+// 根据策略执行不同脚本
+func (r *Release) ExecuteHook(hook ScriptStrategy) Function {
+	return func() error {
+		return hook.executeScript(r)
+	}
+}
+
+// UpdateFiles 2.下载文件方法
+func (r *Release) UpdateFiles() Function {
+	return func() error {
+		filesDir := path.Join(r.AppDir, "files")
+		if err := updateFiles(filesDir, r.FileItems, &r.AppMate.DownloadFileNum, &r.AppMate.DownloadFileSize,
+			r.SemaphoreCh); err != nil {
+			// logger.Error("update files", logger.ErrAttr(err))
+			return err
+		}
+		if r.ClientMode == sfs.Pull {
+			return nil
+		}
+		if err := clearOldFiles(filesDir, r.FileItems); err != nil {
+			logger.Error("clear old files failed", logger.ErrAttr(err))
+			// 断言错误，可能是遍历文件错误
+			var smallErr sfs.SecondaryError
+			if errors.As(err, &smallErr) {
+				return sfs.WrapPrimaryError(sfs.DeleteOldFilesFailed, smallErr)
+			}
+			// 删除错误
+			return sfs.WrapPrimaryError(sfs.DeleteOldFilesFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.DeleteFolderFailed,
+					Err: err})
+		}
+		return nil
+	}
+}
+
+// UpdateMetadata 4.更新meatdata数据方法
+func (r *Release) UpdateMetadata() Function {
+	return func() error {
+		metadata := &eventmeta.EventMeta{
+			ReleaseID: r.ReleaseID,
+			Status:    eventmeta.EventStatusSuccess,
+			EventTime: time.Now().Format(time.RFC3339),
+		}
+		err := eventmeta.AppendMetadataToFile(r.AppDir, metadata)
+		if err != nil {
+			logger.Error("append metadata to file failed", logger.ErrAttr(err))
+			return err
+		}
+		return nil
+	}
 }
 
 // checkFileExists checks the file exists and the SHA256 is match.
@@ -251,7 +262,7 @@ func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
 	}
 
 	if sha != ci.ContentSpec.Signature {
-		logger.Info("configuration item's SHA256 is not match, need to update",
+		logger.Debug("configuration item's SHA256 is not match, need to update",
 			slog.String("localHash", sha), slog.String("remoteHash", ci.ContentSpec.Signature))
 		return false, nil
 	}
@@ -263,7 +274,9 @@ func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
 func clearOldFiles(dir string, files []*ConfigItemFile) error {
 	err := filepath.Walk(dir, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			return sfs.WrapPrimaryError(sfs.DeleteOldFilesFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.TraverseFolderFailed,
+					Err: err})
 		}
 
 		if info.IsDir() {
@@ -293,46 +306,59 @@ func clearOldFiles(dir string, files []*ConfigItemFile) error {
 
 // Execute 统一执行入口
 func (r *Release) Execute(steps ...Function) error {
+	var err error
 	// 填充appMate数据
 	r.AppMate.CursorID = r.CursorID
-	r.AppMate.StartTime = time.Now()
+	r.AppMate.StartTime = time.Now().UTC()
 	r.AppMate.ReleaseChangeStatus = sfs.Processing
 	// 初始化基础数据
 	bd := r.handleBasicData(r.ClientMode, map[string]interface{}{})
-	// 获取cpu和内存相关信息
-	resource := getResource()
+
 	// 发送变更事件
 	defer func() {
-		r.AppMate.EndTime = time.Now()
+		r.AppMate.EndTime = time.Now().UTC()
 		r.AppMate.TotalSeconds = r.AppMate.EndTime.Sub(r.AppMate.StartTime).Seconds()
 		r.AppMate.ReleaseChangeStatus = sfs.Success
-		if r.AppMate.FailedReason != 0 && r.AppMate.FailedReason != 4 {
-			r.AppMate.ReleaseChangeStatus = sfs.Failed
-		}
-		err := r.sendVersionChangeMessaging(bd, resource)
 		if err != nil {
+			// 默认为未知错误
+			r.AppMate.ReleaseChangeStatus = sfs.Failed
+			r.AppMate.FailedReason = sfs.FailedReason(0)
+			r.AppMate.SpecificFailedReason = sfs.SpecificFailedReason(0)
+			r.AppMate.FailedDetailReason = err.Error()
+			var e sfs.PrimaryError
+			if errors.As(err, &e) {
+				r.AppMate.FailedReason = e.FailedReason
+				r.AppMate.SpecificFailedReason = e.SpecificFailedReason
+				r.AppMate.FailedDetailReason = e.Err.Error()
+			}
+		}
+
+		if err = r.sendVersionChangeMessaging(bd); err != nil {
 			logger.Error("description failed to report the client change event, client_mode: %s, biz: %d,app: %s, err: %s",
 				r.ClientMode.String(), r.BizID, r.AppMate.App, err.Error())
 		}
+
 	}()
 
 	// 一定要在该位置
 	// 不然会导致current_release_id是0的问题
-	skip, err := r.compareRelease()
-	if err != nil {
-		r.AppMate.FailedDetailReason = err.Error()
-		return err
+	var skip bool
+	if r.ClientMode != sfs.Pull {
+		skip, err = r.compareRelease()
+		if err != nil {
+			return err
+		}
 	}
+
 	// 发送拉取前事件
-	err = r.sendVersionChangeMessaging(bd, resource)
-	if err != nil {
+	if err = r.sendVersionChangeMessaging(bd); err != nil {
 		logger.Error("failed to send the pull status event. biz: %d,app: %s, err: %s",
 			r.BizID, r.AppMate.App, err.Error())
 	}
 
 	// 发送心跳数据
 	if r.ClientMode == sfs.Pull {
-		r.loopHeartbeat(bd, resource)
+		r.loopHeartbeat(bd)
 	}
 
 	if skip {
@@ -340,9 +366,7 @@ func (r *Release) Execute(steps ...Function) error {
 	}
 
 	for _, step := range steps {
-		err := step()
-		if err != nil {
-			r.AppMate.FailedDetailReason = err.Error()
+		if err = step(); err != nil {
 			return err
 		}
 	}
@@ -351,22 +375,18 @@ func (r *Release) Execute(steps ...Function) error {
 }
 
 // sendVersionChangeMessaging 发送客户端版本变更信息
-func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData, usage resource) error {
+func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData) error {
 	pullPayload := sfs.VersionChangePayload{
-		BasicData:   bd,
-		Application: r.AppMate,
-		ResourceUsage: sfs.ResourceUsage{
-			CpuUsage:       usage.currentCPUUsage,
-			CpuMaxUsage:    usage.maxCPUUsage,
-			MemoryUsage:    usage.currentMemoryUsage,
-			MemoryMaxUsage: usage.maxMemoryUsage,
-		},
+		BasicData:     bd,
+		Application:   r.AppMate,
+		ResourceUsage: getResourceUsage(),
 	}
 
 	encode, err := pullPayload.Encode()
 	if err != nil {
 		return err
 	}
+
 	_, err = r.upstream.Messaging(r.vas, pullPayload.MessagingType(), encode)
 	if err != nil {
 		return err
@@ -386,26 +406,25 @@ func (r *Release) handleBasicData(mode sfs.ClientMode, annotations map[string]in
 	}
 }
 
-type resource struct {
-	maxMemoryUsage, currentMemoryUsage uint64
-	maxCPUUsage, currentCPUUsage       float64
-}
-
 // getResource 获取cpu和内存使用信息
-func getResource() resource {
-	currentCPUUsage, maxCPUUsage := util.GetCpuUsage()
-	currentMemoryUsage, maxMemoryUsage := util.GetMemUsage()
-	return resource{
-		maxCPUUsage:        maxCPUUsage,
-		currentCPUUsage:    currentCPUUsage,
-		maxMemoryUsage:     maxMemoryUsage,
-		currentMemoryUsage: currentMemoryUsage,
+func getResourceUsage() sfs.ResourceUsage {
+	cpuUsage, cpuMaxUsage, cpuMinUsage, cpuAvgUsage := process_collect.GetCpuUsage()
+	memoryUsage, memoryMaxUsage, memoryMinUsage, memoryAvgUsage := process_collect.GetMemUsage()
+	return sfs.ResourceUsage{
+		MemoryUsage:    memoryUsage,
+		MemoryMaxUsage: memoryMaxUsage,
+		MemoryMinUsage: memoryMinUsage,
+		MemoryAvgUsage: memoryAvgUsage,
+		CpuUsage:       cpuUsage,
+		CpuMaxUsage:    cpuMaxUsage,
+		CpuMinUsage:    cpuMinUsage,
+		CpuAvgUsage:    cpuAvgUsage,
 	}
 
 }
 
 // pull时定时上报心跳
-func (r *Release) loopHeartbeat(bd *sfs.BasicData, usage resource) {
+func (r *Release) loopHeartbeat(bd *sfs.BasicData) {
 	go func() {
 		tick := time.NewTicker(defaultHeartbeatInterval)
 		defer tick.Stop()
@@ -418,20 +437,16 @@ func (r *Release) loopHeartbeat(bd *sfs.BasicData, usage resource) {
 				apps := make([]sfs.SideAppMeta, 0)
 				apps = append(apps, *r.AppMate)
 				heartbeatPayload := sfs.HeartbeatPayload{
-					BasicData:    *bd,
-					Applications: apps,
-				}
-				heartbeatPayload.ResourceUsage = sfs.ResourceUsage{
-					CpuMaxUsage:    usage.maxCPUUsage,
-					CpuUsage:       usage.currentCPUUsage,
-					MemoryMaxUsage: usage.maxMemoryUsage,
-					MemoryUsage:    usage.currentMemoryUsage,
+					BasicData:     *bd,
+					Applications:  apps,
+					ResourceUsage: getResourceUsage(),
 				}
 				payload, err := heartbeatPayload.Encode()
 				if err != nil {
 					logger.Error("stream start loop heartbeat failed by encode heartbeat payload", logger.ErrAttr(err))
 					return
 				}
+
 				if err := r.heartbeatOnce(heartbeatPayload.MessagingType(), payload); err != nil {
 					logger.Warn("stream heartbeat failed, notify reconnect upstream",
 						logger.ErrAttr(err), slog.String("rid", r.vas.Rid))
@@ -491,6 +506,8 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 		files[i], files[j] = files[j], files[i]
 	})
 	// var successDownloads int32
+	start := time.Now()
+	var success, failed, skip int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(updateFileConcurrentLimit)
 	for _, f := range files {
@@ -501,21 +518,31 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 			filePath := path.Join(fileDir, file.Name)
 			err := os.MkdirAll(fileDir, os.ModePerm)
 			if err != nil {
-				return fmt.Errorf("create dir %s failed, err: %s", fileDir, err.Error())
+				atomic.AddInt32(&failed, 1)
+				return sfs.WrapPrimaryError(sfs.DownloadFailed,
+					sfs.SecondaryError{SpecificFailedReason: sfs.NewFolderFailed,
+						Err: fmt.Errorf("create dir %s failed, err: %s", fileDir, err.Error())})
 			}
 			// 2. check and download file
 			exists, err := checkFileExists(fileDir, file.FileMeta)
 			if err != nil {
-				return fmt.Errorf("check file exists failed, err: %s", err.Error())
+				atomic.AddInt32(&failed, 1)
+				return sfs.WrapPrimaryError(sfs.DownloadFailed,
+					sfs.SecondaryError{SpecificFailedReason: sfs.CheckFileExistsFailed,
+						Err: fmt.Errorf("check file exists failed, err: %s", err.Error())})
 			}
 			if !exists {
-				err := downloader.GetDownloader().Download(file.FileMeta.PbFileMeta(), file.FileMeta.RepositoryPath,
-					file.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, filePath)
+				err := file.SaveToFile(filePath)
 				if err != nil {
-					return fmt.Errorf("download file failed, err: %s", err.Error())
+					atomic.AddInt32(&failed, 1)
+					return err
 				}
+				atomic.AddInt32(&success, 1)
+				logger.Info("update file success", slog.String("file", filePath))
 			} else {
-				logger.Info("file is already exists and has not been modified, skip download", slog.String("file", filePath))
+				atomic.AddInt32(&skip, 1)
+				logger.Debug("file is already exists and has not been modified, skip download",
+					slog.String("file", filePath))
 			}
 			// 3. set file permission
 			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
@@ -527,5 +554,16 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 			return nil
 		})
 	}
-	return g.Wait()
+	err := g.Wait()
+
+	logger.Info("update files done", slog.Int("success", int(success)), slog.Int("skip", int(skip)),
+		slog.Int("failed", int(failed)), slog.Int("total", len(files)),
+		slog.String("duration", time.Since(start).String()))
+	if err != nil {
+		return sfs.WrapPrimaryError(sfs.DownloadFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.SpecificFailedReason(0),
+				Err: err})
+	}
+
+	return nil
 }
