@@ -240,7 +240,7 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 					Payload:    event.Payload,
 				}
 
-				if c := cache.GetCache(); c != nil {
+				if c := cache.GetCache(); c != nil && cache.Enable {
 					go c.OnReleaseChange(change)
 				}
 				go w.OnReleaseChange(change)

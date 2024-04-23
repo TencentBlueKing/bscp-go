@@ -161,10 +161,6 @@ func runGetApp(args []string) error {
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
-		client.WithBkAgentID(conf.BkAgentID),
-		client.WithClusterID(conf.ClusterID),
-		client.WithPodID(conf.PodID),
-		client.WithContainerName(conf.ContainerName),
 	)
 
 	if err != nil {
@@ -333,10 +329,6 @@ func runGetFile(args []string) error {
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
-		client.WithBkAgentID(conf.BkAgentID),
-		client.WithClusterID(conf.ClusterID),
-		client.WithPodID(conf.PodID),
-		client.WithContainerName(conf.ContainerName),
 		client.WithFileCache(client.FileCache{
 			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,
@@ -477,10 +469,6 @@ func runGetKv(args []string) error {
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
-		client.WithBkAgentID(conf.BkAgentID),
-		client.WithClusterID(conf.ClusterID),
-		client.WithPodID(conf.PodID),
-		client.WithContainerName(conf.ContainerName),
 	)
 
 	if err != nil {

@@ -112,6 +112,8 @@ type httpDownloader struct {
 // Download the configuration items from provider.
 func (dl *httpDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, fileSize uint64,
 	to DownloadTo, bytes []byte, toFile string) error {
+
+	start := time.Now()
 	exec := &execDownload{
 		ctx:         context.Background(),
 		dl:          dl,
@@ -139,7 +141,12 @@ func (dl *httpDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, 
 		}
 		exec.bytes = bytes
 	}
-	return exec.do()
+	if err := exec.do(); err != nil {
+		return err
+	}
+
+	logger.Info("http download file success", "file", toFile, "cost", time.Since(start).String())
+	return nil
 }
 
 func (dl *httpDownloader) initClient() *http.Client {

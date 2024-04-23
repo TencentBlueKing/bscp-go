@@ -122,7 +122,8 @@ func New(opts ...Option) (Client, error) {
 		return nil, fmt.Errorf("decode handshake payload failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}
 	err = downloader.Init(vas, clientOpt.bizID, clientOpt.token, u, pl.RuntimeOption.RepositoryTLS,
-		clientOpt.bkAgentID, clientOpt.clusterID, clientOpt.podID, clientOpt.containerName)
+		clientOpt.p2pDownload.Enabled, clientOpt.p2pDownload.BkAgentID, clientOpt.p2pDownload.ClusterID,
+		clientOpt.p2pDownload.PodID,clientOpt.p2pDownload.ContainerName)
 	if err != nil {
 		return nil, fmt.Errorf("init downloader failed, err: %s", err.Error())
 	}

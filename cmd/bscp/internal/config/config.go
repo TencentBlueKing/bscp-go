@@ -15,6 +15,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	// for unmarshal yaml config file
@@ -50,14 +51,8 @@ type ClientConfig struct {
 	LabelsFile string `json:"labels_file" mapstructure:"labels_file"`
 	// Port sidecar http server port
 	Port int `json:"port" mapstructure:"port"`
-	// BkAgentID bk gse agent id
-	BkAgentID string `json:"bk_agent_id" mapstructure:"bk_agent_id"`
-	// ClusterID bcs cluster id
-	ClusterID string `json:"cluster_id" mapstructure:"cluster_id"`
-	// PodID id of the pod where the bscp container resides
-	PodID string `json:"pod_id" mapstructure:"pod_id"`
-	// ContainerName bscp container name
-	ContainerName string `json:"container_name" mapstructure:"container_name"`
+	// P2PDownload p2p download config
+	P2PDownload *P2PDownloadConfig `json:"p2p_download" mapstructure:"p2p_download"`
 	// FileCache file cache config
 	FileCache *FileCacheConfig `json:"file_cache" mapstructure:"file_cache"`
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
@@ -92,6 +87,9 @@ func (c *ClientConfig) ValidateBase() error {
 	}
 	if c.FileCache == nil {
 		c.FileCache = new(FileCacheConfig)
+	}
+	if c.P2PDownload == nil {
+		c.P2PDownload = new(P2PDownloadConfig)
 	}
 	if err := c.FileCache.Validate(); err != nil {
 		return err
@@ -166,6 +164,32 @@ func (c *FileCacheConfig) Validate() error {
 	}
 	if c.RetentionRate <= 0 || c.RetentionRate > 1 {
 		c.RetentionRate = constant.DefaultCacheRetentionRate
+	}
+	return nil
+}
+
+// P2PDownloadConfig config for p2p download file
+type P2PDownloadConfig struct {
+	// Enabled is whether enable p2p download file
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
+	// BkAgentID bk gse agent id
+	BkAgentID string `json:"bk_agent_id" mapstructure:"bk_agent_id"`
+	// ClusterID bcs cluster id
+	ClusterID string `json:"cluster_id" mapstructure:"cluster_id"`
+	// PodID id of the pod where the bscp container resides
+	PodID string `json:"pod_id" mapstructure:"pod_id"`
+	// ContainerName bscp container name
+	ContainerName string `json:"container_name" mapstructure:"container_name"`
+}
+
+// Validate validate the p2p download config
+func (c *P2PDownloadConfig) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+	if c.BkAgentID == "" && (c.ClusterID == "" || c.PodID == "" || c.ContainerName == "") {
+		return errors.New("either agent id must be provided or cluster id, " +
+			"pod id, container name must all be non-empty")
 	}
 	return nil
 }

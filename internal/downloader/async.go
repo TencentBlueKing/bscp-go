@@ -27,6 +27,7 @@ import (
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
 
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
+	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -49,6 +50,8 @@ type asyncDownloader struct {
 func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, fileSize uint64,
 	to DownloadTo, bytes []byte, toFile string) error {
 	// create asynchronous download task
+
+	start := time.Now()
 
 	// tempFileDir: /tmp/bscp/sync/download/{bizID}/{sha256}
 	tempDir := fmt.Sprintf("/tmp/bscp/sync/download/%d", dl.bizID)
@@ -81,7 +84,7 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 		return err
 	}
 
-	logger.Info("async download file success", "file", toFile)
+	logger.Info("async download file success", "file", toFile, "cost", time.Since(start).String())
 	return nil
 }
 
@@ -90,7 +93,7 @@ func (dl *asyncDownloader) awaitDownloadCompletion(bizID uint32, taskID, toFile 
 	ctx, cancel := context.WithTimeout(dl.vas.Ctx, 10*time.Minute)
 	defer cancel()
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := util.NewProgressiveTicker(nil)
 	defer ticker.Stop()
 
 	for {

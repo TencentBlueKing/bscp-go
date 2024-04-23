@@ -16,6 +16,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path"
 
@@ -36,6 +37,10 @@ const (
 
 // UpdateFiles updates the files to the target directory.
 func UpdateFiles(filesDir string, files []*client.ConfigItemFile) error {
+	// 随机打乱配置文件顺序，避免同时下载导致的并发问题
+	rand.Shuffle(len(files), func(i, j int) {
+		files[i], files[j] = files[j], files[i]
+	})
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(UpdateFileConcurrentLimit)
 	for _, f := range files {

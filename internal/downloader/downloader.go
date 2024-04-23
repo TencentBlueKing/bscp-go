@@ -48,7 +48,7 @@ type Downloader interface {
 
 // Init init the downloader instance.
 func Init(vas *kit.Vas, bizID uint32, token string, upstream upstream.Upstream, tlsBytes *sfs.TLSBytes,
-	agentID, clusterID, podID, containerName string) error {
+	enableP2P bool, agentID, clusterID, podID, containerName string) error {
 
 	tlsC, err := tlsConfigFromTLSBytes(tlsBytes)
 	if err != nil {
@@ -67,6 +67,10 @@ func Init(vas *kit.Vas, bizID uint32, token string, upstream upstream.Upstream, 
 		},
 	}
 
+	if !enableP2P {
+		logger.Warn("async p2p download is set to disabled")
+		return nil
+	}
 	if agentID == "" && (clusterID == "" || podID == "" || containerName == "") {
 		logger.Warn("async download is disabled, because agentID or clusterID/podID/containerName is empty")
 		return nil
@@ -98,6 +102,7 @@ func (d *downloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, fileS
 		if err := d.asyncDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath); err != nil {
 			logger.Warn("async download file failed, fallback to http download", "file",
 				path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name), "err", err.Error())
+			return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
 		}
 	}
 	return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)

@@ -15,6 +15,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -42,7 +43,7 @@ import (
 
 const (
 	// updateFileConcurrentLimit is the limit of concurrent for update file.
-	updateFileConcurrentLimit = 5
+	updateFileConcurrentLimit = 10
 )
 
 // Release bscp 服务版本
@@ -166,7 +167,7 @@ func (r *Release) UpdateFiles() Function {
 			return nil
 		}
 		if err := clearOldFiles(filesDir, r.FileItems); err != nil {
-			r.AppMate.FailedReason = sfs.ClearOldFilesFailed
+			r.AppMate.FailedReason = sfs.DeleteOldFilesFailed
 			logger.Error("clear old files failed", logger.ErrAttr(err))
 			return err
 		}
@@ -485,6 +486,10 @@ func (r *Release) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType
 // updateFiles updates the files to the target directory.
 func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int32, successFileSize *uint64,
 	semaphoreCh chan struct{}) error {
+	// 随机打乱配置文件顺序，避免同时下载导致的并发问题
+	rand.Shuffle(len(files), func(i, j int) {
+		files[i], files[j] = files[j], files[i]
+	})
 	// var successDownloads int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(updateFileConcurrentLimit)
