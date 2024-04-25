@@ -123,17 +123,17 @@ type Function func() error
 // compareRelease 对比当前服务版本
 // 返回值: 是否跳过本次版本变更事件（本地版本和事件版本一致）, 错误信息
 func (r *Release) compareRelease() (bool, error) {
-	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(r.AppDir)
+	lastMetadata, exist, err := eventmeta.GetLatestMetadataFromFile(r.AppDir)
 	if err != nil {
-		// 如果 metadata 文件不存在，说明没有执行过 pull 操作
-		if os.IsNotExist(err) {
-			logger.Warn("can not find metadata file, maybe you should exec pull command first", logger.ErrAttr(err))
-			return false, nil
-		}
 		logger.Error("get metadata file failed", logger.ErrAttr(err))
 		return false, err
-
-	} else if lastMetadata.ReleaseID == r.ReleaseID {
+	}
+	// 如果 metadata 文件不存在，说明没有执行过 pull 操作
+	if !exist {
+		logger.Warn("can not find metadata file, maybe you should exec pull command first")
+		return false, nil
+	}
+	if lastMetadata.ReleaseID == r.ReleaseID {
 		r.AppMate.CurrentReleaseID = r.ReleaseID
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", r.ReleaseID))
 		return true, nil
@@ -352,7 +352,7 @@ func (r *Release) Execute(steps ...Function) error {
 	// 一定要在该位置
 	// 不然会导致current_release_id是0的问题
 	var skip bool
-	if r.ClientMode != sfs.Pull {
+	if r.ClientMode == sfs.Watch {
 		skip, err = r.compareRelease()
 		if err != nil {
 			return err
