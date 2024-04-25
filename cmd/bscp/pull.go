@@ -67,13 +67,11 @@ func Pull(cmd *cobra.Command, args []string) {
 		client.WithToken(conf.Token),
 		client.WithLabels(conf.Labels),
 		client.WithUID(conf.UID),
-		client.WithP2PDownload(client.P2PDownload{
-			Enabled:       conf.P2PDownload.Enabled,
-			BkAgentID:     conf.P2PDownload.BkAgentID,
-			ClusterID:     conf.P2PDownload.ClusterID,
-			PodID:         conf.P2PDownload.PodID,
-			ContainerName: conf.P2PDownload.ContainerName,
-		}),
+		client.WithP2PDownload(conf.EnableP2PDownload),
+		client.WithBkAgentID(conf.BkAgentID),
+		client.WithClusterID(conf.ClusterID),
+		client.WithPodID(conf.PodID),
+		client.WithContainerName(conf.ContainerName),
 		client.WithFileCache(client.FileCache{
 			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,
@@ -91,7 +89,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		go process_collect.NewProcessCollector(ctx)
 	}
 
-	if conf.P2PDownload.Enabled {
+	if conf.EnableP2PDownload {
 		// enable gse p2p download, wait for container to report itself's containerID to bcs storage
 		time.Sleep(5 * time.Second)
 	}
@@ -174,16 +172,16 @@ func init() {
 	// TODO: set client UID
 	PullCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
 	mustBindPFlag(pullViper, "temp_dir", PullCmd.Flags().Lookup("temp-dir"))
-	PullCmd.Flags().BoolP("p2p-download-enabled", "", false, "enable p2p download or not")
-	mustBindPFlag(pullViper, "p2p_download.enabled", PullCmd.Flags().Lookup("p2p-download-enabled"))
+	PullCmd.Flags().BoolP("enable-p2p-download", "", false, "enable p2p download or not")
+	mustBindPFlag(pullViper, "enable_p2p_download", PullCmd.Flags().Lookup("enable-p2p-download"))
 	PullCmd.Flags().StringP("bk-agent-id", "", "", "gse agent id")
-	mustBindPFlag(pullViper, "p2p_download.bk_agent_id", PullCmd.Flags().Lookup("bk-agent-id"))
+	mustBindPFlag(pullViper, "bk_agent_id", PullCmd.Flags().Lookup("bk-agent-id"))
 	PullCmd.Flags().StringP("cluster-id", "", "", "cluster id")
-	mustBindPFlag(pullViper, "p2p_download.cluster_id", PullCmd.Flags().Lookup("cluster-id"))
+	mustBindPFlag(pullViper, "cluster_id", PullCmd.Flags().Lookup("cluster-id"))
 	PullCmd.Flags().StringP("pod-id", "", "", "pod id")
-	mustBindPFlag(pullViper, "p2p_download.pod_id", PullCmd.Flags().Lookup("pod-id"))
+	mustBindPFlag(pullViper, "pod_id", PullCmd.Flags().Lookup("pod-id"))
 	PullCmd.Flags().StringP("container-name", "", "", "container name")
-	mustBindPFlag(pullViper, "p2p_download.container_name", PullCmd.Flags().Lookup("container-name"))
+	mustBindPFlag(pullViper, "container_name", PullCmd.Flags().Lookup("container-name"))
 	PullCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
 	mustBindPFlag(pullViper, "file_cache.enabled", PullCmd.Flags().Lookup("file-cache-enabled"))
 	PullCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")

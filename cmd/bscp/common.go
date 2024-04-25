@@ -61,18 +61,18 @@ var (
 
 	// commonEnvs variable definition, viper key => envName
 	commonEnvs = map[string]string{
-		"biz":                  "biz",
-		"app":                  "app",
-		"labels_str":           "labels",
-		"labels_file":          "labels_file",
-		"feed_addrs":           "feed_addrs",
-		"token":                "token",
-		"temp_dir":             "temp_dir",
-		"p2p_download_enabled": "p2p_download_enabled",
-		"bk_agent_id":          "bk_agent_id",
-		"cluster_id":           "cluster_id",
-		"pod_id":               "pod_id",
-		"container_name":       "container_name",
+		"biz":                 "biz",
+		"app":                 "app",
+		"labels_str":          "labels",
+		"labels_file":         "labels_file",
+		"feed_addrs":          "feed_addrs",
+		"token":               "token",
+		"temp_dir":            "temp_dir",
+		"enable_p2p_download": "enable_p2p_download",
+		"bk_agent_id":         "bk_agent_id",
+		"cluster_id":          "cluster_id",
+		"pod_id":              "pod_id",
+		"container_name":      "container_name",
 	}
 
 	watchEnvs = map[string]string{

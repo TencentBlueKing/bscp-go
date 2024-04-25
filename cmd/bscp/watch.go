@@ -14,7 +14,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof" // nolint
@@ -89,11 +88,6 @@ func Watch(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	b, _ := json.Marshal(conf)
-	fmt.Println(" =========================== conf =========================== ")
-	fmt.Println(string(b))
-	fmt.Println(" ============================================================ ")
-
 	for _, subscriber := range conf.Apps {
 		handler := &WatchHandler{
 			Biz:        conf.Biz,
@@ -111,7 +105,7 @@ func Watch(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if conf.P2PDownload.Enabled {
+	if conf.EnableP2PDownload {
 		// enable gse p2p download, wait for container to report itself's containerID to bcs storage
 		time.Sleep(5 * time.Second)
 	}
@@ -146,13 +140,11 @@ func createClient(conf *config.ClientConfig, labels map[string]string) (client.C
 		client.WithToken(conf.Token),
 		client.WithLabels(labels),
 		client.WithUID(conf.UID),
-		client.WithP2PDownload(client.P2PDownload{
-			Enabled:       conf.P2PDownload.Enabled,
-			BkAgentID:     conf.P2PDownload.BkAgentID,
-			ClusterID:     conf.P2PDownload.ClusterID,
-			PodID:         conf.P2PDownload.PodID,
-			ContainerName: conf.P2PDownload.ContainerName,
-		}),
+		client.WithP2PDownload(conf.EnableP2PDownload),
+		client.WithBkAgentID(conf.BkAgentID),
+		client.WithClusterID(conf.ClusterID),
+		client.WithPodID(conf.PodID),
+		client.WithContainerName(conf.ContainerName),
 		client.WithFileCache(client.FileCache{
 			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,
@@ -269,16 +261,16 @@ func init() {
 	mustBindPFlag(watchViper, "temp_dir", WatchCmd.Flags().Lookup("temp-dir"))
 	WatchCmd.Flags().IntP("port", "p", constant.DefaultHttpPort, "sidecar http port")
 	mustBindPFlag(watchViper, "port", WatchCmd.Flags().Lookup("port"))
-	WatchCmd.Flags().BoolP("p2p-download-enabled", "", false, "enable p2p download or not")
-	mustBindPFlag(watchViper, "p2p_download.enabled", WatchCmd.Flags().Lookup("p2p-download-enabled"))
+	WatchCmd.Flags().BoolP("enable-p2p-download", "", false, "enable p2p download or not")
+	mustBindPFlag(watchViper, "enable-p2p-download", WatchCmd.Flags().Lookup("enable-p2p-download"))
 	WatchCmd.Flags().StringP("bk-agent-id", "", "", "gse agent id")
-	mustBindPFlag(watchViper, "p2p_download.bk_agent_id", WatchCmd.Flags().Lookup("bk-agent-id"))
+	mustBindPFlag(watchViper, "bk_agent_id", WatchCmd.Flags().Lookup("bk-agent-id"))
 	WatchCmd.Flags().StringP("cluster-id", "", "", "cluster id")
-	mustBindPFlag(watchViper, "p2p_download.cluster_id", WatchCmd.Flags().Lookup("cluster-id"))
+	mustBindPFlag(watchViper, "cluster_id", WatchCmd.Flags().Lookup("cluster-id"))
 	WatchCmd.Flags().StringP("pod-id", "", "", "pod id")
-	mustBindPFlag(watchViper, "p2p_download.pod_id", WatchCmd.Flags().Lookup("pod-id"))
+	mustBindPFlag(watchViper, "pod_id", WatchCmd.Flags().Lookup("pod-id"))
 	WatchCmd.Flags().StringP("container-name", "", "", "container name")
-	mustBindPFlag(watchViper, "p2p_download.container_name", WatchCmd.Flags().Lookup("container-name"))
+	mustBindPFlag(watchViper, "container_name", WatchCmd.Flags().Lookup("container-name"))
 	WatchCmd.Flags().BoolP("file-cache-enabled", "", constant.DefaultFileCacheEnabled, "enable file cache or not")
 	mustBindPFlag(watchViper, "file_cache.enabled", WatchCmd.Flags().Lookup("file-cache-enabled"))
 	WatchCmd.Flags().StringP("file-cache-dir", "", constant.DefaultFileCacheDir, "bscp file cache dir")
