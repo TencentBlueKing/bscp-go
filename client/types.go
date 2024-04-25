@@ -90,7 +90,8 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 
 	if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 		c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToBytes, bytes, ""); err != nil {
-		return nil, fmt.Errorf("download file failed, err: %s", err.Error())
+		logger.Error("download file failed", logger.ErrAttr(err))
+		return nil, err
 	}
 	logger.Debug("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
 	return bytes, nil
@@ -105,6 +106,7 @@ func (c *ConfigItemFile) SaveToFile(dst string) error {
 		// 2. if cache not hit, download file from remote
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 			c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, dst); err != nil {
+			logger.Error("download file failed", logger.ErrAttr(err))
 			return err
 		}
 	}
@@ -162,7 +164,10 @@ func (p *PreScriptStrategy) executeScript(r *Release) error {
 			return sfs.WrapPrimaryError(sfs.PreHookFailed, smallErr)
 		}
 		// 前置未知错误
-		return sfs.WrapPrimaryError(sfs.PreHookFailed, sfs.SecondaryError{Err: err})
+		return sfs.WrapPrimaryError(sfs.PreHookFailed, sfs.SecondaryError{
+			SpecificFailedReason: sfs.UnknownSpecificFailed,
+			Err:                  err,
+		})
 	}
 	return nil
 }
@@ -184,7 +189,10 @@ func (p *PostScriptStrategy) executeScript(r *Release) error {
 			return sfs.WrapPrimaryError(sfs.PostHookFailed, smallErr)
 		}
 		// 后置未知错误
-		return sfs.WrapPrimaryError(sfs.PostHookFailed, sfs.SecondaryError{Err: err})
+		return sfs.WrapPrimaryError(sfs.PostHookFailed, sfs.SecondaryError{
+			SpecificFailedReason: sfs.UnknownSpecificFailed,
+			Err:                  err,
+		})
 	}
 	return nil
 }
@@ -203,7 +211,7 @@ func (r *Release) UpdateFiles() Function {
 		filesDir := path.Join(r.AppDir, "files")
 		if err := updateFiles(filesDir, r.FileItems, &r.AppMate.DownloadFileNum, &r.AppMate.DownloadFileSize,
 			r.SemaphoreCh); err != nil {
-			// logger.Error("update files", logger.ErrAttr(err))
+			logger.Error("update file failed", logger.ErrAttr(err))
 			return err
 		}
 		if r.ClientMode == sfs.Pull {
@@ -218,8 +226,10 @@ func (r *Release) UpdateFiles() Function {
 			}
 			// 删除错误
 			return sfs.WrapPrimaryError(sfs.DeleteOldFilesFailed,
-				sfs.SecondaryError{SpecificFailedReason: sfs.DeleteFolderFailed,
-					Err: err})
+				sfs.SecondaryError{
+					SpecificFailedReason: sfs.DeleteFolderFailed,
+					Err:                  err,
+				})
 		}
 		return nil
 	}
@@ -321,8 +331,8 @@ func (r *Release) Execute(steps ...Function) error {
 		if err != nil {
 			// 默认为未知错误
 			r.AppMate.ReleaseChangeStatus = sfs.Failed
-			r.AppMate.FailedReason = sfs.FailedReason(0)
-			r.AppMate.SpecificFailedReason = sfs.SpecificFailedReason(0)
+			r.AppMate.FailedReason = sfs.UnknownFailed
+			r.AppMate.SpecificFailedReason = sfs.UnknownSpecificFailed
 			r.AppMate.FailedDetailReason = err.Error()
 			var e sfs.PrimaryError
 			if errors.As(err, &e) {
@@ -553,9 +563,14 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 	logger.Info("update files done", slog.Int("success", int(success)), slog.Int("skip", int(skip)),
 		slog.Int("failed", int(failed)), slog.Int("total", len(files)),
 		slog.String("duration", time.Since(start).String()))
+
 	if err != nil {
+		var e sfs.PrimaryError
+		if errors.As(err, &e) {
+			return err
+		}
 		return sfs.WrapPrimaryError(sfs.DownloadFailed,
-			sfs.SecondaryError{SpecificFailedReason: sfs.SpecificFailedReason(0),
+			sfs.SecondaryError{SpecificFailedReason: sfs.UnknownSpecificFailed,
 				Err: err})
 	}
 
