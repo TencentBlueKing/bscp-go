@@ -95,9 +95,10 @@ func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 }
 
 // GetLatestMetadataFromFile get latest metadata from file.
-func GetLatestMetadataFromFile(tempDir string) (*EventMeta, error) {
+// Return metadata, exists, error
+func GetLatestMetadataFromFile(tempDir string) (*EventMeta, bool, error) {
 	if tempDir == "" {
-		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+		return nil, false, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
 			sfs.SecondaryError{SpecificFailedReason: sfs.DataEmpty,
 				Err: errors.New("metadata file path can not be empty")})
 	}
@@ -106,7 +107,10 @@ func GetLatestMetadataFromFile(tempDir string) (*EventMeta, error) {
 
 	metaFile, err := os.Open(metaFilePath)
 	if err != nil {
-		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+		if os.IsNotExist(err) {
+			return nil, false, nil
+		}
+		return nil, false, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
 			sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
 				Err: err})
 	}
@@ -117,17 +121,17 @@ func GetLatestMetadataFromFile(tempDir string) (*EventMeta, error) {
 		lastLine = scanner.Text()
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+		return nil, false, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
 			sfs.SecondaryError{SpecificFailedReason: sfs.ReadFileFailed,
 				Err: err})
 	}
 
 	metadata := &EventMeta{}
 	if err := json.Unmarshal([]byte(lastLine), metadata); err != nil {
-		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+		return nil, false, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
 			sfs.SecondaryError{SpecificFailedReason: sfs.SerializationFailed,
 				Err: fmt.Errorf("unmarshal metadata failed, err: %s", err.Error())})
 	}
 
-	return metadata, nil
+	return metadata, true, nil
 }
