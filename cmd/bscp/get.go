@@ -30,6 +30,7 @@ import (
 
 var (
 	outputFormat string
+	download     string
 )
 
 const (
@@ -124,6 +125,7 @@ func init() {
 		"bscp file cache threshold gigabyte")
 	mustBindPFlag(getFileViper, "file_cache.threshold_gb", getFileCmd.Flags().Lookup("cache-threshold-gb"))
 	getFileCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|content")
+	getFileCmd.Flags().StringVarP(&download, "download", "d", "", "file path for saving the downloaded content")
 
 	// kv 参数
 	getKvCmd.Flags().StringP("app", "a", "", "app name")
@@ -215,11 +217,12 @@ func runGetFileList(bscp client.Client, app string, match []string) error {
 
 	tableOutput := func() error {
 		table := newTable()
-		table.SetHeader([]string{"File", "ContentID", "Size", "Reviser", "UpdateAt"})
+		table.SetHeader([]string{"File", "SHA256", "MD5", "Size", "Reviser", "UpdateAt"})
 		for _, v := range release.FileItems {
 			table.Append([]string{
 				path.Join(v.Path, v.Name),
 				v.FileMeta.ContentSpec.Signature,
+				v.FileMeta.ContentSpec.Md5,
 				humanize.IBytes(v.FileMeta.ContentSpec.ByteSize),
 				v.FileMeta.ConfigItemRevision.Reviser,
 				refineOutputTime(v.FileMeta.ConfigItemRevision.UpdateAt),
@@ -243,50 +246,45 @@ func runGetFileList(bscp client.Client, app string, match []string) error {
 }
 
 // runGetFileContents gets file contents
-func runGetFileContents(bscp client.Client, app string, contentIDs []string) error {
-	release, err := bscp.PullFiles(app, client.WithAppLabels(conf.Labels))
+func runGetFileContents(bscp client.Client, app string, match []string) error {
+	output, err := getFileOutput(bscp, app, match)
 	if err != nil {
 		return err
 	}
+	_, err = fmt.Fprint(os.Stdout, output)
+	return err
+}
 
-	fileMap := make(map[string]*client.ConfigItemFile)
-	allFiles := make([]*client.ConfigItemFile, len(release.FileItems))
-	for idx, f := range release.FileItems {
-		fileMap[f.FileMeta.ContentSpec.Signature] = f
-		allFiles[idx] = f
+// getFileOutput gets file output
+func getFileOutput(bscp client.Client, app string, match []string) (string, error) {
+	var opts []client.AppOption
+	if len(match) > 0 {
+		opts = append(opts, client.WithAppKey(match[0]))
 	}
+	opts = append(opts, client.WithAppLabels(conf.Labels))
 
-	files := allFiles
-	if len(contentIDs) > 0 {
-		files = []*client.ConfigItemFile{}
-		for _, id := range contentIDs {
-			if _, ok := fileMap[id]; !ok {
-				return fmt.Errorf("the file content id %s is not exist for the latest release of app %s", id, app)
-			}
-			files = append(files, fileMap[id])
-		}
+	release, err := bscp.PullFiles(app, opts...)
+	if err != nil {
+		return "", err
 	}
 
 	var contents [][]byte
-	contents, err = getfileContents(files)
+	contents, err = getfileContents(release.FileItems)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// output only content when getting for just one file which is convenient to save it directly in a file
-	if len(contentIDs) == 1 {
-		_, err = fmt.Fprint(os.Stdout, string(contents[0]))
-		return err
+	if len(release.FileItems) == 1 {
+		return string(contents[0]), nil
 	}
 
 	output := ""
-	for idx, file := range files {
+	for idx, file := range release.FileItems {
 		output += fmt.Sprintf("***start No.%d***\nfile: %s\ncontentID: %s\nconent: \n%s\n***end No.%d***\n\n",
 			idx+1, path.Join(file.Path, file.Name), file.FileMeta.ContentSpec.Signature, contents[idx], idx+1)
 	}
-
-	_, err = fmt.Fprint(os.Stdout, output)
-	return err
+	return output, nil
 }
 
 // getfileContents get file contents concurrently
@@ -308,6 +306,15 @@ func getfileContents(files []*client.ConfigItemFile) ([][]byte, error) {
 	}
 
 	return contents, g.Wait()
+}
+
+// runDownloadFile downloads file
+func runDownloadFile(bscp client.Client, app string, match []string) error {
+	output, err := getFileOutput(bscp, app, match)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(download, []byte(output), 0644)
 }
 
 // runGetFile executes the get file command.
@@ -338,6 +345,10 @@ func runGetFile(args []string) error {
 
 	if err != nil {
 		return err
+	}
+
+	if download != "" {
+		return runDownloadFile(bscp, conf.App, args)
 	}
 
 	if outputFormat == outputFormatContent {

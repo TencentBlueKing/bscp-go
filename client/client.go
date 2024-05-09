@@ -17,12 +17,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/criteria/constant"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
+	pbbase "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/base"
 	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
 	"golang.org/x/exp/slog"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/TencentBlueKing/bscp-go/internal/cache"
 	"github.com/TencentBlueKing/bscp-go/internal/downloader"
@@ -169,7 +174,7 @@ func (c *client) ResetLabels(labels map[string]string) {
 }
 
 // PullFiles pull files from remote
-func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
+func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { // nolint
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)
@@ -195,10 +200,57 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 	if req.AppMeta.Uid == "" {
 		req.AppMeta.Uid = c.opts.fingerprint
 	}
-	resp, err := c.upstream.PullAppFileMeta(vas, req)
-	if err != nil {
-		return nil, fmt.Errorf("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
+
+	var err error
+	var resp *pbfs.PullAppFileMetaResp
+	r := &Release{
+		upstream: c.upstream,
+		vas:      vas,
+		AppMate: &sfs.SideAppMeta{
+			App:       app,
+			Labels:    req.AppMeta.Labels,
+			Uid:       req.AppMeta.Uid,
+			StartTime: time.Now().UTC(),
+		},
 	}
+
+	defer func() {
+		if err != nil {
+			r.AppMate.CursorID = util.GenerateCursorID(c.opts.bizID)
+			r.AppMate.ReleaseChangeStatus = sfs.Failed
+			r.AppMate.EndTime = time.Now().UTC()
+			r.AppMate.TotalSeconds = r.AppMate.EndTime.Sub(r.AppMate.StartTime).Seconds()
+			r.AppMate.FailedReason = sfs.AppMetaFailed
+			r.AppMate.SpecificFailedReason = sfs.NoDownloadPermission
+			r.AppMate.FailedDetailReason = fmt.Sprintf("pull app file meta failed, err: %s", err.Error())
+			if st, ok := status.FromError(err); ok {
+				if st.Code() == codes.PermissionDenied || st.Code() == codes.Unauthenticated {
+					r.AppMate.FailedReason = sfs.TokenFailed
+					r.AppMate.SpecificFailedReason = sfs.TokenPermissionFailed
+				}
+				if st.Code() == codes.FailedPrecondition {
+					for _, detail := range st.Details() {
+						if d, ok := detail.(*pbbase.ErrDetails); ok {
+							r.AppMate.FailedReason = sfs.FailedReason(d.PrimaryError)
+							r.AppMate.SpecificFailedReason = sfs.SpecificFailedReason(d.SecondaryError)
+						}
+					}
+				}
+				r.AppMate.FailedDetailReason = st.Err().Error()
+			}
+			if err = c.sendClientMessaging(vas, r.AppMate, nil); err != nil {
+				logger.Error("description failed to report the client change event, client_mode: %s, biz: %d,app: %s, err: %s",
+					r.ClientMode.String(), r.BizID, r.AppMate.App, err.Error())
+			}
+		}
+	}()
+
+	resp, err = c.upstream.PullAppFileMeta(vas, req)
+	if err != nil {
+		logger.Error("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
+		return nil, err
+	}
+
 	files := make([]*ConfigItemFile, len(resp.FileMetas))
 	// 计算总文件大小和总文件数
 	var totalFileSize uint64
@@ -220,23 +272,15 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 		}
 	}
 
-	r := &Release{
-		ReleaseID:   resp.ReleaseId,
-		ReleaseName: resp.ReleaseName,
-		FileItems:   files,
-		PreHook:     resp.PreHook,
-		PostHook:    resp.PostHook,
-		upstream:    c.upstream,
-		vas:         vas,
-		AppMate: &sfs.SideAppMeta{
-			App:             app,
-			Labels:          req.AppMeta.Labels,
-			Uid:             req.AppMeta.Uid,
-			TargetReleaseID: resp.ReleaseId,
-			TotalFileNum:    len(files),
-			TotalFileSize:   totalFileSize,
-		},
-	}
+	r.ReleaseID = resp.ReleaseId
+	r.ReleaseName = resp.ReleaseName
+	r.FileItems = files
+	r.PreHook = resp.PreHook
+	r.PostHook = resp.PostHook
+	r.AppMate.TargetReleaseID = resp.ReleaseId
+	r.AppMate.TotalFileNum = len(files)
+	r.AppMate.TotalFileSize = totalFileSize
+
 	return r, nil
 }
 
@@ -337,4 +381,31 @@ func (c *client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint
 	ctx, cancel := context.WithCancel(vas.Ctx)
 	vas.Ctx = ctx
 	return vas, cancel
+}
+
+// sendClientMessaging 发送客户端连接信息
+func (c *client) sendClientMessaging(vas *kit.Vas, meta *sfs.SideAppMeta, annotations map[string]interface{}) error {
+	clientInfoPayload := sfs.VersionChangePayload{
+		BasicData: &sfs.BasicData{
+			BizID:         c.opts.bizID,
+			ClientMode:    sfs.Pull,
+			ClientType:    sfs.ClientType(version.CLIENTTYPE),
+			ClientVersion: version.Version().Version,
+			IP:            util.GetClientIP(),
+			Annotations:   annotations,
+		},
+		Application:   meta,
+		ResourceUsage: sfs.ResourceUsage{},
+	}
+
+	payload, err := clientInfoPayload.Encode()
+	if err != nil {
+		return err
+	}
+
+	_, err = c.upstream.Messaging(vas, clientInfoPayload.MessagingType(), payload)
+	if err != nil {
+		return err
+	}
+	return nil
 }

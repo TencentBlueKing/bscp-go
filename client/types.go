@@ -91,7 +91,8 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 
 	if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 		c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToBytes, bytes, ""); err != nil {
-		return nil, fmt.Errorf("download file failed, err: %s", err.Error())
+		logger.Error("download file failed", logger.ErrAttr(err))
+		return nil, err
 	}
 	logger.Debug("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
 	return bytes, nil
@@ -106,6 +107,7 @@ func (c *ConfigItemFile) SaveToFile(dst string) error {
 		// 2. if cache not hit, download file from remote
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 			c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, dst); err != nil {
+			logger.Error("download file failed", logger.ErrAttr(err))
 			return err
 		}
 	}
@@ -122,17 +124,17 @@ type Function func() error
 // compareRelease 对比当前服务版本
 // 返回值: 是否跳过本次版本变更事件（本地版本和事件版本一致）, 错误信息
 func (r *Release) compareRelease() (bool, error) {
-	lastMetadata, err := eventmeta.GetLatestMetadataFromFile(r.AppDir)
+	lastMetadata, exist, err := eventmeta.GetLatestMetadataFromFile(r.AppDir)
 	if err != nil {
-		// 如果 metadata 文件不存在，说明没有执行过 pull 操作
-		if os.IsNotExist(err) {
-			logger.Warn("can not find metadata file, maybe you should exec pull command first", logger.ErrAttr(err))
-			return false, nil
-		}
 		logger.Error("get metadata file failed", logger.ErrAttr(err))
 		return false, err
-
-	} else if lastMetadata.ReleaseID == r.ReleaseID {
+	}
+	// 如果 metadata 文件不存在，说明没有执行过 pull 操作
+	if !exist {
+		logger.Warn("can not find metadata file, maybe you should exec pull command first")
+		return false, nil
+	}
+	if lastMetadata.ReleaseID == r.ReleaseID {
 		r.AppMate.CurrentReleaseID = r.ReleaseID
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", r.ReleaseID))
 		return true, nil
@@ -163,7 +165,10 @@ func (p *PreScriptStrategy) executeScript(r *Release) error {
 			return sfs.WrapPrimaryError(sfs.PreHookFailed, smallErr)
 		}
 		// 前置未知错误
-		return sfs.WrapPrimaryError(sfs.PreHookFailed, sfs.SecondaryError{Err: err})
+		return sfs.WrapPrimaryError(sfs.PreHookFailed, sfs.SecondaryError{
+			SpecificFailedReason: sfs.UnknownSpecificFailed,
+			Err:                  err,
+		})
 	}
 	return nil
 }
@@ -185,7 +190,10 @@ func (p *PostScriptStrategy) executeScript(r *Release) error {
 			return sfs.WrapPrimaryError(sfs.PostHookFailed, smallErr)
 		}
 		// 后置未知错误
-		return sfs.WrapPrimaryError(sfs.PostHookFailed, sfs.SecondaryError{Err: err})
+		return sfs.WrapPrimaryError(sfs.PostHookFailed, sfs.SecondaryError{
+			SpecificFailedReason: sfs.UnknownSpecificFailed,
+			Err:                  err,
+		})
 	}
 	return nil
 }
@@ -204,7 +212,7 @@ func (r *Release) UpdateFiles() Function {
 		filesDir := path.Join(r.AppDir, "files")
 		if err := updateFiles(filesDir, r.FileItems, &r.AppMate.DownloadFileNum, &r.AppMate.DownloadFileSize,
 			r.SemaphoreCh); err != nil {
-			// logger.Error("update files", logger.ErrAttr(err))
+			logger.Error("update file failed", logger.ErrAttr(err))
 			return err
 		}
 		if r.ClientMode == sfs.Pull {
@@ -219,8 +227,10 @@ func (r *Release) UpdateFiles() Function {
 			}
 			// 删除错误
 			return sfs.WrapPrimaryError(sfs.DeleteOldFilesFailed,
-				sfs.SecondaryError{SpecificFailedReason: sfs.DeleteFolderFailed,
-					Err: err})
+				sfs.SecondaryError{
+					SpecificFailedReason: sfs.DeleteFolderFailed,
+					Err:                  err,
+				})
 		}
 		return nil
 	}
@@ -322,8 +332,8 @@ func (r *Release) Execute(steps ...Function) error {
 		if err != nil {
 			// 默认为未知错误
 			r.AppMate.ReleaseChangeStatus = sfs.Failed
-			r.AppMate.FailedReason = sfs.FailedReason(0)
-			r.AppMate.SpecificFailedReason = sfs.SpecificFailedReason(0)
+			r.AppMate.FailedReason = sfs.UnknownFailed
+			r.AppMate.SpecificFailedReason = sfs.UnknownSpecificFailed
 			r.AppMate.FailedDetailReason = err.Error()
 			var e sfs.PrimaryError
 			if errors.As(err, &e) {
@@ -343,7 +353,7 @@ func (r *Release) Execute(steps ...Function) error {
 	// 一定要在该位置
 	// 不然会导致current_release_id是0的问题
 	var skip bool
-	if r.ClientMode != sfs.Pull {
+	if r.ClientMode == sfs.Watch {
 		skip, err = r.compareRelease()
 		if err != nil {
 			return err
@@ -559,9 +569,14 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 	logger.Info("update files done", slog.Int("success", int(success)), slog.Int("skip", int(skip)),
 		slog.Int("failed", int(failed)), slog.Int("total", len(files)),
 		slog.String("duration", time.Since(start).String()))
+
 	if err != nil {
+		var e sfs.PrimaryError
+		if errors.As(err, &e) {
+			return err
+		}
 		return sfs.WrapPrimaryError(sfs.DownloadFailed,
-			sfs.SecondaryError{SpecificFailedReason: sfs.SpecificFailedReason(0),
+			sfs.SecondaryError{SpecificFailedReason: sfs.UnknownSpecificFailed,
 				Err: err})
 	}
 
