@@ -206,7 +206,7 @@ func runGetApp(args []string) error {
 func runGetFileList(bscp client.Client, app string, match []string) error {
 	var opts []client.AppOption
 	if len(match) > 0 {
-		opts = append(opts, client.WithAppKey(match[0]))
+		opts = append(opts, client.WithAppMatch(match))
 	}
 	opts = append(opts, client.WithAppLabels(conf.Labels))
 
@@ -259,7 +259,7 @@ func runGetFileContents(bscp client.Client, app string, match []string) error {
 func getFileOutput(bscp client.Client, app string, match []string) (string, error) {
 	var opts []client.AppOption
 	if len(match) > 0 {
-		opts = append(opts, client.WithAppKey(match[0]))
+		opts = append(opts, client.WithAppMatch(match))
 	}
 	opts = append(opts, client.WithAppLabels(conf.Labels))
 

@@ -187,7 +187,7 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { //
 			Uid:    c.opts.uid,
 		},
 		Token: c.opts.token,
-		Key:   option.Key,
+		Match: option.Match,
 	}
 	// merge labels, if key conflict, app value will overwrite client value
 	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
