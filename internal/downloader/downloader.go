@@ -98,12 +98,13 @@ type downloader struct {
 
 func (d *downloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, fileSize uint64, to DownloadTo, b []byte,
 	filePath string) error {
-	if d.enableAsyncDownload && to == DownloadToFile {
-		if err := d.asyncDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath); err != nil {
-			logger.Warn("async download file failed, fallback to http download", "file",
-				path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name), "err", err.Error())
-			return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
-		}
+	if d.enableAsyncDownload && to == DownloadToBytes {
+		return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
 	}
-	return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
+	if err := d.asyncDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath); err != nil {
+		logger.Warn("async download file failed, fallback to http download", "file",
+			path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name), "err", err.Error())
+		return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
+	}
+	return nil
 }

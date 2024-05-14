@@ -94,7 +94,7 @@ func (c *ClientConfig) ValidateBase() error {
 		c.Port = constant.DefaultHttpPort
 	}
 	if c.EnableP2PDownload {
-		if c.BkAgentID != "" || (c.ClusterID != "" && c.PodID != "" && c.ContainerName != "") {
+		if c.BkAgentID == "" && (c.ClusterID == "" || c.PodID == "" || c.ContainerName == "") {
 			return errors.New("to enable p2p download, either agent id must be set or cluster id, " +
 				"pod id, container name must all be set")
 		}
