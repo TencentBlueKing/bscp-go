@@ -326,6 +326,10 @@ func runDownloadFile(bscp client.Client, app string, match []string) error {
 	if err != nil {
 		return err
 	}
+	if len(release.FileItems) == 0 {
+		fmt.Println("no matched files to download")
+		return nil
+	}
 
 	dstFiles := make([]string, len(release.FileItems))
 	var dstFile string
