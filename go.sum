@@ -9,8 +9,8 @@ github.com/ProtonMail/go-crypto v1.0.0 h1:LRuvITjQWX+WIfr930YHG2HNfjR1uOfyf5vE0k
 github.com/ProtonMail/go-crypto v1.0.0/go.mod h1:EjAoLdwvbIOoOQr3ihjnSoLZRtE8azugULFRteWMNc0=
 github.com/Tencent/bk-bcs/bcs-common v0.0.0-20240425034551-e53e35b46a7b h1:PSc0MyZSH0vtLveQWLLDW26XoNcjHoMwjm9P6dP/+4M=
 github.com/Tencent/bk-bcs/bcs-common v0.0.0-20240425034551-e53e35b46a7b/go.mod h1:BpINYXjhHwE2FCY6WeNHN5c5t7i2KNDSfCKTb1xM2oI=
-github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240425034551-e53e35b46a7b h1:8Dz2+ksJHuCdOEs9JzRIFF9qb6AJwjDG63x1eCxEAPg=
-github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240425034551-e53e35b46a7b/go.mod h1:TgQtpjNOO2JB6cmglAcLbmtOyYsF0Jxfavas+YUN3xc=
+github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240517115418-9396857e3664 h1:mT3XyViRU9w4GVWeThDQ7avq4xb4eQOpWJnW+rjcfn8=
+github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240517115418-9396857e3664/go.mod h1:TgQtpjNOO2JB6cmglAcLbmtOyYsF0Jxfavas+YUN3xc=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFIImctFaOjnTIavg87rW78vTPkQqLI8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
