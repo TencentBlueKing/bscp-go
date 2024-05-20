@@ -169,7 +169,7 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	}
 	defer src.Close()
 
-	dst, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	dst, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		logger.Error("open destination file failed", slog.String("file", filePath), logger.ErrAttr(err))
 		return false

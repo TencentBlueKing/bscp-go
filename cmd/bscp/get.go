@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/dustin/go-humanize"
@@ -30,7 +31,8 @@ import (
 
 var (
 	outputFormat string
-	download     string
+	downloadDir  string
+	ignoreDir    bool
 )
 
 const (
@@ -125,7 +127,10 @@ func init() {
 		"bscp file cache threshold gigabyte")
 	mustBindPFlag(getFileViper, "file_cache.threshold_gb", getFileCmd.Flags().Lookup("cache-threshold-gb"))
 	getFileCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "output format, One of: json|content")
-	getFileCmd.Flags().StringVarP(&download, "download", "d", "", "file path for saving the downloaded content")
+	getFileCmd.Flags().StringVarP(&downloadDir, "download-dir", "d", "",
+		"the directory for saving the downloaded content")
+	getFileCmd.Flags().BoolVar(&ignoreDir, "ignore-dir", false,
+		"ignore directory hierarchy when downloading files, must be used with -d option")
 
 	// kv 参数
 	getKvCmd.Flags().StringP("app", "a", "", "app name")
@@ -204,13 +209,7 @@ func runGetApp(args []string) error {
 
 // runGetFileList gets file list
 func runGetFileList(bscp client.Client, app string, match []string) error {
-	var opts []client.AppOption
-	if len(match) > 0 {
-		opts = append(opts, client.WithAppKey(match[0]))
-	}
-	opts = append(opts, client.WithAppLabels(conf.Labels))
-
-	release, err := bscp.PullFiles(app, opts...)
+	release, err := getFileRelease(bscp, app, match)
 	if err != nil {
 		return err
 	}
@@ -255,15 +254,19 @@ func runGetFileContents(bscp client.Client, app string, match []string) error {
 	return err
 }
 
-// getFileOutput gets file output
-func getFileOutput(bscp client.Client, app string, match []string) (string, error) {
+// getFileRelease gets file release
+func getFileRelease(bscp client.Client, app string, match []string) (*client.Release, error) {
 	var opts []client.AppOption
 	if len(match) > 0 {
-		opts = append(opts, client.WithAppKey(match[0]))
+		opts = append(opts, client.WithAppMatch(match))
 	}
 	opts = append(opts, client.WithAppLabels(conf.Labels))
+	return bscp.PullFiles(app, opts...)
+}
 
-	release, err := bscp.PullFiles(app, opts...)
+// getFileOutput gets file output
+func getFileOutput(bscp client.Client, app string, match []string) (string, error) {
+	release, err := getFileRelease(bscp, app, match)
 	if err != nil {
 		return "", err
 	}
@@ -281,8 +284,8 @@ func getFileOutput(bscp client.Client, app string, match []string) (string, erro
 
 	output := ""
 	for idx, file := range release.FileItems {
-		output += fmt.Sprintf("***start No.%d***\nfile: %s\ncontentID: %s\nconent: \n%s\n***end No.%d***\n\n",
-			idx+1, path.Join(file.Path, file.Name), file.FileMeta.ContentSpec.Signature, contents[idx], idx+1)
+		output += fmt.Sprintf("***start No.%d***\nfile: %s\nconent: \n%s\n***end No.%d***\n\n",
+			idx+1, path.Join(file.Path, file.Name), contents[idx], idx+1)
 	}
 	return output, nil
 }
@@ -310,11 +313,65 @@ func getfileContents(files []*client.ConfigItemFile) ([][]byte, error) {
 
 // runDownloadFile downloads file
 func runDownloadFile(bscp client.Client, app string, match []string) error {
-	output, err := getFileOutput(bscp, app, match)
+	// check if download directory exists
+	fileInfo, err := os.Stat(downloadDir)
+	if err != nil {
+		return fmt.Errorf("check download directory %s failed, err: %s", downloadDir, err)
+	}
+	if !fileInfo.IsDir() {
+		return fmt.Errorf("check download directory %s failed, err: path exists but is not a directory", downloadDir)
+	}
+
+	release, err := getFileRelease(bscp, app, match)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(download, []byte(output), 0644)
+	if len(release.FileItems) == 0 {
+		fmt.Println("no matched files to download")
+		return nil
+	}
+
+	dstFiles := make([]string, len(release.FileItems))
+	var dstFile string
+	var existFiles []string
+	for idx, f := range release.FileItems {
+		if ignoreDir {
+			dstFile = path.Join(downloadDir, f.Name)
+			// check if file exists when --ignore-dir is enabled
+			if _, err := os.Stat(dstFile); err == nil {
+				existFiles = append(existFiles, dstFile)
+			}
+		} else {
+			dstFile = path.Join(downloadDir, f.Path, f.Name)
+		}
+		dstFiles[idx] = dstFile
+	}
+	if len(existFiles) > 0 {
+		return fmt.Errorf("the file in %v already exists, "+
+			"you can remove the arg --ignore-dir or delete the existed files or make your other choices", existFiles)
+	}
+
+	// save content to dst file
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(10)
+	for i, f := range release.FileItems {
+		idx, file := i, f
+		g.Go(func() error {
+			fileDir := filepath.Dir(dstFiles[idx])
+			err := os.MkdirAll(fileDir, os.ModePerm)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("saving to file %s\n", dstFiles[idx])
+			return file.SaveToFile(dstFiles[idx])
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	fmt.Printf("saved %d files successfully\n", len(dstFiles))
+	return nil
 }
 
 // runGetFile executes the get file command.
@@ -347,7 +404,7 @@ func runGetFile(args []string) error {
 		return err
 	}
 
-	if download != "" {
+	if downloadDir != "" {
 		return runDownloadFile(bscp, conf.App, args)
 	}
 

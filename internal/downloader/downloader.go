@@ -170,7 +170,7 @@ func (dl *downloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, file
 				sfs.SecondaryError{SpecificFailedReason: sfs.FilePathNotFound,
 					Err: fmt.Errorf("target file path is empty")})
 		}
-		file, err := os.OpenFile(toFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+		file, err := os.OpenFile(toFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return sfs.WrapPrimaryError(sfs.DownloadFailed,
 				sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
