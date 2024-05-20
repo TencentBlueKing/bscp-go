@@ -333,22 +333,26 @@ func runDownloadFile(bscp client.Client, app string, match []string) error {
 
 	dstFiles := make([]string, len(release.FileItems))
 	var dstFile string
-	var existFiles []string
+	fileMap := make(map[string][]string)
 	for idx, f := range release.FileItems {
 		if ignoreDir {
 			dstFile = path.Join(downloadDir, f.Name)
-			// check if file exists when --ignore-dir is enabled
-			if _, err := os.Stat(dstFile); err == nil {
-				existFiles = append(existFiles, dstFile)
-			}
+			// check if file names are same when --ignore-dir is enabled
+			fileMap[f.Name] = append(fileMap[f.Name], path.Join(f.Path, f.Name))
 		} else {
 			dstFile = path.Join(downloadDir, f.Path, f.Name)
 		}
 		dstFiles[idx] = dstFile
 	}
-	if len(existFiles) > 0 {
-		return fmt.Errorf("the file in %v already exists, "+
-			"you can remove the arg --ignore-dir or delete the existed files or make your other choices", existFiles)
+	var sameFiles [][]string
+	for _, names := range fileMap {
+		if len(names) >= 2 {
+			sameFiles = append(sameFiles, names)
+		}
+	}
+	if len(sameFiles) > 0 {
+		return fmt.Errorf("the file names are same for files in %v, we don't download and override directly, "+
+			"you can remove the arg --ignore-dir or make your other choices", sameFiles)
 	}
 
 	// save content to dst file
