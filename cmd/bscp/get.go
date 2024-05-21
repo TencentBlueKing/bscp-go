@@ -333,19 +333,19 @@ func runDownloadFile(bscp client.Client, app string, match []string) error {
 
 	dstFiles := make([]string, len(release.FileItems))
 	var dstFile string
-	fileMap := make(map[string][]string)
+	fileNames := make(map[string][]string)
 	for idx, f := range release.FileItems {
 		if ignoreDir {
 			dstFile = path.Join(downloadDir, f.Name)
-			// check if file names are same when --ignore-dir is enabled
-			fileMap[f.Name] = append(fileMap[f.Name], path.Join(f.Path, f.Name))
+			// used to check files with the same name when --ignore-dir is enabled
+			fileNames[f.Name] = append(fileNames[f.Name], path.Join(f.Path, f.Name))
 		} else {
 			dstFile = path.Join(downloadDir, f.Path, f.Name)
 		}
 		dstFiles[idx] = dstFile
 	}
 	var sameFiles [][]string
-	for _, names := range fileMap {
+	for _, names := range fileNames {
 		if len(names) >= 2 {
 			sameFiles = append(sameFiles, names)
 		}
