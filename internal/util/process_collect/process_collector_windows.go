@@ -84,6 +84,9 @@ func (c *processCollector) processCollect() {
 	h := windows.CurrentProcess()
 	var startTime, exitTime, kernelTime, userTime windows.Filetime
 
+	// 定义上一次上报的cpu时间
+	var prevCPUTime, cpuUsage float64
+
 	for {
 		select {
 		case <-time.After(time.Second):
@@ -91,9 +94,14 @@ func (c *processCollector) processCollect() {
 				logger.Error("get process times", logger.ErrAttr(err))
 				return
 			}
-
+			// 计算 CPU 每秒的使用量
+			diffTime := fileTimeToSeconds(kernelTime) + fileTimeToSeconds(userTime) - prevCPUTime
+			if diffTime != 0 {
+				cpuUsage = diffTime
+			}
+			prevCPUTime = fileTimeToSeconds(kernelTime) + fileTimeToSeconds(userTime)
 			// set cpu usage
-			setCpuUsage(fileTimeToSeconds(kernelTime) + fileTimeToSeconds(userTime))
+			setCpuUsage(cpuUsage)
 
 			mem, err := getProcessMemoryInfo(h)
 			if err != nil {
