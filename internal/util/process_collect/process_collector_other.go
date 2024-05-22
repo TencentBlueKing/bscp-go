@@ -41,6 +41,9 @@ func (c *processCollector) processCollect() {
 		return
 	}
 
+	// 定义上一次上报的cpu时间
+	var prevCPUTime, cpuUsage float64
+
 	for {
 		select {
 		case <-time.After(time.Second):
@@ -49,8 +52,15 @@ func (c *processCollector) processCollect() {
 				logger.Error("returns the current status information of the process", logger.ErrAttr(err))
 				return
 			}
+			// 计算 CPU 每秒的使用量
+			diffTime := stat.CPUTime() - prevCPUTime
+			// 如果差值不等于0更新cpu使用量
+			if diffTime != 0 {
+				cpuUsage = diffTime
+			}
+			prevCPUTime = stat.CPUTime()
 			// set cpu usage
-			setCpuUsage(stat.CPUTime())
+			setCpuUsage(cpuUsage)
 			// set memory usage
 			setMemUsage(uint64(stat.ResidentMemory()))
 		case <-c.ctx.Done():
