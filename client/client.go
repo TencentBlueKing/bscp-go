@@ -130,19 +130,43 @@ func New(opts ...Option) (Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init downloader failed, err: %s", err.Error())
 	}
-	if clientOpt.fileCache.Enabled {
-		if err = cache.Init(true, clientOpt.fileCache.CacheDir); err != nil {
-			return nil, fmt.Errorf("init file cache failed, err: %s", err.Error())
-		}
-		go cache.AutoCleanupFileCache(clientOpt.fileCache.CacheDir, DefaultCleanupIntervalSeconds,
-			clientOpt.fileCache.ThresholdGB, DefaultCacheRetentionRate)
+
+	if err := initFileCache(clientOpt); err != nil {
+		return nil, err
 	}
+	initKvCache(clientOpt)
+
 	watcher, err := newWatcher(u, clientOpt)
 	if err != nil {
 		return nil, fmt.Errorf("init watcher failed, err: %s", err.Error())
 	}
 	c.watcher = watcher
 	return c, nil
+}
+
+// initFileCache init file cache
+func initFileCache(opts *options) error {
+	if opts.fileCache.Enabled {
+		if err := cache.Init(opts.fileCache.CacheDir); err != nil {
+			return fmt.Errorf("init file cache failed, err: %s", err.Error())
+		}
+		go cache.AutoCleanupFileCache(opts.fileCache.CacheDir, DefaultCleanupIntervalSeconds,
+			opts.fileCache.ThresholdGB, DefaultCacheRetentionRate)
+	}
+	return nil
+}
+
+// initKvCache init kv cache
+func initKvCache(opts *options) {
+	if opts.kvCache.Enabled {
+		addedFunc := func(key, value interface{}) {
+			logger.Debug("add kv cache key: %s", key)
+		}
+		evictedFunc := func(key, value interface{}) {
+			logger.Debug("evict kv cache key: %s", key)
+		}
+		cache.InitGCache(opts.kvCache.ThresholdCount, addedFunc, evictedFunc)
+	}
 }
 
 // AddWatcher add a watcher to client

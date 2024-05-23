@@ -17,6 +17,7 @@ const (
 	// DefaultTempDir is the bscp cli default temp dir.
 	// !important: promise of compatibility
 	DefaultTempDir = "/data/bscp"
+
 	// DefaultFileCacheEnabled is the bscp cli default file cache switch.
 	// !important: promise of compatibility
 	DefaultFileCacheEnabled = true
@@ -32,6 +33,13 @@ const (
 	// DefaultCacheRetentionRate is the bscp cli default file cache retention rate, which is 90%
 	// !important: promise of compatibility
 	DefaultCacheRetentionRate = 0.9
+
+	// DefaultKvCacheEnabled is the bscp cli default kv cache switch.
+	// !important: promise of compatibility
+	DefaultKvCacheEnabled = true
+	// DefaultKvCacheThresholdCount is the bscp cli default file cache threshold, which is 200 items
+	// !important: promise of compatibility
+	DefaultKvCacheThresholdCount = 200
 
 	// DefaultHttpPort is the bscp sidecar default http port.
 	// !important: promise of compatibility

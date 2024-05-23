@@ -30,6 +30,8 @@ type options struct {
 	token string
 	// fileCache file cache option
 	fileCache FileCache
+	// kvCache kv cache option
+	kvCache KvCache
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
 	enableMonitorResourceUsage bool
 }
@@ -46,6 +48,14 @@ type FileCache struct {
 	// CleanupIntervalSeconds int64
 	// RetentionRate is retention rate of cleanup, not exposed for configuration now, use default value
 	// RetentionRate float64
+}
+
+// KvCache option for kv cache
+type KvCache struct {
+	// Enabled is whether enable kv cache
+	Enabled bool
+	// ThresholdCount is threshold count of kv cache
+	ThresholdCount int
 }
 
 const (
@@ -112,6 +122,14 @@ func WithToken(token string) Option {
 func WithFileCache(c FileCache) Option {
 	return func(o *options) error {
 		o.fileCache = c
+		return nil
+	}
+}
+
+// WithKvCache set kv cache
+func WithKvCache(c KvCache) Option {
+	return func(o *options) error {
+		o.kvCache = c
 		return nil
 	}
 }
