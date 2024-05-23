@@ -17,6 +17,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/TencentBlueKing/bscp-go/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -59,7 +60,7 @@ func init() {
 	rootCmd.AddCommand(VersionCmd)
 	rootCmd.PersistentFlags().StringVarP(
 		&logLevel, "log-level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
-	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")
+	rootCmd.PersistentFlags().StringP("config", "c", constant.DefaultConfFile, "config file path")
 	cfgFlag := rootCmd.PersistentFlags().Lookup("config")
 	// add env info for cmdline flags
 	cfgFlag.Usage = fmt.Sprintf("%v [env %v]", cfgFlag.Usage, rootEnvs["config_file"])

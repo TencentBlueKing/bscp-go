@@ -30,6 +30,7 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/config"
+	"github.com/TencentBlueKing/bscp-go/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
@@ -114,6 +115,13 @@ func initConf(v *viper.Viper) error {
 
 func initFromConfFile(v *viper.Viper) error {
 	c := v.GetString("config_file")
+	if c == constant.DefaultConfFile {
+		if _, err := os.Stat(c); os.IsNotExist(err) {
+			return fmt.Errorf("the default config file %s does not exist, you can create one or "+
+				"set environment variable BSCP_CONFIG or specify with cmdline arg -c", constant.DefaultConfFile)
+		}
+	}
+
 	v.SetConfigFile(c)
 	// 固定 yaml 格式
 	v.SetConfigType("yaml")
