@@ -31,3 +31,9 @@ file_cache:
   cache_dir: /data/bscp/cache
   # 缓存清理阈值，单位为GB，缓存目录达到该阈值时开始清理，按文件更新时间从最老的文件开始清理，直至达到设置的缓存保留比例为止
   threshold_gb: 2
+# kv缓存配置
+kv_cache:
+  # 是否开启kv缓存，不配置时默认开启
+  enabled: true
+  # kv缓存容量阈值，单位为条数，超过后会以LRU(Least Recently Used)算法丢弃最近最少用到的缓存数据
+  threshold_count: 200

@@ -23,7 +23,7 @@ var EnableGCache bool
 
 // InitGCache return a bscp sdk in-memory cache instance
 func InitGCache(thresholdCount int, addedFunc, evictedFunc func(key, value interface{})) {
-	Enable = true
+	EnableGCache = true
 	gc = gcache.New(thresholdCount).
 		AddedFunc(addedFunc).
 		EvictedFunc(evictedFunc).

@@ -25,6 +25,7 @@ import (
 	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
+	"github.com/bluele/gcache"
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -131,7 +132,7 @@ func New(opts ...Option) (Client, error) {
 		return nil, fmt.Errorf("init downloader failed, err: %s", err.Error())
 	}
 
-	if err := initFileCache(clientOpt); err != nil {
+	if err = initFileCache(clientOpt); err != nil {
 		return nil, err
 	}
 	initKvCache(clientOpt)
@@ -147,6 +148,7 @@ func New(opts ...Option) (Client, error) {
 // initFileCache init file cache
 func initFileCache(opts *options) error {
 	if opts.fileCache.Enabled {
+		logger.Info("enable file cache")
 		if err := cache.Init(opts.fileCache.CacheDir); err != nil {
 			return fmt.Errorf("init file cache failed, err: %s", err.Error())
 		}
@@ -159,11 +161,12 @@ func initFileCache(opts *options) error {
 // initKvCache init kv cache
 func initKvCache(opts *options) {
 	if opts.kvCache.Enabled {
+		logger.Info("enable kv cache")
 		addedFunc := func(key, value interface{}) {
-			logger.Debug("add kv cache key: %s", key)
+			logger.Debug("add kv cache", slog.Any("key", key))
 		}
 		evictedFunc := func(key, value interface{}) {
-			logger.Debug("evict kv cache key: %s", key)
+			logger.Debug("evict kv cache", slog.Any("key", key))
 		}
 		cache.InitGCache(opts.kvCache.ThresholdCount, addedFunc, evictedFunc)
 	}
@@ -265,15 +268,16 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { //
 				r.AppMate.FailedDetailReason = st.Err().Error()
 			}
 			if err = c.sendClientMessaging(vas, r.AppMate, nil); err != nil {
-				logger.Error("description failed to report the client change event, client_mode: %s, biz: %d,app: %s, err: %s",
-					r.ClientMode.String(), r.BizID, r.AppMate.App, err.Error())
+				logger.Error("description failed to report the client change event",
+					slog.String("client_mode", r.ClientMode.String()), slog.Uint64("biz", uint64(r.BizID)),
+					slog.String("app", r.AppMate.App), logger.ErrAttr(err))
 			}
 		}
 	}()
 
 	resp, err = c.upstream.PullAppFileMeta(vas, req)
 	if err != nil {
-		logger.Error("pull file meta failed, err: %s, rid: %s", err.Error(), vas.Rid)
+		logger.Error("pull file meta failed", logger.ErrAttr(err), slog.String("rid", vas.Rid))
 		return nil, err
 	}
 
@@ -359,7 +363,21 @@ func (c *client) PullKvs(app string, match []string, opts ...AppOption) (*Releas
 }
 
 // Get 读取 Key 的值
+// get kv value from the cache firstly; if not found, then get from remote service
 func (c *client) Get(app string, key string, opts ...AppOption) (string, error) {
+	// get kv value from cache
+	var val, sign string
+	var err error
+	if cache.EnableGCache {
+		val, sign, err = c.getKvValueFromCache(app, key, opts...)
+		if err == nil {
+			return val, nil
+		} else if err != gcache.KeyNotFoundError {
+			logger.Error("get kv value from cache failed", slog.String("key", key), logger.ErrAttr(err))
+		}
+	}
+
+	// get kv value from remote service
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)
@@ -383,8 +401,52 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	if err != nil {
 		return "", err
 	}
+	val = resp.Value
 
-	return resp.Value, nil
+	// set kv value for cache
+	if cache.EnableGCache {
+		// set kv cache
+		if sign == "" {
+			logger.Error("not found kv cache signature", slog.String("key", key))
+		} else {
+			if err := cache.GetGCache().Set(sign, val); err != nil {
+				logger.Error("set kv cache failed", slog.String("key", key), logger.ErrAttr(err))
+			}
+		}
+	}
+
+	return val, nil
+}
+
+// getKvValueWithCache get kv value from the cache
+func (c *client) getKvValueFromCache(app string, key string, opts ...AppOption) (string, string, error) {
+	release, err := c.PullKvs(app, []string{}, opts...)
+	if err != nil {
+		return "", "", err
+	}
+
+	var sign string
+	for _, k := range release.KvItems {
+		if k.Key == key {
+			sign = k.ContentSpec.Signature
+			break
+		}
+	}
+	if sign == "" {
+		return "", "", fmt.Errorf("not found kv cache signature for key %s", key)
+	}
+
+	var val interface{}
+	val, err = cache.GetGCache().Get(sign)
+	if err != nil {
+		return "", sign, err
+	}
+
+	v, ok := val.(string)
+	if !ok {
+		return "", sign, fmt.Errorf("unsupported kv cache value type %T for signature %s", val, sign)
+	}
+	return v, sign, nil
 }
 
 // ListApps list app from remote, only return have perm by token

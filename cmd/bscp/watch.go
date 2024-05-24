@@ -91,6 +91,10 @@ func Watch(cmd *cobra.Command, args []string) {
 			CacheDir:    conf.FileCache.CacheDir,
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
+		client.WithKvCache(client.KvCache{
+			Enabled:        conf.KvCache.Enabled,
+			ThresholdCount: conf.KvCache.ThresholdCount,
+		}),
 		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
 	)
 	if err != nil {
@@ -252,7 +256,7 @@ func init() {
 	mustBindPFlag(watchViper, "file_cache.threshold_gb", WatchCmd.Flags().Lookup("cache-threshold-gb"))
 	WatchCmd.Flags().BoolP("kv-cache-enabled", "", constant.DefaultKvCacheEnabled, "enable kv cache or not")
 	mustBindPFlag(watchViper, "kv_cache.enabled", WatchCmd.Flags().Lookup("kv-cache-enabled"))
-	WatchCmd.Flags().Float64P("kv-cache-threshold-count", "", constant.DefaultKvCacheThresholdCount,
+	WatchCmd.Flags().IntP("kv-cache-threshold-count", "", constant.DefaultKvCacheThresholdCount,
 		"bscp kv cache threshold count in memory")
 	mustBindPFlag(watchViper, "kv_cache.threshold_count", WatchCmd.Flags().Lookup("kv-cache-threshold-count"))
 	WatchCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")

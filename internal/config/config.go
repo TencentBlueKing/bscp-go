@@ -90,6 +90,12 @@ func (c *ClientConfig) ValidateBase() error {
 	if err := c.FileCache.Validate(); err != nil {
 		return err
 	}
+	if c.KvCache == nil {
+		c.KvCache = new(KvCacheConfig)
+	}
+	if err := c.KvCache.Validate(); err != nil {
+		return err
+	}
 
 	return nil
 }
