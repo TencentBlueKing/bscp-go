@@ -115,10 +115,12 @@ func initConf(v *viper.Viper) error {
 
 func initFromConfFile(v *viper.Viper) error {
 	c := v.GetString("config_file")
-	if c == constant.DefaultConfFile {
+	// if config file path is same with default path and come from cmdline flag's default value,
+	// which means the config file path is not set by cmdline flag, env etc. eg: not from `-c ./bscp.yaml`
+	// then, if it does not exist, just ignore it
+	if c == constant.DefaultConfFile && !v.IsSet("config_file") {
 		if _, err := os.Stat(c); os.IsNotExist(err) {
-			return fmt.Errorf("the default config file %s does not exist, you can create one or "+
-				"set environment variable BSCP_CONFIG or specify with cmdline arg -c", constant.DefaultConfFile)
+			return nil
 		}
 	}
 
