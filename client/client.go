@@ -387,6 +387,7 @@ func (c *client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint
 
 // sendClientMessaging 发送客户端连接信息
 func (c *client) sendClientMessaging(vas *kit.Vas, meta *sfs.SideAppMeta, annotations map[string]interface{}) error {
+	meta.FailedDetailReason = util.TruncateString(meta.FailedDetailReason, 1024)
 	clientInfoPayload := sfs.VersionChangePayload{
 		BasicData: &sfs.BasicData{
 			BizID:         c.opts.bizID,

@@ -74,7 +74,7 @@ func setCpuUsage(usage float64) {
 	if cpuUsage > cpuMaxUsage {
 		cpuMaxUsage = cpuUsage
 	}
-	if cpuUsage > 0 && cpuUsage < cpuMinUsage {
+	if cpuUsage < cpuMinUsage || cpuMinUsage == 0 {
 		cpuMinUsage = cpuUsage
 	}
 	cpuTotalUsage += cpuUsage
@@ -87,7 +87,7 @@ func setMemUsage(usage uint64) {
 	if memoryUsage > memoryMaxUsage {
 		memoryMaxUsage = memoryUsage
 	}
-	if memoryUsage > 0 && memoryUsage < memoryMinUsage {
+	if memoryUsage < memoryMinUsage || memoryMinUsage == 0 {
 		memoryMinUsage = memoryUsage
 	}
 	memoryTotalUsage += memoryUsage

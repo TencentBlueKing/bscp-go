@@ -385,6 +385,7 @@ func (r *Release) Execute(steps ...Function) error {
 
 // sendVersionChangeMessaging 发送客户端版本变更信息
 func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData) error {
+	r.AppMate.FailedDetailReason = util.TruncateString(r.AppMate.FailedDetailReason, 1024)
 	pullPayload := sfs.VersionChangePayload{
 		BasicData:     bd,
 		Application:   r.AppMate,
