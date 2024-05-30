@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240517115418-9396857e3664
-	github.com/bluele/gcache v0.0.2
+	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.7.0
@@ -29,7 +29,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/Tencent/bk-bcs/bcs-common v0.0.0-20240425034551-e53e35b46a7b // indirect
-	github.com/allegro/bigcache/v3 v3.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bitly/go-simplejson v0.5.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
