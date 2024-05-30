@@ -25,7 +25,7 @@ import (
 	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
-	"github.com/bluele/gcache"
+	"github.com/allegro/bigcache/v3"
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -135,7 +135,9 @@ func New(opts ...Option) (Client, error) {
 	if err = initFileCache(clientOpt); err != nil {
 		return nil, err
 	}
-	initKvCache(clientOpt)
+	if err = initKvCache(clientOpt); err != nil {
+		return nil, err
+	}
 
 	watcher, err := newWatcher(u, clientOpt)
 	if err != nil {
@@ -159,17 +161,28 @@ func initFileCache(opts *options) error {
 }
 
 // initKvCache init kv cache
-func initKvCache(opts *options) {
+func initKvCache(opts *options) error {
 	if opts.kvCache.Enabled {
 		logger.Info("enable kv cache")
-		addedFunc := func(key, value interface{}) {
-			logger.Debug("add kv cache", slog.Any("key", key))
+		if err := cache.InitMemCache(opts.kvCache.ThresholdMB); err != nil {
+			return fmt.Errorf("init kv cache failed, err: %s", err.Error())
 		}
-		evictedFunc := func(key, value interface{}) {
-			logger.Debug("evict kv cache", slog.Any("key", key))
-		}
-		cache.InitGCache(opts.kvCache.ThresholdCount, addedFunc, evictedFunc)
+
+		go func() {
+			mc := cache.GetMemCache()
+			for {
+				hit, miss, kvCnt := mc.Stats().Hits, mc.Stats().Misses, mc.Len()
+				var hitRatio float64
+				if hit+miss > 0 {
+					hitRatio = float64(hit) / float64(hit+miss)
+				}
+				logger.Debug("kv cache statistics", slog.Int64("hit", hit), slog.Int64("miss", miss),
+					slog.String("hit-ratio", fmt.Sprintf("%.3f", hitRatio)), slog.Int("kv-count", kvCnt))
+				time.Sleep(time.Second * 15)
+			}
+		}()
 	}
+	return nil
 }
 
 // AddWatcher add a watcher to client
@@ -368,11 +381,11 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	// get kv value from cache
 	var val, sign string
 	var err error
-	if cache.EnableGCache {
+	if cache.EnableMemCache {
 		val, sign, err = c.getKvValueFromCache(app, key, opts...)
 		if err == nil {
 			return val, nil
-		} else if err != gcache.KeyNotFoundError {
+		} else if err != bigcache.ErrEntryNotFound {
 			logger.Error("get kv value from cache failed", slog.String("key", key), logger.ErrAttr(err))
 		}
 	}
@@ -404,12 +417,12 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	val = resp.Value
 
 	// set kv value for cache
-	if cache.EnableGCache {
+	if cache.EnableMemCache {
 		// set kv cache
 		if sign == "" {
 			logger.Error("not found kv cache signature", slog.String("key", key))
 		} else {
-			if err := cache.GetGCache().Set(sign, val); err != nil {
+			if err := cache.GetMemCache().Set(sign, []byte(val)); err != nil {
 				logger.Error("set kv cache failed", slog.String("key", key), logger.ErrAttr(err))
 			}
 		}
@@ -436,17 +449,13 @@ func (c *client) getKvValueFromCache(app string, key string, opts ...AppOption) 
 		return "", "", fmt.Errorf("not found kv cache signature for key %s", key)
 	}
 
-	var val interface{}
-	val, err = cache.GetGCache().Get(sign)
+	var val []byte
+	val, err = cache.GetMemCache().Get(sign)
 	if err != nil {
 		return "", sign, err
 	}
 
-	v, ok := val.(string)
-	if !ok {
-		return "", sign, fmt.Errorf("unsupported kv cache value type %T for signature %s", val, sign)
-	}
-	return v, sign, nil
+	return string(val), sign, nil
 }
 
 // ListApps list app from remote, only return have perm by token

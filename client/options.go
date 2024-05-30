@@ -54,8 +54,8 @@ type FileCache struct {
 type KvCache struct {
 	// Enabled is whether enable kv cache
 	Enabled bool
-	// ThresholdCount is threshold count of kv cache
-	ThresholdCount int
+	// ThresholdMB is threshold megabyte of kv cache
+	ThresholdMB float64
 }
 
 const (

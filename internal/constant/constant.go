@@ -37,9 +37,9 @@ const (
 	// DefaultKvCacheEnabled is the bscp cli default kv cache switch.
 	// !important: promise of compatibility
 	DefaultKvCacheEnabled = true
-	// DefaultKvCacheThresholdCount is the bscp cli default file cache threshold, which is 200 items
+	// DefaultKvCacheThresholdMB is the bscp cli default file cache threshold, which is 500MB
 	// !important: promise of compatibility
-	DefaultKvCacheThresholdCount = 200
+	DefaultKvCacheThresholdMB = 500
 
 	// DefaultHttpPort is the bscp sidecar default http port.
 	// !important: promise of compatibility

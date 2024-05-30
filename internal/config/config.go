@@ -174,14 +174,14 @@ func (c *FileCacheConfig) Validate() error {
 type KvCacheConfig struct {
 	// Enabled is whether enable kv cache
 	Enabled bool `json:"enabled" mapstructure:"enabled"`
-	// ThresholdCount is threshold count of kv cache
-	ThresholdCount int `json:"threshold_count" mapstructure:"threshold_count"`
+	// ThresholdMB is threshold megabyte of kv cache
+	ThresholdMB float64 `json:"threshold_mb" mapstructure:"threshold_mb"`
 }
 
 // Validate validates the kv cache config
 func (c *KvCacheConfig) Validate() error {
-	if c.ThresholdCount <= 0 {
-		c.ThresholdCount = constant.DefaultKvCacheThresholdCount
+	if c.ThresholdMB <= 0 {
+		c.ThresholdMB = constant.DefaultKvCacheThresholdMB
 	}
 	return nil
 }

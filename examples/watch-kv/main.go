@@ -63,8 +63,8 @@ func main() {
 	}
 	if os.Getenv("BSCP_ENABLE_KV_CACHE") != "" {
 		clientOpts = append(clientOpts, client.WithKvCache(client.KvCache{
-			Enabled:        true,
-			ThresholdCount: constant.DefaultKvCacheThresholdCount,
+			Enabled:     true,
+			ThresholdMB: constant.DefaultKvCacheThresholdMB,
 		}))
 	}
 

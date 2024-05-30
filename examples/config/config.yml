@@ -25,7 +25,7 @@ apps:
       - "app": "demo-2"
 # 文件缓存配置
 file_cache:
-  # 是否开启文件缓存，不配置时默认开启
+  # 是否开启文件缓存
   enabled: true
   # 缓存目录
   cache_dir: /data/bscp/cache
@@ -33,7 +33,7 @@ file_cache:
   threshold_gb: 2
 # kv缓存配置
 kv_cache:
-  # 是否开启kv缓存，不配置时默认开启
+  # 是否开启kv缓存
   enabled: true
-  # kv缓存容量阈值，单位为条数，超过后会以LRU(Least Recently Used)算法丢弃最近最少用到的缓存数据
-  threshold_count: 200
+  # kv缓存容量阈值，单位为MB，超过后会丢弃旧缓存数据
+  threshold_mb: 500
