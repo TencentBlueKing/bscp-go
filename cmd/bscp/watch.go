@@ -198,7 +198,7 @@ func refineLabelsFile(ctx context.Context, path string, confLabels map[string]st
 	return r, nil
 }
 
-func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
+func (w *WatchHandler) watchCallback(release *client.Release) error {
 	w.Lock.Lock()
 	defer w.Lock.Unlock()
 
@@ -211,7 +211,6 @@ func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 		release.ExecuteHook(&client.PostScriptStrategy{}), release.UpdateMetadata()); err != nil {
 		return err
 	}
-	// TODO: 6.2 call the callback notify api
 	logger.Info("watch release change success", slog.Any("currentReleaseID", release.ReleaseID))
 	return nil
 }
