@@ -512,6 +512,9 @@ func (r *Release) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType
 func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int32, successFileSize *uint64,
 	semaphoreCh chan struct{}) error {
 	start := time.Now()
+	// Initialize the successDownloads and successFileSize to zero at the beginning of the function.
+	atomic.StoreInt32(successDownloads, 0)
+	atomic.StoreUint64(successFileSize, 0)
 	var success, failed, skip int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(updateFileConcurrentLimit)
