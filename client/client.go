@@ -375,7 +375,6 @@ func (c *client) PullKvs(app string, match []string, opts ...AppOption) (*Releas
 }
 
 // Get 读取 Key 的值
-// get kv value from the cache firstly; if not found, then get from remote service
 // 优先从feed-server服务端获取最新版本value并缓存，在feed-server服务端连接不可用时则降级从缓存中获取（如果有缓存过），
 // 在feed-server服务端连接不可用时，存在从缓存获取到的value值不是最新发布版本的风险
 func (c *client) Get(app string, key string, opts ...AppOption) (string, error) {
