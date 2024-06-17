@@ -34,6 +34,7 @@ file_cache:
 # kv缓存配置
 kv_cache:
   # 是否开启kv缓存
+  # 用于在feed-server服务端连接不可用时仍能降级从缓存获取到对应value（如果有缓存过），但存在value值不是最新发布版本的风险
   enabled: true
   # kv缓存容量阈值，单位为MB，超过后会丢弃旧缓存数据
   threshold_mb: 500

@@ -25,7 +25,6 @@ import (
 	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
-	"github.com/allegro/bigcache/v3"
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -377,19 +376,9 @@ func (c *client) PullKvs(app string, match []string, opts ...AppOption) (*Releas
 
 // Get 读取 Key 的值
 // get kv value from the cache firstly; if not found, then get from remote service
+// 优先从feed-server服务端获取最新版本value并缓存，在feed-server服务端连接不可用时则降级从缓存中获取（如果有缓存过），
+// 在feed-server服务端连接不可用时，存在从缓存获取到的value值不是最新发布版本的风险
 func (c *client) Get(app string, key string, opts ...AppOption) (string, error) {
-	// get kv value from cache
-	var val, sign string
-	var err error
-	if cache.EnableMemCache {
-		val, sign, err = c.getKvValueFromCache(app, key, opts...)
-		if err == nil {
-			return val, nil
-		} else if err != bigcache.ErrEntryNotFound {
-			logger.Error("get kv value from cache failed", slog.String("key", key), logger.ErrAttr(err))
-		}
-	}
-
 	// get kv value from remote service
 	option := &AppOptions{}
 	for _, opt := range opts {
@@ -412,23 +401,39 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	}
 	resp, err := c.upstream.GetKvValue(vas, req)
 	if err != nil {
-		return "", err
-	}
-	val = resp.Value
-
-	// set kv value for cache
-	if cache.EnableMemCache {
-		// set kv cache
-		if sign == "" {
-			logger.Error("not found kv cache signature", slog.String("key", key))
-		} else {
-			if err := cache.GetMemCache().Set(sign, []byte(val)); err != nil {
-				logger.Error("set kv cache failed", slog.String("key", key), logger.ErrAttr(err))
+		st, _ := status.FromError(err)
+		switch st.Code() {
+		case codes.Unavailable, codes.DeadlineExceeded, codes.Internal:
+			logger.Error("feed-server is unavailable", logger.ErrAttr(err))
+			// 降级从缓存中获取
+			if cache.EnableMemCache {
+				k := kvCacheKey(c.opts.bizID, app)
+				val, cErr := cache.GetMemCache().Get(k)
+				if cErr != nil {
+					logger.Error("get kv value from cache failed", slog.String("key", k), logger.ErrAttr(cErr))
+					return "", err
+				}
+				logger.Warn("feed-server is unavailable but get kv value from cache successfully",
+					slog.String("key", k))
+				return string(val), nil
 			}
+		default:
+			return "", err
 		}
 	}
 
-	return val, nil
+	// 缓存最新kv的value值
+	if cache.EnableMemCache {
+		if err := cache.GetMemCache().Set(kvCacheKey(c.opts.bizID, app), []byte(resp.Value)); err != nil {
+			logger.Error("set kv cache failed", slog.String("key", key), logger.ErrAttr(err))
+		}
+	}
+
+	return resp.Value, nil
+}
+
+func kvCacheKey(bizID uint32, app string) string {
+	return fmt.Sprintf("%d_%s", bizID, app)
 }
 
 // getKvValueWithCache get kv value from the cache

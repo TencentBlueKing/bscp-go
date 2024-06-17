@@ -18,6 +18,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/exp/slog"
 
@@ -75,6 +76,12 @@ func main() {
 	appName := os.Getenv("BSCP_APP")
 	opts := []client.AppOption{}
 	key := "key1"
+	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
+		logger.Error("pull", logger.ErrAttr(err))
+		os.Exit(1)
+	}
+	// 验证从缓存中获取value：此时可停掉feed-server服务端，使其不可用
+	time.Sleep(time.Second * 10)
 	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
 		logger.Error("pull", logger.ErrAttr(err))
 		os.Exit(1)
