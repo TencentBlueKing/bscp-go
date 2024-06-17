@@ -407,7 +407,7 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 			logger.Error("feed-server is unavailable", logger.ErrAttr(err))
 			// 降级从缓存中获取
 			if cache.EnableMemCache {
-				k := kvCacheKey(c.opts.bizID, app)
+				k := kvCacheKey(c.opts.bizID, app, key)
 				val, cErr := cache.GetMemCache().Get(k)
 				if cErr != nil {
 					logger.Error("get kv value from cache failed", slog.String("key", k), logger.ErrAttr(cErr))
@@ -424,7 +424,7 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 
 	// 缓存最新kv的value值
 	if cache.EnableMemCache {
-		if err := cache.GetMemCache().Set(kvCacheKey(c.opts.bizID, app), []byte(resp.Value)); err != nil {
+		if err := cache.GetMemCache().Set(kvCacheKey(c.opts.bizID, app, key), []byte(resp.Value)); err != nil {
 			logger.Error("set kv cache failed", slog.String("key", key), logger.ErrAttr(err))
 		}
 	}
@@ -432,8 +432,8 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	return resp.Value, nil
 }
 
-func kvCacheKey(bizID uint32, app string) string {
-	return fmt.Sprintf("%d_%s", bizID, app)
+func kvCacheKey(bizID uint32, app, key string) string {
+	return fmt.Sprintf("%d_%s_%s", bizID, app, key)
 }
 
 // ListApps list app from remote, only return have perm by token
