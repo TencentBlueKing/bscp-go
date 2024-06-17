@@ -436,33 +436,6 @@ func kvCacheKey(bizID uint32, app string) string {
 	return fmt.Sprintf("%d_%s", bizID, app)
 }
 
-// getKvValueWithCache get kv value from the cache
-func (c *client) getKvValueFromCache(app string, key string, opts ...AppOption) (string, string, error) {
-	release, err := c.PullKvs(app, []string{}, opts...)
-	if err != nil {
-		return "", "", err
-	}
-
-	var sign string
-	for _, k := range release.KvItems {
-		if k.Key == key {
-			sign = k.ContentSpec.Signature
-			break
-		}
-	}
-	if sign == "" {
-		return "", "", fmt.Errorf("not found kv cache signature for key %s", key)
-	}
-
-	var val []byte
-	val, err = cache.GetMemCache().Get(sign)
-	if err != nil {
-		return "", sign, err
-	}
-
-	return string(val), sign, nil
-}
-
 // ListApps list app from remote, only return have perm by token
 func (c *client) ListApps(match []string) ([]*pbfs.App, error) {
 	vas, _ := c.buildVas()
