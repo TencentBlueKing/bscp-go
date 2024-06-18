@@ -398,6 +398,8 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	if option.UID != "" {
 		req.AppMeta.Uid = option.UID
 	}
+	cacheKey := kvCacheKey(c.opts.bizID, app, key)
+
 	resp, err := c.upstream.GetKvValue(vas, req)
 	if err != nil {
 		st, _ := status.FromError(err)
@@ -406,14 +408,13 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 			logger.Error("feed-server is unavailable", logger.ErrAttr(err))
 			// 降级从缓存中获取
 			if cache.EnableMemCache {
-				k := kvCacheKey(c.opts.bizID, app, key)
-				val, cErr := cache.GetMemCache().Get(k)
+				val, cErr := cache.GetMemCache().Get(cacheKey)
 				if cErr != nil {
-					logger.Error("get kv value from cache failed", slog.String("key", k), logger.ErrAttr(cErr))
+					logger.Error("get kv value from cache failed", slog.String("key", cacheKey), logger.ErrAttr(cErr))
 					return "", err
 				}
 				logger.Warn("feed-server is unavailable but get kv value from cache successfully",
-					slog.String("key", k))
+					slog.String("key", cacheKey))
 				return string(val), nil
 			}
 		default:
@@ -423,8 +424,13 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 
 	// 缓存最新kv的value值
 	if cache.EnableMemCache {
-		if err := cache.GetMemCache().Set(kvCacheKey(c.opts.bizID, app, key), []byte(resp.Value)); err != nil {
-			logger.Error("set kv cache failed", slog.String("key", key), logger.ErrAttr(err))
+		v, e := cache.GetMemCache().Get(cacheKey)
+		// 已缓存过，则不用再次缓存
+		if e == nil && string(v) == resp.Value {
+			return resp.Value, nil
+		}
+		if err := cache.GetMemCache().Set(cacheKey, []byte(resp.Value)); err != nil {
+			logger.Error("set kv cache failed", slog.String("key", cacheKey), logger.ErrAttr(err))
 		}
 	}
 
