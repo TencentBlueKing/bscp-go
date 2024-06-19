@@ -16,6 +16,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
+	"github.com/allegro/bigcache/v3"
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -55,6 +57,9 @@ type Client interface {
 	// ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
 	ResetLabels(labels map[string]string)
 }
+
+// ErrNotFoundKvMD5 is err not found kv md5
+var ErrNotFoundKvMD5 = errors.New("not found kv md5")
 
 // Client is the bscp client
 type client struct {
@@ -375,10 +380,23 @@ func (c *client) PullKvs(app string, match []string, opts ...AppOption) (*Releas
 }
 
 // Get 读取 Key 的值
-// 优先从feed-server服务端获取最新版本value并缓存，在feed-server服务端连接不可用时则降级从缓存中获取（如果有缓存过），
-// 在feed-server服务端连接不可用时，存在从缓存获取到的value值不是最新发布版本的风险
+// 先从feed-server服务端拉取最新版本元数据，优先从缓存中获取该最新版本value，缓存中没有再调用feed-server获取value并缓存起来
+// 在feed-server服务端连接不可用时则降级从缓存中获取（如果有缓存过），此时存在从缓存获取到的value值不是最新发布版本的风险
 func (c *client) Get(app string, key string, opts ...AppOption) (string, error) {
-	// get kv value from remote service
+	// get kv value from cache
+	var val, md5 string
+	var err error
+	cacheKey := kvCacheKey(c.opts.bizID, app, key)
+	if cache.EnableMemCache {
+		val, md5, err = c.getKvValueFromCache(app, key, opts...)
+		if err == nil {
+			return val, nil
+		} else if err != bigcache.ErrEntryNotFound {
+			logger.Error("get kv value from cache failed", slog.String("key", cacheKey), logger.ErrAttr(err))
+		}
+	}
+
+	// get kv value from feed-server
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)
@@ -398,7 +416,6 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 	if option.UID != "" {
 		req.AppMeta.Uid = option.UID
 	}
-	cacheKey := kvCacheKey(c.opts.bizID, app, key)
 
 	resp, err := c.upstream.GetKvValue(vas, req)
 	if err != nil {
@@ -408,35 +425,67 @@ func (c *client) Get(app string, key string, opts ...AppOption) (string, error) 
 			logger.Error("feed-server is unavailable", logger.ErrAttr(err))
 			// 降级从缓存中获取
 			if cache.EnableMemCache {
-				val, cErr := cache.GetMemCache().Get(cacheKey)
+				v, cErr := cache.GetMemCache().Get(cacheKey)
 				if cErr != nil {
 					logger.Error("get kv value from cache failed", slog.String("key", cacheKey), logger.ErrAttr(cErr))
 					return "", err
 				}
 				logger.Warn("feed-server is unavailable but get kv value from cache successfully",
 					slog.String("key", cacheKey))
-				return string(val), nil
+				return string(v[32:]), nil
 			}
 		default:
 			return "", err
 		}
 	}
+	val = resp.Value
 
-	// 缓存最新kv的value值
+	// set kv md5 and value for cache
 	if cache.EnableMemCache {
-		v, e := cache.GetMemCache().Get(cacheKey)
-		// 已缓存过，则不用再次缓存
-		if e == nil && string(v) == resp.Value {
-			return resp.Value, nil
-		}
-		if err := cache.GetMemCache().Set(cacheKey, []byte(resp.Value)); err != nil {
-			logger.Error("set kv cache failed", slog.String("key", cacheKey), logger.ErrAttr(err))
+		if md5 == "" {
+			logger.Error("set kv cache failed", slog.String("key", cacheKey), logger.ErrAttr(ErrNotFoundKvMD5))
+		} else {
+			if err := cache.GetMemCache().Set(cacheKey, append([]byte(md5), []byte(val)...)); err != nil {
+				logger.Error("set kv cache failed", slog.String("key", cacheKey), logger.ErrAttr(err))
+			}
 		}
 	}
 
-	return resp.Value, nil
+	return val, nil
 }
 
+// getKvValueWithCache get kv value from the cache
+func (c *client) getKvValueFromCache(app string, key string, opts ...AppOption) (string, string, error) {
+	release, err := c.PullKvs(app, []string{}, opts...)
+	if err != nil {
+		return "", "", err
+	}
+
+	var md5 string
+	for _, k := range release.KvItems {
+		if k.Key == key {
+			md5 = k.ContentSpec.Md5
+			break
+		}
+	}
+	if md5 == "" {
+		return "", "", ErrNotFoundKvMD5
+	}
+
+	var val []byte
+	val, err = cache.GetMemCache().Get(kvCacheKey(c.opts.bizID, app, key))
+	if err != nil {
+		return "", md5, err
+	}
+	// 判断是否为最新缓存，不是最新则仍从服务端获取value
+	if string(val[:32]) != md5 {
+		return "", md5, err
+	}
+
+	return string(val[32:]), md5, nil
+}
+
+// kvCacheKey is cache key for kv md5 and value, the cached data's first 32 character is md5, other is value
 func kvCacheKey(bizID uint32, app, key string) string {
 	return fmt.Sprintf("%d_%s_%s", bizID, app, key)
 }

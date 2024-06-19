@@ -86,6 +86,8 @@ func main() {
 		logger.Error("pull", logger.ErrAttr(err))
 		os.Exit(1)
 	}
+	// wait to see more kv cache statistics log
+	time.Sleep(time.Second * 6)
 }
 
 // pullAppKvs 拉取 key 的值
