@@ -279,7 +279,6 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 			subscriber.UID == pl.Instance.Uid &&
 			reflect.DeepEqual(subscriber.Labels, pl.Instance.Labels) &&
 			subscriber.CurrentReleaseID != pl.ReleaseMeta.ReleaseID {
-			subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
 
 			// 更新心跳数据需要cursorID
 			subscriber.CursorID = cursorID
@@ -315,16 +314,16 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 				ClientMode:  sfs.Watch,
 				SemaphoreCh: make(chan struct{}),
 				AppMate: &sfs.SideAppMeta{
-					App:             subscriber.App,
-					Uid:             subscriber.UID,
-					Labels:          subscriber.Labels,
-					TargetReleaseID: pl.ReleaseMeta.ReleaseID,
-					TotalFileSize:   totalFileSize,
-					TotalFileNum:    len(configItemFiles),
+					App:              subscriber.App,
+					Uid:              subscriber.UID,
+					Labels:           subscriber.Labels,
+					CurrentReleaseID: subscriber.CurrentReleaseID,
+					TargetReleaseID:  pl.ReleaseMeta.ReleaseID,
+					TotalFileSize:    totalFileSize,
+					TotalFileNum:     len(configItemFiles),
 				},
 			}
 
-			// TODO: need to retry if callback with error ?
 			start := time.Now()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -352,6 +351,8 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 				cancel()
 				subscriber.ReleaseChangeStatus = sfs.Success
 				subscriber.reportReleaseChangeCallbackMetrics("success", start)
+
+				subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
 			}
 		}
 	}
@@ -446,7 +447,7 @@ func (s *subscriber) ResetLabels(labels map[string]string) {
 }
 
 func (s *subscriber) reportReleaseChangeCallbackMetrics(status string, start time.Time) {
-	releaseID := strconv.Itoa(int(s.CurrentReleaseID))
+	releaseID := strconv.Itoa(int(s.TargetReleaseID))
 	metrics.ReleaseChangeCallbackCounter.WithLabelValues(s.App, status, releaseID).Inc()
 	seconds := time.Since(start).Seconds()
 	metrics.ReleaseChangeCallbackHandingSecond.WithLabelValues(s.App, status, releaseID).Observe(seconds)

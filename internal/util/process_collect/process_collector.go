@@ -70,9 +70,6 @@ func NewProcessCollector(ctx context.Context) {
 
 // setCpuUsage set current, max, and min CPU usage
 func setCpuUsage(usage float64) {
-	if usage == 0 {
-		return
-	}
 	cpuUsage = usage
 	if cpuUsage > cpuMaxUsage {
 		cpuMaxUsage = cpuUsage
@@ -86,9 +83,6 @@ func setCpuUsage(usage float64) {
 
 // setMemUsage set current, max, and min memory usage
 func setMemUsage(usage uint64) {
-	if usage == 0 {
-		return
-	}
 	memoryUsage = usage
 	if memoryUsage > memoryMaxUsage {
 		memoryMaxUsage = memoryUsage

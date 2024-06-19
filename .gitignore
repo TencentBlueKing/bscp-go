@@ -10,3 +10,4 @@ cover.out
 .vscode
 /bin
 /debug
+__debug*

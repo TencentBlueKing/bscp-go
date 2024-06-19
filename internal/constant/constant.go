@@ -14,6 +14,9 @@
 package constant
 
 const (
+	// DefaultConfFile is the bscp cli default config file.
+	// !important: promise of compatibility
+	DefaultConfFile = "./bscp.yaml"
 	// DefaultTempDir is the bscp cli default temp dir.
 	// !important: promise of compatibility
 	DefaultTempDir = "/data/bscp"

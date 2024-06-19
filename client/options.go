@@ -190,8 +190,8 @@ func WithEnableMonitorResourceUsage(enable bool) Option {
 
 // AppOptions options for app pull and watch
 type AppOptions struct {
-	// Key watch config item key
-	Key string
+	// Match matches config items
+	Match []string
 	// Labels instance labels
 	Labels map[string]string
 	// UID instance unique uid
@@ -201,10 +201,10 @@ type AppOptions struct {
 // AppOption setter for app options
 type AppOption func(*AppOptions)
 
-// WithAppKey set watch config item key
-func WithAppKey(key string) AppOption {
+// WithAppMatch set match condition for config items
+func WithAppMatch(match []string) AppOption {
 	return func(o *AppOptions) {
-		o.Key = key
+		o.Match = match
 	}
 }
 

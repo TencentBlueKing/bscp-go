@@ -189,7 +189,11 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { //
 			Uid:    c.opts.uid,
 		},
 		Token: c.opts.token,
-		Key:   option.Key,
+		Match: option.Match,
+	}
+	// compatible with the old version of bscp server which can only recognize param req.Key
+	if len(option.Match) > 0 {
+		req.Key = option.Match[0]
 	}
 	// merge labels, if key conflict, app value will overwrite client value
 	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
@@ -385,6 +389,7 @@ func (c *client) buildVas() (*kit.Vas, context.CancelFunc) { // nolint
 
 // sendClientMessaging 发送客户端连接信息
 func (c *client) sendClientMessaging(vas *kit.Vas, meta *sfs.SideAppMeta, annotations map[string]interface{}) error {
+	meta.FailedDetailReason = util.TruncateString(meta.FailedDetailReason, 1024)
 	clientInfoPayload := sfs.VersionChangePayload{
 		BasicData: &sfs.BasicData{
 			BizID:         c.opts.bizID,

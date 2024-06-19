@@ -386,6 +386,7 @@ func (r *Release) Execute(steps ...Function) error {
 
 // sendVersionChangeMessaging 发送客户端版本变更信息
 func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData) error {
+	r.AppMate.FailedDetailReason = util.TruncateString(r.AppMate.FailedDetailReason, 1024)
 	pullPayload := sfs.VersionChangePayload{
 		BasicData:     bd,
 		Application:   r.AppMate,
@@ -517,6 +518,9 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 	})
 	// var successDownloads int32
 	start := time.Now()
+	// Initialize the successDownloads and successFileSize to zero at the beginning of the function.
+	atomic.StoreInt32(successDownloads, 0)
+	atomic.StoreUint64(successFileSize, 0)
 	var success, failed, skip int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(updateFileConcurrentLimit)
