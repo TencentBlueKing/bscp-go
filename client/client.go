@@ -477,9 +477,9 @@ func (c *client) getKvValueFromCache(app string, key string, opts ...AppOption) 
 	if err != nil {
 		return "", md5, err
 	}
-	// 判断是否为最新缓存，不是最新则仍从服务端获取value
+	// 判断是否为最新版本缓存，不是最新则仍从服务端获取value
 	if string(val[:32]) != md5 {
-		return "", md5, err
+		return "", md5, bigcache.ErrEntryNotFound
 	}
 
 	return string(val[32:]), md5, nil
