@@ -48,8 +48,8 @@ type Cache struct {
 }
 
 // Init return a bscp sdk cache instance
-func Init(enable bool, path string) error {
-	Enable = enable
+func Init(path string) error {
+	Enable = true
 	instance = &Cache{
 		path: path,
 	}

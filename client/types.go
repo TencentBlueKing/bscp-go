@@ -343,8 +343,9 @@ func (r *Release) Execute(steps ...Function) error {
 		}
 
 		if err = r.sendVersionChangeMessaging(bd); err != nil {
-			logger.Error("description failed to report the client change event, client_mode: %s, biz: %d,app: %s, err: %s",
-				r.ClientMode.String(), r.BizID, r.AppMate.App, err.Error())
+			logger.Error("description failed to report the client change event",
+				slog.String("client_mode", r.ClientMode.String()), slog.Uint64("biz", uint64(r.BizID)),
+				slog.String("app", r.AppMate.App), logger.ErrAttr(err))
 		}
 
 	}()
@@ -361,8 +362,8 @@ func (r *Release) Execute(steps ...Function) error {
 
 	// 发送拉取前事件
 	if err = r.sendVersionChangeMessaging(bd); err != nil {
-		logger.Error("failed to send the pull status event. biz: %d,app: %s, err: %s",
-			r.BizID, r.AppMate.App, err.Error())
+		logger.Error("failed to send the pull status event", slog.Uint64("biz", uint64(r.BizID)),
+			slog.String("app", r.AppMate.App), logger.ErrAttr(err))
 	}
 
 	// 发送心跳数据
