@@ -92,7 +92,7 @@ func main() {
 	wg.Wait()
 
 	costTime := time.Since(start).Seconds()
-	slog.Info("download app files finished", slog.Int64("success", success), slog.Int64("success", success),
+	slog.Info("download app files finished", slog.Int64("success", success), slog.Int64("fail", fail),
 		slog.Float64("cost_time_seconds", costTime))
 
 	// 持续阻塞，便于观察对比客户端进程负载状况
