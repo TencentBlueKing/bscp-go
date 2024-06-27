@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-// pull file example for bscp sdk
+// download file bench test
 package main
 
 import (
