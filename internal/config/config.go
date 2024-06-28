@@ -15,6 +15,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	// for unmarshal yaml config file
@@ -50,6 +51,16 @@ type ClientConfig struct {
 	LabelsFile string `json:"labels_file" mapstructure:"labels_file"`
 	// Port sidecar http server port
 	Port int `json:"port" mapstructure:"port"`
+	// EnableP2PDownload enable p2p download file
+	EnableP2PDownload bool `json:"enable_p2p_download" mapstructure:"enable_p2p_download"`
+	// BkAgentID bk gse agent id
+	BkAgentID string `json:"bk_agent_id" mapstructure:"bk_agent_id"`
+	// ClusterID bcs cluster id
+	ClusterID string `json:"cluster_id" mapstructure:"cluster_id"`
+	// PodID id of the pod where the bscp container resides
+	PodID string `json:"pod_id" mapstructure:"pod_id"`
+	// ContainerName bscp container name
+	ContainerName string `json:"container_name" mapstructure:"container_name"`
 	// FileCache file cache config
 	FileCache *FileCacheConfig `json:"file_cache" mapstructure:"file_cache"`
 	// KvCache kv cache config
@@ -83,6 +94,12 @@ func (c *ClientConfig) ValidateBase() error {
 	}
 	if c.Port == 0 {
 		c.Port = constant.DefaultHttpPort
+	}
+	if c.EnableP2PDownload {
+		if c.BkAgentID == "" && (c.ClusterID == "" || c.PodID == "" || c.ContainerName == "") {
+			return errors.New("to enable p2p download, either agent id must be set or cluster id, " +
+				"pod id, container name must all be set")
+		}
 	}
 	if c.FileCache == nil {
 		c.FileCache = new(FileCacheConfig)

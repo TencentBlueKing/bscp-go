@@ -28,6 +28,16 @@ type options struct {
 	dialTimeoutMS int64
 	// Token sdk token
 	token string
+	// enableP2PDownload
+	enableP2PDownload bool
+	// bkAgentID bk gse agent id
+	bkAgentID string
+	// clusterID bcs cluster id
+	clusterID string
+	// podID id of the pod where the bscp container resides
+	podID string
+	// containerName bscp container name
+	containerName string
 	// fileCache file cache option
 	fileCache FileCache
 	// kvCache kv cache option
@@ -48,6 +58,20 @@ type FileCache struct {
 	// CleanupIntervalSeconds int64
 	// RetentionRate is retention rate of cleanup, not exposed for configuration now, use default value
 	// RetentionRate float64
+}
+
+// P2PDownload option for p2p download file
+type P2PDownload struct {
+	// Enabled is whether enable p2p download file
+	Enabled bool
+	// BkAgentID bk gse agent id
+	BkAgentID string
+	// ClusterID bcs cluster id
+	ClusterID string
+	// PodID id of the pod where the bscp container resides
+	PodID string
+	// ContainerName bscp container name
+	ContainerName string
 }
 
 // KvCache option for kv cache
@@ -110,10 +134,50 @@ func WithUID(uid string) Option {
 	}
 }
 
+// WithP2PDownload enable p2p download file
+func WithP2PDownload(enabled bool) Option {
+	return func(o *options) error {
+		o.enableP2PDownload = enabled
+		return nil
+	}
+}
+
 // WithToken set sdk token
 func WithToken(token string) Option {
 	return func(o *options) error {
 		o.token = token
+		return nil
+	}
+}
+
+// WithBkAgentID set bk gse agent id
+func WithBkAgentID(agentID string) Option {
+	return func(o *options) error {
+		o.bkAgentID = agentID
+		return nil
+	}
+}
+
+// WithClusterID set bcs cluster id
+func WithClusterID(clusterID string) Option {
+	return func(o *options) error {
+		o.clusterID = clusterID
+		return nil
+	}
+}
+
+// WithPodID set pod id where the bscp container resides
+func WithPodID(podID string) Option {
+	return func(o *options) error {
+		o.podID = podID
+		return nil
+	}
+}
+
+// WithContainerName set container name of the bscp container
+func WithContainerName(name string) Option {
+	return func(o *options) error {
+		o.containerName = name
 		return nil
 	}
 }

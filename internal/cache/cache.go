@@ -19,6 +19,7 @@ import (
 	"io"
 	"io/fs"
 	"math"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -76,6 +77,11 @@ func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 		logger.Error("mkdir cache path failed", slog.String("path", c.path), logger.ErrAttr(err))
 		return
 	}
+
+	// 随机打乱配置文件顺序，避免同时下载导致的并发问题
+	rand.Shuffle(len(pl.ReleaseMeta.CIMetas), func(i, j int) {
+		pl.ReleaseMeta.CIMetas[i], pl.ReleaseMeta.CIMetas[j] = pl.ReleaseMeta.CIMetas[j], pl.ReleaseMeta.CIMetas[i]
+	})
 
 	for _, ci := range pl.ReleaseMeta.CIMetas {
 		exists, err := c.checkFileCacheExists(ci)
