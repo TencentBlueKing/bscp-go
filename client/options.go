@@ -40,6 +40,8 @@ type options struct {
 	containerName string
 	// fileCache file cache option
 	fileCache FileCache
+	// kvCache kv cache option
+	kvCache KvCache
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
 	enableMonitorResourceUsage bool
 }
@@ -70,6 +72,14 @@ type P2PDownload struct {
 	PodID string
 	// ContainerName bscp container name
 	ContainerName string
+}
+
+// KvCache option for kv cache
+type KvCache struct {
+	// Enabled is whether enable kv cache
+	Enabled bool
+	// ThresholdMB is threshold megabyte of kv cache
+	ThresholdMB float64
 }
 
 const (
@@ -176,6 +186,14 @@ func WithContainerName(name string) Option {
 func WithFileCache(c FileCache) Option {
 	return func(o *options) error {
 		o.fileCache = c
+		return nil
+	}
+}
+
+// WithKvCache set kv cache
+func WithKvCache(c KvCache) Option {
+	return func(o *options) error {
+		o.kvCache = c
 		return nil
 	}
 }

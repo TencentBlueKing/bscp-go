@@ -132,7 +132,8 @@ func (w *watcher) StartWatch() error {
 	// 发送客户端连接信息
 	go func() {
 		if err = w.sendClientMessaging(apps, nil); err != nil {
-			logger.Error("failed to send the client connection event. biz: %d, err: %s", w.opts.bizID, err.Error())
+			logger.Error("failed to send the client connection event",
+				slog.Uint64("biz", uint64(w.opts.bizID)), logger.ErrAttr(err))
 		}
 	}()
 

@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240619073002-754d2df7a1e7
+	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.7.0

@@ -82,7 +82,28 @@ func Watch(cmd *cobra.Command, args []string) {
 		labels = r.mergeLabels
 	}
 
-	bscp, err := createClient(conf, labels)
+	bscp, err := client.New(
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
+		client.WithLabels(labels),
+		client.WithUID(conf.UID),
+		client.WithP2PDownload(conf.EnableP2PDownload),
+		client.WithBkAgentID(conf.BkAgentID),
+		client.WithClusterID(conf.ClusterID),
+		client.WithPodID(conf.PodID),
+		client.WithContainerName(conf.ContainerName),
+		client.WithFileCache(client.FileCache{
+			Enabled:     conf.FileCache.Enabled,
+			CacheDir:    conf.FileCache.CacheDir,
+			ThresholdGB: conf.FileCache.ThresholdGB,
+		}),
+		client.WithKvCache(client.KvCache{
+			Enabled:     conf.KvCache.Enabled,
+			ThresholdMB: conf.KvCache.ThresholdMB,
+		}),
+		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
+	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
@@ -131,27 +152,6 @@ func Watch(cmd *cobra.Command, args []string) {
 	}()
 
 	serveHttp()
-}
-
-func createClient(conf *config.ClientConfig, labels map[string]string) (client.Client, error) {
-	return client.New(
-		client.WithFeedAddrs(conf.FeedAddrs),
-		client.WithBizID(conf.Biz),
-		client.WithToken(conf.Token),
-		client.WithLabels(labels),
-		client.WithUID(conf.UID),
-		client.WithP2PDownload(conf.EnableP2PDownload),
-		client.WithBkAgentID(conf.BkAgentID),
-		client.WithClusterID(conf.ClusterID),
-		client.WithPodID(conf.PodID),
-		client.WithContainerName(conf.ContainerName),
-		client.WithFileCache(client.FileCache{
-			Enabled:     conf.FileCache.Enabled,
-			CacheDir:    conf.FileCache.CacheDir,
-			ThresholdGB: conf.FileCache.ThresholdGB,
-		}),
-		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
-	)
 }
 
 func serveHttp() {
@@ -277,6 +277,11 @@ func init() {
 	WatchCmd.Flags().Float64P("cache-threshold-gb", "", constant.DefaultCacheThresholdGB,
 		"bscp file cache threshold gigabyte")
 	mustBindPFlag(watchViper, "file_cache.threshold_gb", WatchCmd.Flags().Lookup("cache-threshold-gb"))
+	WatchCmd.Flags().BoolP("kv-cache-enabled", "", constant.DefaultKvCacheEnabled, "enable kv cache or not")
+	mustBindPFlag(watchViper, "kv_cache.enabled", WatchCmd.Flags().Lookup("kv-cache-enabled"))
+	WatchCmd.Flags().Float64P("kv-cache-threshold-mb", "", constant.DefaultKvCacheThresholdMB,
+		"bscp kv cache threshold megabyte in memory")
+	mustBindPFlag(watchViper, "kv_cache.threshold_mb", WatchCmd.Flags().Lookup("kv-cache-threshold-mb"))
 	WatchCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
 	mustBindPFlag(watchViper, "enable_resource", WatchCmd.Flags().Lookup("enable-resource"))
 

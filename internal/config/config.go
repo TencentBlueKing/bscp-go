@@ -63,6 +63,8 @@ type ClientConfig struct {
 	ContainerName string `json:"container_name" mapstructure:"container_name"`
 	// FileCache file cache config
 	FileCache *FileCacheConfig `json:"file_cache" mapstructure:"file_cache"`
+	// KvCache kv cache config
+	KvCache *KvCacheConfig `json:"kv_cache" mapstructure:"kv_cache"`
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
 	EnableMonitorResourceUsage bool `json:"enable_resource" mapstructure:"enable_resource"`
 }
@@ -103,6 +105,12 @@ func (c *ClientConfig) ValidateBase() error {
 		c.FileCache = new(FileCacheConfig)
 	}
 	if err := c.FileCache.Validate(); err != nil {
+		return err
+	}
+	if c.KvCache == nil {
+		c.KvCache = new(KvCacheConfig)
+	}
+	if err := c.KvCache.Validate(); err != nil {
 		return err
 	}
 
@@ -162,7 +170,7 @@ type FileCacheConfig struct {
 	RetentionRate float64 `json:"-" mapstructure:"-"`
 }
 
-// Validate validate the file cache config
+// Validate validates the file cache config
 func (c *FileCacheConfig) Validate() error {
 	if c.CacheDir == "" {
 		c.CacheDir = constant.DefaultFileCacheDir
@@ -175,6 +183,22 @@ func (c *FileCacheConfig) Validate() error {
 	}
 	if c.RetentionRate <= 0 || c.RetentionRate > 1 {
 		c.RetentionRate = constant.DefaultCacheRetentionRate
+	}
+	return nil
+}
+
+// KvCacheConfig config for kv cache
+type KvCacheConfig struct {
+	// Enabled is whether enable kv cache
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
+	// ThresholdMB is threshold megabyte of kv cache
+	ThresholdMB float64 `json:"threshold_mb" mapstructure:"threshold_mb"`
+}
+
+// Validate validates the kv cache config
+func (c *KvCacheConfig) Validate() error {
+	if c.ThresholdMB <= 0 {
+		c.ThresholdMB = constant.DefaultKvCacheThresholdMB
 	}
 	return nil
 }
