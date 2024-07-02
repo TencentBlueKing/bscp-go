@@ -22,11 +22,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/TencentBlueKing/bscp-go/internal/downloader"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/constant"
+	"github.com/TencentBlueKing/bscp-go/internal/downloader"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
