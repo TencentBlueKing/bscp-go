@@ -512,7 +512,6 @@ func (r *Release) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType
 // updateFiles updates the files to the target directory.
 func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int32, successFileSize *uint64,
 	semaphoreCh chan struct{}) error {
-	// var successDownloads int32
 	start := time.Now()
 	// Initialize the successDownloads and successFileSize to zero at the beginning of the function.
 	atomic.StoreInt32(successDownloads, 0)

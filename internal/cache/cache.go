@@ -87,6 +87,9 @@ func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 			continue
 		}
 		filePath := path.Join(c.path, ci.ContentSpec.Signature)
+		// TODO: gse 现在分发文件时，target 的目录必须一致，因此这里 Cache 和 SDK 的下载目录会被视为同一个目录，并发下载时会有问题
+		// 两个并发下载任务下载到同一个文件中，但是 Downloader 中并发移动这个文件时会导致其中一个任务失败
+		// 在 GSE 解决这个问题（支持根据 target 设置目录）之前，先不启用 Cahce.OnReleaseChange 回调
 		if err := downloader.GetDownloader().Download(ci.PbFileMeta(), ci.RepositoryPath, ci.ContentSpec.ByteSize,
 			downloader.DownloadToFile, nil, filePath); err != nil {
 			logger.Error("download file failed", logger.ErrAttr(err), slog.String("rid", event.Rid))
