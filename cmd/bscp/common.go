@@ -40,13 +40,14 @@ var (
 )
 
 var (
+	rootViper    = viper.New()
 	pullViper    = viper.New()
 	watchViper   = viper.New()
 	getAppViper  = viper.New()
 	getFileViper = viper.New()
 	getKvViper   = viper.New()
 
-	allVipers = []*viper.Viper{pullViper, watchViper, getAppViper, getFileViper, getKvViper}
+	allVipers = []*viper.Viper{rootViper, pullViper, watchViper, getAppViper, getFileViper, getKvViper}
 	getVipers = []*viper.Viper{getAppViper, getFileViper, getKvViper}
 )
 
@@ -58,6 +59,7 @@ var (
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
 		"config_file": "BSCP_CONFIG",
+		"log_level":   "log_level",
 	}
 
 	// commonEnvs variable definition, viper key => envName

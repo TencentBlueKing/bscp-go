@@ -69,6 +69,7 @@ func Init(vas *kit.Vas, bizID uint32, token string, upstream upstream.Upstream, 
 
 	if !serverEnableP2P {
 		logger.Warn("async p2p download is set to disabled in server side")
+		return nil
 	}
 
 	if !clientEnableP2P {
@@ -98,15 +99,23 @@ type downloader struct {
 
 func (d *downloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, fileSize uint64, to DownloadTo, b []byte,
 	filePath string) error {
+	if !d.enableAsyncDownload {
+		return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
+	}
+	// if download to bytes, use http download
 	if to == DownloadToBytes {
 		return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
 	}
-	if d.enableAsyncDownload {
-		if err := d.asyncDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath); err != nil {
-			logger.Warn("async download file failed, fallback to http download", "file",
-				path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name), "err", err.Error())
-			return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
-		}
+	// if file size is less than 1MB, use http download
+	if fileSize < defaultAsyncDownloadByteSize {
+		return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
 	}
-	return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
+	// if file size is larger than 1MB, try async download
+	if err := d.asyncDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath); err != nil {
+		logger.Warn("async download file failed, fallback to http download", "file",
+			path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name), "err", err.Error())
+		// if async download failed, fallback to http download
+		return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
+	}
+	return nil
 }

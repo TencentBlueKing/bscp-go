@@ -31,7 +31,6 @@ import (
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 
-	"github.com/TencentBlueKing/bscp-go/internal/cache"
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/internal/util/process_collect"
@@ -242,9 +241,6 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 					Payload:    event.Payload,
 				}
 
-				if c := cache.GetCache(); c != nil && cache.Enable {
-					go c.OnReleaseChange(change)
-				}
 				go w.OnReleaseChange(change)
 				continue
 

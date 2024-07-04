@@ -16,7 +16,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -513,10 +512,6 @@ func (r *Release) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType
 // updateFiles updates the files to the target directory.
 func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int32, successFileSize *uint64,
 	semaphoreCh chan struct{}) error {
-	// 随机打乱配置文件顺序，避免同时下载导致的并发问题
-	rand.Shuffle(len(files), func(i, j int) {
-		files[i], files[j] = files[j], files[i]
-	})
 	// var successDownloads int32
 	start := time.Now()
 	// Initialize the successDownloads and successFileSize to zero at the beginning of the function.

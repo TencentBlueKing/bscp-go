@@ -49,17 +49,6 @@ var (
 		Use:   "get",
 		Short: "Display app, file or kv resources",
 		Long:  `Display app, file or kv resources`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// 设置日志等级, get 命令默认是 error
-			if logLevel == "" {
-				logLevel = "error"
-			}
-
-			level := logger.GetLevelByName(logLevel)
-			logger.SetLevel(level)
-
-			return nil
-		},
 	}
 
 	// getAppCmd is get cmd for app

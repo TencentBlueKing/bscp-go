@@ -48,6 +48,7 @@ const (
 	defaultRangeDownloadByteSize       = 5 * defaultSwapBufferSize
 	requestAwaitResponseTimeoutSeconds = 10
 	defaultDownloadGroutines           = 10
+	defaultAsyncDownloadByteSize       = 2 * 1024 * 1024
 
 	// EnvMaxHTTPDownloadGoroutines is the env name of max goroutines to download file via http.
 	EnvMaxHTTPDownloadGoroutines = "BK_BSCP_MAX_HTTP_DOWNLOAD_GOROUTINES"
@@ -346,6 +347,9 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 	if err := exec.dl.sem.Acquire(exec.ctx, 1); err != nil {
 		return fmt.Errorf("acquire semaphore failed, err: %s", err.Error())
 	}
+
+	logger.Info("start download file directly",
+		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)))
 
 	defer exec.dl.sem.Release(1)
 

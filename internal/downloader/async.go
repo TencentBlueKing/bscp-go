@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
 	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
+	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
@@ -53,8 +55,8 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 
 	start := time.Now()
 
-	// tempFileDir: /tmp/bscp/sync/download/{bizID}/{sha256}
-	tempDir := fmt.Sprintf("/tmp/bscp/sync/download/%d", dl.bizID)
+	// tempFileDir: /tmp/bscp/async/download/{bizID}/{sha256}
+	tempDir := fmt.Sprintf("/tmp/bscp/async/download/%d", dl.bizID)
 	resp, err := dl.upstream.AsyncDownload(dl.vas, &pbfs.AsyncDownloadReq{
 		BizId:         fileMeta.ConfigItemAttachment.BizId,
 		BkAgentId:     dl.bkAgentID,
@@ -67,6 +69,10 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 	if err != nil {
 		return err
 	}
+
+	logger.Info("start async download file",
+		slog.String("file", path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name)),
+		slog.String("taskID", resp.TaskId))
 
 	// Check the status of the download asynchronously with timeout
 	if err := dl.awaitDownloadCompletion(fileMeta.ConfigItemAttachment.BizId, resp.TaskId, toFile); err != nil {
@@ -173,7 +179,7 @@ func crossDeviceMoveFile(srcPath, dstPath string) error {
 	}
 
 	if err := os.Remove(srcPath); err != nil {
-		return fmt.Errorf("failed to remove original file after copy: %v", err)
+		logger.Error("failed to remove original file after copy", logger.ErrAttr(err))
 	}
 	return nil
 }

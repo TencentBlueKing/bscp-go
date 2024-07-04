@@ -19,7 +19,6 @@ import (
 	"io"
 	"io/fs"
 	"math"
-	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -77,11 +76,6 @@ func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 		logger.Error("mkdir cache path failed", slog.String("path", c.path), logger.ErrAttr(err))
 		return
 	}
-
-	// 随机打乱配置文件顺序，避免同时下载导致的并发问题
-	rand.Shuffle(len(pl.ReleaseMeta.CIMetas), func(i, j int) {
-		pl.ReleaseMeta.CIMetas[i], pl.ReleaseMeta.CIMetas[j] = pl.ReleaseMeta.CIMetas[j], pl.ReleaseMeta.CIMetas[i]
-	})
 
 	for _, ci := range pl.ReleaseMeta.CIMetas {
 		exists, err := c.checkFileCacheExists(ci)
@@ -150,6 +144,12 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 // CopyToFile copy the config content to the specified file.
 // get from cache first, if not exist, then get from remote repo and add it to cache
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
+	if ci.ContentSpec.ByteSize > 100*1024*1024 {
+		logger.Warn("config item size is too large, skip copy to file",
+			slog.String("item", path.Join(ci.ConfigItemSpec.Path, ci.ConfigItemSpec.Name)),
+			slog.Int64("size", int64(ci.ContentSpec.ByteSize)))
+		return false
+	}
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
 		logger.Error("check config item cache exists failed",
