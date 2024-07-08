@@ -40,14 +40,16 @@ var (
 )
 
 var (
+	rootViper    = viper.New()
 	pullViper    = viper.New()
 	watchViper   = viper.New()
+	getViper     = viper.New()
 	getAppViper  = viper.New()
 	getFileViper = viper.New()
 	getKvViper   = viper.New()
 
-	allVipers = []*viper.Viper{pullViper, watchViper, getAppViper, getFileViper, getKvViper}
-	getVipers = []*viper.Viper{getAppViper, getFileViper, getKvViper}
+	allVipers = []*viper.Viper{rootViper, pullViper, watchViper, getViper, getAppViper, getFileViper, getKvViper}
+	getVipers = []*viper.Viper{getViper, getAppViper, getFileViper, getKvViper}
 )
 
 var (
@@ -58,17 +60,23 @@ var (
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
 		"config_file": "BSCP_CONFIG",
+		"log_level":   "log_level",
 	}
 
 	// commonEnvs variable definition, viper key => envName
 	commonEnvs = map[string]string{
-		"biz":         "biz",
-		"app":         "app",
-		"labels_str":  "labels",
-		"labels_file": "labels_file",
-		"feed_addrs":  "feed_addrs",
-		"token":       "token",
-		"temp_dir":    "temp_dir",
+		"biz":                 "biz",
+		"app":                 "app",
+		"labels_str":          "labels",
+		"labels_file":         "labels_file",
+		"feed_addrs":          "feed_addrs",
+		"token":               "token",
+		"temp_dir":            "temp_dir",
+		"enable_p2p_download": "enable_p2p_download",
+		"bk_agent_id":         "bk_agent_id",
+		"cluster_id":          "cluster_id",
+		"pod_id":              "pod_id",
+		"container_name":      "container_name",
 	}
 
 	watchEnvs = map[string]string{

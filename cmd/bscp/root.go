@@ -22,14 +22,13 @@ import (
 )
 
 var (
-	logLevel string
-	rootCmd  = &cobra.Command{
+	rootCmd = &cobra.Command{
 		Use:   "bscp",
 		Short: "bscp is a command line tool for blueking service config platform",
 		Long:  `bscp is a command line tool for blueking service config platform`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// 设置日志等级
-			level := logger.GetLevelByName(logLevel)
+			level := logger.GetLevelByName(rootViper.GetString("log_level"))
 			logger.SetLevel(level)
 
 			return nil
@@ -58,15 +57,18 @@ func init() {
 	rootCmd.AddCommand(PullCmd)
 	rootCmd.AddCommand(WatchCmd)
 	rootCmd.AddCommand(VersionCmd)
-	rootCmd.PersistentFlags().StringVarP(
-		&logLevel, "log-level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
+	rootCmd.PersistentFlags().StringP(
+		"log_level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
 	rootCmd.PersistentFlags().StringP("config", "c", constant.DefaultConfFile, "config file path")
 	cfgFlag := rootCmd.PersistentFlags().Lookup("config")
+	logLevelFlag := rootCmd.PersistentFlags().Lookup("log_level")
 	// add env info for cmdline flags
 	cfgFlag.Usage = fmt.Sprintf("%v [env %v]", cfgFlag.Usage, rootEnvs["config_file"])
+	logLevelFlag.Usage = fmt.Sprintf("%v [env %v]", logLevelFlag.Usage, rootEnvs["log_level"])
 
 	for _, v := range allVipers {
 		mustBindPFlag(v, "config_file", cfgFlag)
+		mustBindPFlag(v, "log_level", logLevelFlag)
 
 		for key, envName := range rootEnvs {
 			// bind env variable with viper

@@ -9,4 +9,5 @@ cover.out
 .envrc
 .vscode
 /bin
+/debug
 __debug*
