@@ -43,12 +43,13 @@ var (
 	rootViper    = viper.New()
 	pullViper    = viper.New()
 	watchViper   = viper.New()
+	getViper     = viper.New()
 	getAppViper  = viper.New()
 	getFileViper = viper.New()
 	getKvViper   = viper.New()
 
-	allVipers = []*viper.Viper{rootViper, pullViper, watchViper, getAppViper, getFileViper, getKvViper}
-	getVipers = []*viper.Viper{getAppViper, getFileViper, getKvViper}
+	allVipers = []*viper.Viper{rootViper, pullViper, watchViper, getViper, getAppViper, getFileViper, getKvViper}
+	getVipers = []*viper.Viper{getViper, getAppViper, getFileViper, getKvViper}
 )
 
 var (

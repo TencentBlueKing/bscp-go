@@ -34,8 +34,14 @@ import (
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
-// GByte is gigabyte unit
-const GByte = 1024 * 1024 * 1024
+const (
+	// GByte is gigabyte unit
+	GByte = 1024 * 1024 * 1024
+
+	// MaxSingleFileCacheSizeRate max size rate of single file cache
+	// file size bigger than this rate will not be cached
+	MaxSingleFileCacheSizeRate = 0.2
+)
 
 var instance *Cache
 
@@ -44,14 +50,16 @@ var Enable bool
 
 // Cache is the bscp sdk cache
 type Cache struct {
-	path string
+	path       string
+	thrsholdGB float64
 }
 
 // Init return a bscp sdk cache instance
-func Init(path string) error {
+func Init(path string, thresholdGB float64) error {
 	Enable = true
 	instance = &Cache{
-		path: path,
+		path:       path,
+		thrsholdGB: thresholdGB,
 	}
 
 	// prepare cache dir
@@ -147,7 +155,7 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 // CopyToFile copy the config content to the specified file.
 // get from cache first, if not exist, then get from remote repo and add it to cache
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
-	if ci.ContentSpec.ByteSize > 100*1024*1024 {
+	if ci.ContentSpec.ByteSize > uint64(MaxSingleFileCacheSizeRate*c.thrsholdGB) {
 		logger.Warn("config item size is too large, skip copy to file",
 			slog.String("item", path.Join(ci.ConfigItemSpec.Path, ci.ConfigItemSpec.Name)),
 			slog.Int64("size", int64(ci.ContentSpec.ByteSize)))

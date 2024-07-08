@@ -48,7 +48,6 @@ const (
 	defaultRangeDownloadByteSize       = 5 * defaultSwapBufferSize
 	requestAwaitResponseTimeoutSeconds = 10
 	defaultDownloadGroutines           = 10
-	defaultAsyncDownloadByteSize       = 2 * 1024 * 1024
 
 	// EnvMaxHTTPDownloadGoroutines is the env name of max goroutines to download file via http.
 	EnvMaxHTTPDownloadGoroutines = "BK_BSCP_MAX_HTTP_DOWNLOAD_GOROUTINES"

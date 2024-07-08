@@ -29,8 +29,12 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
-	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
+)
+
+const (
+	defaultAsyncDownloadByteSize             = 2 * 1024 * 1024
+	defaultAsyncDownloadPollingStateInterval = 5 * time.Second
 )
 
 type asyncDownloader struct {
@@ -99,7 +103,7 @@ func (dl *asyncDownloader) awaitDownloadCompletion(bizID uint32, taskID, toFile 
 	ctx, cancel := context.WithTimeout(dl.vas.Ctx, 10*time.Minute)
 	defer cancel()
 
-	ticker := util.NewProgressiveTicker(nil)
+	ticker := time.NewTicker(defaultAsyncDownloadPollingStateInterval)
 	defer ticker.Stop()
 
 	for {

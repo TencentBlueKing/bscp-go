@@ -81,28 +81,7 @@ func Watch(cmd *cobra.Command, args []string) {
 		labels = r.mergeLabels
 	}
 
-	bscp, err := client.New(
-		client.WithFeedAddrs(conf.FeedAddrs),
-		client.WithBizID(conf.Biz),
-		client.WithToken(conf.Token),
-		client.WithLabels(labels),
-		client.WithUID(conf.UID),
-		client.WithP2PDownload(conf.EnableP2PDownload),
-		client.WithBkAgentID(conf.BkAgentID),
-		client.WithClusterID(conf.ClusterID),
-		client.WithPodID(conf.PodID),
-		client.WithContainerName(conf.ContainerName),
-		client.WithFileCache(client.FileCache{
-			Enabled:     conf.FileCache.Enabled,
-			CacheDir:    conf.FileCache.CacheDir,
-			ThresholdGB: conf.FileCache.ThresholdGB,
-		}),
-		client.WithKvCache(client.KvCache{
-			Enabled:     conf.KvCache.Enabled,
-			ThresholdMB: conf.KvCache.ThresholdMB,
-		}),
-		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
-	)
+	bscp, err := newWatchClient(labels)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
@@ -151,6 +130,31 @@ func Watch(cmd *cobra.Command, args []string) {
 	}()
 
 	serveHttp()
+}
+
+func newWatchClient(labels map[string]string) (client.Client, error) {
+	return client.New(
+		client.WithFeedAddrs(conf.FeedAddrs),
+		client.WithBizID(conf.Biz),
+		client.WithToken(conf.Token),
+		client.WithLabels(labels),
+		client.WithUID(conf.UID),
+		client.WithP2PDownload(conf.EnableP2PDownload),
+		client.WithBkAgentID(conf.BkAgentID),
+		client.WithClusterID(conf.ClusterID),
+		client.WithPodID(conf.PodID),
+		client.WithContainerName(conf.ContainerName),
+		client.WithFileCache(client.FileCache{
+			Enabled:     conf.FileCache.Enabled,
+			CacheDir:    conf.FileCache.CacheDir,
+			ThresholdGB: conf.FileCache.ThresholdGB,
+		}),
+		client.WithKvCache(client.KvCache{
+			Enabled:     conf.KvCache.Enabled,
+			ThresholdMB: conf.KvCache.ThresholdMB,
+		}),
+		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
+	)
 }
 
 func serveHttp() {

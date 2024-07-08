@@ -157,7 +157,7 @@ func New(opts ...Option) (Client, error) {
 func initFileCache(opts *options) error {
 	if opts.fileCache.Enabled {
 		logger.Info("enable file cache")
-		if err := cache.Init(opts.fileCache.CacheDir); err != nil {
+		if err := cache.Init(opts.fileCache.CacheDir, opts.fileCache.ThresholdGB); err != nil {
 			return fmt.Errorf("init file cache failed, err: %s", err.Error())
 		}
 		go cache.AutoCleanupFileCache(opts.fileCache.CacheDir, DefaultCleanupIntervalSeconds,
