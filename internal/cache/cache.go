@@ -40,7 +40,7 @@ const (
 
 	// MaxSingleFileCacheSizeRate max size rate of single file cache
 	// file size bigger than this rate will not be cached
-	MaxSingleFileCacheSizeRate = 0.2
+	MaxSingleFileCacheSizeRate = 0.1
 )
 
 var instance *Cache
