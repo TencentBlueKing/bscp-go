@@ -50,6 +50,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// goroutine number for concurrency
+	var gnum int64 = 10
+	gnumStr := os.Getenv("GNUM")
+	if gnumStr != "" {
+		gnum, err = strconv.ParseInt(gnumStr, 10, 64)
+		if err != nil {
+			slog.Error("parse GNUM", logger.ErrAttr(err))
+			os.Exit(1)
+		}
+	}
+
 	clientOpts := []client.Option{
 		client.WithFeedAddrs(strings.Split(os.Getenv("BSCP_FEED_ADDRS"), ",")),
 		client.WithBizID(uint32(biz)),
@@ -77,10 +88,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	slog.Info("start downloading file", slog.Int64("concurrency", gnum))
 	start := time.Now()
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := 0; i < int(gnum); i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
