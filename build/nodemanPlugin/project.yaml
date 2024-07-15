@@ -57,8 +57,8 @@ config_templates:
           title: 服务feed-server地址
           type: string
           required: true
-        服务密钥:
-          title: 服务密钥
+        客户端密钥:
+          title: 客户端密钥
           type: string
           required: true
         全局标签:
@@ -81,6 +81,11 @@ config_templates:
           type: string
           required: false
           default: /data/bscp
+        P2P文件下载加速:
+          title: P2P文件下载加速
+          type: bool
+          required: true
+          default: false
 control:
   start: "./start.sh bkbscp"
   stop: "./stop.sh bkbscp"
