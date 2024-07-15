@@ -20,7 +20,7 @@ apps: {% for app in 服务 %}
         {{ label.key }}: {{ label.value }}{% endfor %}
     {% endfor %}
 # token
-token: {{ 服务密钥 }}
+token: {{ 客户端密钥 }}
 temp_dir: {{ 临时目录 }}
 {% if 全局标签 %}labels:
 {% for label in 全局标签 %}{{ "-" if loop.first else " "  }} {{ label.key }}: "{{ label.value }}"
@@ -29,3 +29,10 @@ temp_dir: {{ 临时目录 }}
 
 feed_addrs:
   - {{ Feed服务地址 }}
+
+# 是否启用P2P文件下载加速
+{% if P2P文件下载加速 %}
+enable_p2p_download: true
+{% else %}
+enable_p2p_download: false
+{% endif %}
