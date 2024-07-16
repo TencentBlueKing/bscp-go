@@ -51,21 +51,29 @@ build_docker: build_initContainer build_sidecar
 	cd build/sidecar && docker build . -t bscp-sidecar
 
 .PHONY: build_nodemanPlugin
-build_nodemanPlugin: build
+build_nodemanPlugin:
 	@echo "Building nodemanPlugin version: ${SEM_VERSION}"
-	rm -rf build/nodemanPlugin/bkbscp/plugins_linux_x86_64
+	rm -rf build/nodemanPlugin/bkbscp
+	# build linux
 	mkdir -p "build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/etc" "build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin"
-	cp bin/bkbscp build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin
-	sed 's/__VERSION__/$(SEM_VERSION)/' build/nodemanPlugin/project.yaml > build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/project.yaml
-	cp build/nodemanPlugin/etc/bkbscp.conf.tpl build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/etc/bkbscp.conf.tpl
-	cd build/nodemanPlugin/bkbscp && tar -zcf ../bkbscp.tar.gz .
-
-.PHONY: build
-build:
 	${GOBUILD} -ldflags "${LDVersionFLAG}" -o bin/${BIN_NAME} cmd/bscp/*.go
 	${GOBUILD} -ldflags "${LDVersionFLAG} \
 		-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=agent" \
-		-o bin/bkbscp build/nodemanPlugin/main.go
+		-o build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin/bkbscp build/nodemanPlugin/main.go
+	sed 's/__VERSION__/$(SEM_VERSION)/' build/nodemanPlugin/project.yaml > build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/project.yaml
+	cp build/nodemanPlugin/etc/bkbscp.conf.tpl build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/etc/bkbscp.conf.tpl
+
+	# build windows
+	mkdir -p "build/nodemanPlugin/bkbscp/plugins_windows_x86_64/bkbscp/etc" "build/nodemanPlugin/bkbscp/plugins_windows_x86_64/bkbscp/bin"
+	${GOBUILD} -ldflags "${LDVersionFLAG}" -o bin/${BIN_NAME} cmd/bscp/*.go
+	${GOBUILD} -ldflags "${LDVersionFLAG} \
+		-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=agent" \
+		-o build/nodemanPlugin/bkbscp/plugins_windows_x86_64/bkbscp/bin/bkbscp.exe build/nodemanPlugin/main.go
+	sed 's/__VERSION__/$(SEM_VERSION)/' build/nodemanPlugin/project.yaml > build/nodemanPlugin/bkbscp/plugins_windows_x86_64/bkbscp/project.yaml
+	cp build/nodemanPlugin/etc/bkbscp.conf.tpl build/nodemanPlugin/bkbscp/plugins_windows_x86_64/bkbscp/etc/bkbscp.conf.tpl
+
+	# tar
+	cd build/nodemanPlugin/bkbscp && tar -zcf ../bkbscp.tar.gz .
 
 .PHONY: test
 test:

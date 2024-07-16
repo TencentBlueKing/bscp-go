@@ -32,6 +32,10 @@ const (
 	executeShellCmd = "bash"
 	// executePythonCmd python script executor
 	executePythonCmd = "python3"
+	// executeBatCmd bat script executor
+	executeBatCmd = "cmd"
+	// executePowershellCmd powershell script executor
+	executePowershellCmd = "powershell"
 
 	// EnvAppTempDir bscp app temp dir env
 	// !important: promise of compatibility
@@ -64,15 +68,22 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 		return err
 	}
 	var command string
+	args := []string{}
 	switch hook.Type {
 	case "shell":
 		command = executeShellCmd
 	case "python":
 		command = executePythonCmd
+	case "bat":
+		command = executeBatCmd
+		args = append(args, "/C")
+	case "powershell":
+		command = executePowershellCmd
+		args = append(args, "-ExecutionPolicy", "Bypass", "-File")
 	default:
 		return sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))
 	}
-	args := []string{hookPath}
+	args = append(args, hookPath)
 	cmd := exec.Command(command, args...)
 	cmd.Dir = appTempDir
 	cmd.Env = append(os.Environ(), hookEnvs...)
@@ -98,6 +109,10 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 		filePath = path.Join(hookDir, hookType.String()+".sh")
 	case "python":
 		filePath = path.Join(hookDir, hookType.String()+".py")
+	case "bat":
+		filePath = path.Join(hookDir, hookType.String()+".bat")
+	case "powershell":
+		filePath = path.Join(hookDir, hookType.String()+".ps1")
 	default:
 		return "", sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))
 	}

@@ -19,6 +19,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -554,8 +555,10 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 					slog.String("file", filePath))
 			}
 			// 3. set file permission
-			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
-				logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
+			if runtime.GOOS != "windows" {
+				if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
+					logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
+				}
 			}
 			atomic.AddInt32(successDownloads, 1)
 			atomic.AddUint64(successFileSize, file.FileMeta.ContentSpec.ByteSize)

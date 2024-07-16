@@ -83,7 +83,7 @@ config_templates:
           default: /data/bscp
         P2P文件下载加速:
           title: P2P文件下载加速
-          type: bool
+          type: boolean
           required: true
           default: false
 control:
