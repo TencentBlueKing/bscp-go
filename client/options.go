@@ -219,8 +219,8 @@ type AppOptions struct {
 // AppOption setter for app options
 type AppOption func(*AppOptions)
 
-// WithAppMatch set match condition for config items
-func WithAppMatch(match []string) AppOption {
+// WithAppConfigMatch set match condition for app's config items
+func WithAppConfigMatch(match []string) AppOption {
 	return func(o *AppOptions) {
 		o.Match = match
 	}

@@ -114,10 +114,13 @@ func initConf(v *viper.Viper) error {
 
 	updateConfFeedAddrs()
 	updateConfApps()
+	updateConfMatches()
 	if err := updateConfLabels(); err != nil {
 		return err
 	}
 
+	// debug日志打印配置信息，已屏蔽token敏感信息，便于调试和问题排查
+	logger.Debug("init conf", slog.String("conf", conf.String()))
 	return nil
 }
 
@@ -156,6 +159,16 @@ func updateConfApps() {
 			apps = append(apps, &config.AppConfig{Name: strings.TrimSpace(app)})
 		}
 		conf.Apps = apps
+	}
+}
+
+func updateConfMatches() {
+	// if global config matches exist, add them to all apps
+	if len(conf.ConfigMatches) == 0 {
+		return
+	}
+	for _, app := range conf.Apps {
+		app.ConfigMatches = append(app.ConfigMatches, conf.ConfigMatches...)
 	}
 }
 

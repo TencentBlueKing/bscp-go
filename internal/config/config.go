@@ -49,6 +49,8 @@ type ClientConfig struct {
 	TempDir string `json:"temp_dir" mapstructure:"temp_dir"`
 	// LabelsFile labels file path
 	LabelsFile string `json:"labels_file" mapstructure:"labels_file"`
+	// ConfigMatches global app config item's match conditions
+	ConfigMatches []string `json:"config_matches" mapstructure:"config_matches"`
 	// Port sidecar http server port
 	Port int `json:"port" mapstructure:"port"`
 	// EnableP2PDownload enable p2p download file
@@ -146,6 +148,8 @@ type AppConfig struct {
 	Labels map[string]string `json:"labels" mapstructure:"labels"`
 	// UID instance unique uid
 	UID string `json:"uid" mapstructure:"uid"`
+	// ConfigMatches app config item's match conditions
+	ConfigMatches []string `json:"config_matches" mapstructure:"config_matches"`
 }
 
 // Validate validate the app watch config

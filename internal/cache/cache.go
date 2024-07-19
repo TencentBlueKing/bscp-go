@@ -155,7 +155,7 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 // CopyToFile copy the config content to the specified file.
 // get from cache first, if not exist, then get from remote repo and add it to cache
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
-	if ci.ContentSpec.ByteSize > uint64(MaxSingleFileCacheSizeRate*c.thrsholdGB) {
+	if ci.ContentSpec.ByteSize > uint64(MaxSingleFileCacheSizeRate*c.thrsholdGB*GByte) {
 		logger.Warn("config item size is too large, skip copy to file",
 			slog.String("item", path.Join(ci.ConfigItemSpec.Path, ci.ConfigItemSpec.Name)),
 			slog.Int64("size", int64(ci.ContentSpec.ByteSize)))

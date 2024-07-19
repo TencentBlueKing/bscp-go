@@ -104,6 +104,7 @@ func (w *watcher) StartWatch() error {
 			App:              subscriber.App,
 			Uid:              subscriber.UID,
 			Labels:           subscriber.Labels,
+			Match:            subscriber.Match,
 			CurrentReleaseID: subscriber.CurrentReleaseID,
 			CurrentCursorID:  0,
 		})
@@ -370,6 +371,7 @@ func (w *watcher) Subscribe(callback Callback, app string, opts ...AppOption) *s
 		// merge labels, if key conflict, app value will overwrite client value
 		Labels:           util.MergeLabels(w.opts.labels, options.Labels),
 		UID:              options.UID,
+		Match:            options.Match,
 		Callback:         callback,
 		CurrentReleaseID: 0,
 	}
@@ -396,6 +398,8 @@ type subscriber struct {
 	Labels map[string]string
 	// UID is the unique id of the subscriber
 	UID string
+	// Match is app config item's match condition
+	Match []string
 	// currentConfigItems store the current config items of the subscriber, map[configItemName]commitID
 	currentConfigItems map[string]uint32
 	// CursorID 事件ID

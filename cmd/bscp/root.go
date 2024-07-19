@@ -58,10 +58,10 @@ func init() {
 	rootCmd.AddCommand(WatchCmd)
 	rootCmd.AddCommand(VersionCmd)
 	rootCmd.PersistentFlags().StringP(
-		"log_level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
+		"log-level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
 	rootCmd.PersistentFlags().StringP("config", "c", constant.DefaultConfFile, "config file path")
 	cfgFlag := rootCmd.PersistentFlags().Lookup("config")
-	logLevelFlag := rootCmd.PersistentFlags().Lookup("log_level")
+	logLevelFlag := rootCmd.PersistentFlags().Lookup("log-level")
 	// add env info for cmdline flags
 	cfgFlag.Usage = fmt.Sprintf("%v [env %v]", cfgFlag.Usage, rootEnvs["config_file"])
 	logLevelFlag.Usage = fmt.Sprintf("%v [env %v]", logLevelFlag.Usage, rootEnvs["log_level"])
