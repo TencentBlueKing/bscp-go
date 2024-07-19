@@ -51,6 +51,8 @@ type Upstream interface {
 	GetDownloadURL(vas *kit.Vas, req *pbfs.GetDownloadURLReq) (*pbfs.GetDownloadURLResp, error)
 	Version() *pbbase.Versioning
 	ListApps(vas *kit.Vas, req *pbfs.ListAppsReq) (*pbfs.ListAppsResp, error)
+	AsyncDownload(vas *kit.Vas, req *pbfs.AsyncDownloadReq) (*pbfs.AsyncDownloadResp, error)
+	AsyncDownloadStatus(vas *kit.Vas, req *pbfs.AsyncDownloadStatusReq) (*pbfs.AsyncDownloadStatusResp, error)
 }
 
 // New create a rolling client instance.
@@ -70,7 +72,7 @@ func New(opts ...Option) (Upstream, error) {
 
 	dialOpts := make([]grpc.DialOption, 0)
 	// blocks until the connection is established.
-	dialOpts = append(dialOpts, grpc.WithBlock())
+	dialOpts = append(dialOpts, grpc.WithBlock()) // nolint:staticcheck
 	dialOpts = append(dialOpts, grpc.WithUserAgent("bscp-sdk-golang"))
 	// dial without ssl
 	dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -133,7 +135,7 @@ func (uc *upstreamClient) dial() error {
 
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Duration(timeout)*time.Millisecond)
 	endpoint := uc.lb.PickOne()
-	conn, err := grpc.DialContext(ctx, endpoint, uc.dialOpts...)
+	conn, err := grpc.DialContext(ctx, endpoint, uc.dialOpts...) // nolint:staticcheck
 	if err != nil {
 		cancel()
 		uc.cancelCtx = nil

@@ -149,6 +149,8 @@ func Watch(cmd *cobra.Command, args []string) error {
 		client.WithToken(conf.Token),
 		client.WithLabels(conf.Labels),
 		client.WithUID(conf.UID),
+		client.WithP2PDownload(conf.EnableP2PDownload),
+		client.WithBkAgentID(conf.BkAgentID),
 		client.WithFileCache(client.FileCache{
 			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,

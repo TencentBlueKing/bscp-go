@@ -34,8 +34,14 @@ import (
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
-// GByte is gigabyte unit
-const GByte = 1024 * 1024 * 1024
+const (
+	// GByte is gigabyte unit
+	GByte = 1024 * 1024 * 1024
+
+	// MaxSingleFileCacheSizeRate max size rate of single file cache
+	// file size bigger than this rate will not be cached
+	MaxSingleFileCacheSizeRate = 0.1
+)
 
 var instance *Cache
 
@@ -44,14 +50,16 @@ var Enable bool
 
 // Cache is the bscp sdk cache
 type Cache struct {
-	path string
+	path       string
+	thrsholdGB float64
 }
 
 // Init return a bscp sdk cache instance
-func Init(path string) error {
+func Init(path string, thresholdGB float64) error {
 	Enable = true
 	instance = &Cache{
-		path: path,
+		path:       path,
+		thrsholdGB: thresholdGB,
 	}
 
 	// prepare cache dir
@@ -87,6 +95,9 @@ func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 			continue
 		}
 		filePath := path.Join(c.path, ci.ContentSpec.Signature)
+		// TODO: gse 现在分发文件时，target 的目录必须一致，因此这里 Cache 和 SDK 的下载目录会被视为同一个目录，并发下载时会有问题
+		// 两个并发下载任务下载到同一个文件中，但是 Downloader 中并发移动这个文件时会导致其中一个任务失败
+		// 在 GSE 解决这个问题（支持根据 target 设置目录）之前，先不启用 Cahce.OnReleaseChange 回调
 		if err := downloader.GetDownloader().Download(ci.PbFileMeta(), ci.RepositoryPath, ci.ContentSpec.ByteSize,
 			downloader.DownloadToFile, nil, filePath); err != nil {
 			logger.Error("download file failed", logger.ErrAttr(err), slog.String("rid", event.Rid))
@@ -144,6 +155,12 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 // CopyToFile copy the config content to the specified file.
 // get from cache first, if not exist, then get from remote repo and add it to cache
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
+	if ci.ContentSpec.ByteSize > uint64(MaxSingleFileCacheSizeRate*c.thrsholdGB) {
+		logger.Warn("config item size is too large, skip copy to file",
+			slog.String("item", path.Join(ci.ConfigItemSpec.Path, ci.ConfigItemSpec.Name)),
+			slog.Int64("size", int64(ci.ContentSpec.ByteSize)))
+		return false
+	}
 	exists, err := c.checkFileCacheExists(ci)
 	if err != nil {
 		logger.Error("check config item cache exists failed",

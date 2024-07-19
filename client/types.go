@@ -44,7 +44,7 @@ import (
 
 const (
 	// updateFileConcurrentLimit is the limit of concurrent for update file.
-	updateFileConcurrentLimit = 5
+	updateFileConcurrentLimit = 10
 )
 
 // Release bscp 服务版本

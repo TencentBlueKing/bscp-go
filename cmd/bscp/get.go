@@ -51,6 +51,7 @@ var (
 		Long:  `Display app, file or kv resources`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// 设置日志等级, get 命令默认是 error
+			logLevel := getViper.GetString("log_level")
 			if logLevel == "" {
 				logLevel = "error"
 			}
@@ -98,10 +99,13 @@ func init() {
 	getCmd.PersistentFlags().StringP("feed-addrs", "f", "", "feed server address, eg: 'bscp-feed.example.com:9510'")
 	getCmd.PersistentFlags().IntP("biz", "b", 0, "biz id")
 	getCmd.PersistentFlags().StringP("token", "t", "", "sdk token")
+	getCmd.PersistentFlags().StringP(
+		"log_level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
 	for _, v := range getVipers {
 		mustBindPFlag(v, "feed_addrs", getCmd.PersistentFlags().Lookup("feed-addrs"))
 		mustBindPFlag(v, "biz", getCmd.PersistentFlags().Lookup("biz"))
 		mustBindPFlag(v, "token", getCmd.PersistentFlags().Lookup("token"))
+		mustBindPFlag(v, "log_level", getCmd.PersistentFlags().Lookup("log_level"))
 
 		for key, envName := range commonEnvs {
 			// bind env variable with viper

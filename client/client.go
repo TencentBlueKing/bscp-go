@@ -131,7 +131,9 @@ func New(opts ...Option) (Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("decode handshake payload failed, err: %s, rid: %s", err.Error(), vas.Rid)
 	}
-	err = downloader.Init(vas, clientOpt.bizID, clientOpt.token, u, pl.RuntimeOption.RepositoryTLS)
+	err = downloader.Init(vas, clientOpt.bizID, clientOpt.token, u, pl.RuntimeOption.RepositoryTLS,
+		pl.RuntimeOption.EnableAsyncDownload, clientOpt.enableP2PDownload, clientOpt.bkAgentID, clientOpt.clusterID,
+		clientOpt.podID, clientOpt.containerName)
 	if err != nil {
 		return nil, fmt.Errorf("init downloader failed, err: %s", err.Error())
 	}
@@ -155,7 +157,7 @@ func New(opts ...Option) (Client, error) {
 func initFileCache(opts *options) error {
 	if opts.fileCache.Enabled {
 		logger.Info("enable file cache")
-		if err := cache.Init(opts.fileCache.CacheDir); err != nil {
+		if err := cache.Init(opts.fileCache.CacheDir, opts.fileCache.ThresholdGB); err != nil {
 			return fmt.Errorf("init file cache failed, err: %s", err.Error())
 		}
 		go cache.AutoCleanupFileCache(opts.fileCache.CacheDir, DefaultCleanupIntervalSeconds,
