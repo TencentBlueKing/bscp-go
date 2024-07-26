@@ -112,10 +112,7 @@ func initConf(v *viper.Viper) error {
 		return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
 	}
 
-	updateConfFeedAddrs()
-	updateConfApps()
-	updateConfMatches()
-	if err := updateConfLabels(); err != nil {
+	if err := conf.Update(); err != nil {
 		return err
 	}
 

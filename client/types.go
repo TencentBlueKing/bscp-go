@@ -288,6 +288,11 @@ func clearOldFiles(dir string, files []*ConfigItemFile) error {
 					Err: err})
 		}
 
+		// 跳过根目录dir，避免在files为空时（没拉取到匹配文件）而删除根目录造成找不到根目录的报错
+		if filePath == dir {
+			return nil
+		}
+
 		if info.IsDir() {
 			for _, file := range files {
 				absFileDir := filepath.Join(dir, file.Path)
