@@ -99,13 +99,10 @@ func init() {
 	getCmd.PersistentFlags().StringP("feed-addrs", "f", "", "feed server address, eg: 'bscp-feed.example.com:9510'")
 	getCmd.PersistentFlags().IntP("biz", "b", 0, "biz id")
 	getCmd.PersistentFlags().StringP("token", "t", "", "sdk token")
-	getCmd.PersistentFlags().StringP(
-		"log_level", "", "", "log filtering level, One of: debug|info|warn|error. (default info)")
 	for _, v := range getVipers {
 		mustBindPFlag(v, "feed_addrs", getCmd.PersistentFlags().Lookup("feed-addrs"))
 		mustBindPFlag(v, "biz", getCmd.PersistentFlags().Lookup("biz"))
 		mustBindPFlag(v, "token", getCmd.PersistentFlags().Lookup("token"))
-		mustBindPFlag(v, "log_level", getCmd.PersistentFlags().Lookup("log_level"))
 
 		for key, envName := range commonEnvs {
 			// bind env variable with viper
@@ -262,7 +259,7 @@ func runGetFileContents(bscp client.Client, app string, match []string) error {
 func getFileRelease(bscp client.Client, app string, match []string) (*client.Release, error) {
 	var opts []client.AppOption
 	if len(match) > 0 {
-		opts = append(opts, client.WithAppMatch(match))
+		opts = append(opts, client.WithAppConfigMatch(match))
 	}
 	opts = append(opts, client.WithAppLabels(conf.Labels))
 	return bscp.PullFiles(app, opts...)

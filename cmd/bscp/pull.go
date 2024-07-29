@@ -96,7 +96,7 @@ func Pull(cmd *cobra.Command, args []string) {
 
 	for _, app := range conf.Apps {
 		opts := []client.AppOption{}
-		opts = append(opts, client.WithAppMatch([]string{"**"}))
+		opts = append(opts, client.WithAppConfigMatch(app.ConfigMatches))
 		opts = append(opts, client.WithAppLabels(app.Labels))
 		opts = append(opts, client.WithAppUID(app.UID))
 		if err = pullAppFiles(ctx, bscp, conf.TempDir, conf.Biz, app.Name, opts); err != nil {
@@ -169,6 +169,8 @@ func init() {
 	mustBindPFlag(pullViper, "labels_str", PullCmd.Flags().Lookup("labels"))
 	PullCmd.Flags().StringP("labels-file", "", "", "labels file path")
 	mustBindPFlag(pullViper, "labels_file", PullCmd.Flags().Lookup("labels-file"))
+	PullCmd.Flags().StringP("config-matches", "m", "", "app config item's match conditions，eg:'/etc/a*,/etc/b*'")
+	mustBindPFlag(pullViper, "config_matches", PullCmd.Flags().Lookup("config-matches"))
 	// TODO: set client UID
 	PullCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
 	mustBindPFlag(pullViper, "temp_dir", PullCmd.Flags().Lookup("temp-dir"))

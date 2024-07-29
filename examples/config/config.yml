@@ -19,10 +19,15 @@ apps:
     labels:
       - "env": "prod"
       - "app": "demo"
+    # 服务配置项匹配，支持通配符，多个之间是或的关系，选填，默认不填则匹配全部
+    config_matches:
+      - "/etc/a*"
   - name: demo-2
     labels:
       - "env": "prod"
       - "app": "demo-2"
+    config_matches:
+      - "/etc/b*"
 # 文件缓存配置
 file_cache:
   # 是否开启文件缓存
@@ -38,3 +43,6 @@ kv_cache:
   enabled: true
   # kv缓存容量阈值，单位为MB，超过后会丢弃旧缓存数据
   threshold_mb: 500
+# 全局配置项匹配，支持通配符，多个之间是或的关系，选填，默认不填则匹配全部，如果有配则对所有服务生效（在服务已有匹配配置基础上添加）
+config_matches:
+  - "/etc/c*"
