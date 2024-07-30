@@ -281,16 +281,19 @@ func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
 
 // clearOldFiles 删除旧文件
 func clearOldFiles(dir string, files []*ConfigItemFile) error {
+	if _, err := os.Stat(dir); err != nil {
+		// 根目录dir不存在，则之前没有拉取到任何匹配的文件，不用清理，直接退出
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
 	err := filepath.Walk(dir, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return sfs.WrapPrimaryError(sfs.DeleteOldFilesFailed,
 				sfs.SecondaryError{SpecificFailedReason: sfs.TraverseFolderFailed,
 					Err: err})
-		}
-
-		// 跳过根目录dir，避免在files为空时（没拉取到匹配文件）而删除根目录造成找不到根目录的报错
-		if filePath == dir {
-			return nil
 		}
 
 		if info.IsDir() {
