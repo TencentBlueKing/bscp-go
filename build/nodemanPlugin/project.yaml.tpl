@@ -87,8 +87,8 @@ config_templates:
           required: true
           default: false
 control:
-  start: "./start.sh bkbscp"
-  stop: "./stop.sh bkbscp"
-  restart: "./restart.sh bkbscp"
-  reload: "./restart.sh bkbscp"
+  start: "__START_SCRIPT__ bkbscp"
+  stop: "__STOP_SCRIPT__ bkbscp"
+  restart: "__RESTART_SCRIPT__ bkbscp"
+  reload: "__RELOAD_SCRIPT__ bkbscp"
   version: "./bkbscp -v"
