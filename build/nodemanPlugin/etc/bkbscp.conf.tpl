@@ -30,6 +30,8 @@ temp_dir: {{ 临时目录 }}
 feed_addrs:
   - {{ Feed服务地址 }}
 
+enable_resource: true
+
 # 是否启用P2P文件下载加速
 {% if P2P文件下载加速 %}
 enable_p2p_download: true
