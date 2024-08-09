@@ -51,11 +51,16 @@ config_matches:
 feed_addrs:
   - {{ Feed服务地址 }}
 
-enable_resource: true
-
 # 是否启用P2P文件下载加速
 {%- if P2P文件下载加速 %}
 enable_p2p_download: true
 {%- else %}
 enable_p2p_download: false
 {%- endif %}
+
+# 是否上报资源
+{% if 是否上报资源 %}
+enable_resource: true
+{% else %}
+enable_resource: false
+{% endif %}
