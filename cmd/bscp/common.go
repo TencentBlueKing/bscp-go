@@ -30,6 +30,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/internal/config"
 	"github.com/TencentBlueKing/bscp-go/internal/constant"
+	"github.com/TencentBlueKing/bscp-go/pkg/env"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -57,28 +58,28 @@ var (
 
 	// rootEnvs variable definition
 	rootEnvs = map[string]string{
-		"config_file": "BSCP_CONFIG",
-		"log_level":   "log_level",
+		"config_file": env.BscpConfig,
+		"log_level":   env.LogLevel,
 	}
 
 	// commonEnvs variable definition, viper key => envName
 	commonEnvs = map[string]string{
-		"biz":                 "biz",
-		"app":                 "app",
-		"labels_str":          "labels",
-		"labels_file":         "labels_file",
-		"feed_addrs":          "feed_addrs",
-		"token":               "token",
-		"temp_dir":            "temp_dir",
-		"enable_p2p_download": "enable_p2p_download",
-		"bk_agent_id":         "bk_agent_id",
-		"cluster_id":          "cluster_id",
-		"pod_id":              "pod_id",
-		"container_name":      "container_name",
+		"biz":                 env.Biz,
+		"app":                 env.App,
+		"labels_str":          env.Labels,
+		"labels_file":         env.LabelsFile,
+		"feed_addrs":          env.FeedAddrs,
+		"token":               env.Token,
+		"temp_dir":            env.TempDir,
+		"enable_p2p_download": env.EnableP2PDownload,
+		"bk_agent_id":         env.BkAgentID,
+		"cluster_id":          env.ClusterID,
+		"pod_id":              env.PodID,
+		"container_name":      env.ContainerName,
 	}
 
 	watchEnvs = map[string]string{
-		"port": "port",
+		"port": env.Port,
 	}
 )
 
