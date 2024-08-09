@@ -101,6 +101,11 @@ config_templates:
           type: boolean
           required: true
           default: false
+        是否上报资源:
+          title: 是否上报资源
+          type:  boolean
+          required: true
+          default: true
 control:
   start: "./start.sh bkbscp"
   stop: "./stop.sh bkbscp"
