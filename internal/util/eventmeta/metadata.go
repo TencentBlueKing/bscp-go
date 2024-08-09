@@ -62,6 +62,11 @@ func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 			sfs.SecondaryError{SpecificFailedReason: sfs.DataEmpty,
 				Err: errors.New("metadata is nil")})
 	}
+	// prepare temp dir, make sure it exists
+	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.NewFolderFailed, Err: err})
+	}
 
 	metaFilePath := path.Join(tempDir, "metadata.json")
 

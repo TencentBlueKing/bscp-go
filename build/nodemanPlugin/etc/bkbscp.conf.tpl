@@ -14,27 +14,48 @@ bk_agent_id: "{{ cmdb_instance.host.bk_agent_id }}"
 
 # 业务id
 biz: {{ 业务ID }}
-apps: {% for app in 服务 %}
+# 服务配置
+apps:
+  {%- for app in 服务 %}
   - name: {{ app.服务名称 }}
-    labels: {% for label in app.标签 %}
-        {{ label.key }}: {{ label.value }}{% endfor %}
-    {% endfor %}
-# token
-token: {{ 客户端密钥 }}
-temp_dir: {{ 临时目录 }}
-{% if 全局标签 %}labels:
-{% for label in 全局标签 %}{{ "-" if loop.first else " "  }} {{ label.key }}: "{{ label.value }}"
-{% endfor %}
-{% endif %}
+    labels:
+      {%- for label in app.标签 %}
+      {{ label.key }}: "{{ label.value }}"
+      {%- endfor %}
+    config_matches:
+      {%- for match in app.配置项匹配 %}
+      - "{{ match }}"
+      {%- endfor %}
+  {%- endfor %}
 
+# 客户端密钥
+token: {{ 客户端密钥 }}
+# 临时目录
+temp_dir: {{ 临时目录 }}
+{%- if 全局标签 %}
+# 全局标签
+labels:
+  {%- for label in 全局标签 %}
+  {{ label.key }}: "{{ label.value }}"
+  {%- endfor %}
+{%- endif %}
+{%- if 全局配置项匹配 %}
+# 全局配置项匹配
+config_matches:
+  {%- for match in 全局配置项匹配 %}
+  - "{{ match }}"
+  {%- endfor %}
+{%- endif %}
+
+# Feed服务地址
 feed_addrs:
   - {{ Feed服务地址 }}
 
 enable_resource: true
 
 # 是否启用P2P文件下载加速
-{% if P2P文件下载加速 %}
+{%- if P2P文件下载加速 %}
 enable_p2p_download: true
-{% else %}
+{%- else %}
 enable_p2p_download: false
-{% endif %}
+{%- endif %}

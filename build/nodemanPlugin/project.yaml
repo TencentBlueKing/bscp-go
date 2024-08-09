@@ -30,7 +30,7 @@ config_templates:
           title: 服务
           type: array
           items:
-            title: named_label
+            title: 服务配置
             type: object
             properties:
               服务名称:
@@ -44,15 +44,22 @@ config_templates:
                 items:
                   title: label
                   type: object
+                  required: false
                   properties:
                     key:
                       title: key
                       type: string
-                      required: false
                     value:
                       title: value
                       type: string
-                      required: false
+              配置项匹配:
+                title: 配置项匹配
+                type: array
+                required: false
+                items:
+                  title: 匹配项
+                  type: string
+                  required: false
         Feed服务地址:
           title: 服务feed-server地址
           type: string
@@ -76,6 +83,14 @@ config_templates:
               value:
                 title: value
                 type: string
+        全局配置项匹配:
+          title: 全局配置项匹配
+          type: array
+          required: false
+          items:
+            title: 匹配项
+            type: string
+            required: false
         临时目录:
           title: 临时目录
           type: string
@@ -83,7 +98,7 @@ config_templates:
           default: /data/bscp
         P2P文件下载加速:
           title: P2P文件下载加速
-          type: bool
+          type: boolean
           required: true
           default: false
 control:

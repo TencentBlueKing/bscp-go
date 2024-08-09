@@ -19,7 +19,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -31,7 +30,6 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/internal/config"
 	"github.com/TencentBlueKing/bscp-go/internal/constant"
-	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -82,8 +80,6 @@ var (
 	watchEnvs = map[string]string{
 		"port": "port",
 	}
-
-	envLabelsPrefix = "labels_"
 )
 
 // ReloadMessage reload message with event and error
@@ -112,10 +108,7 @@ func initConf(v *viper.Viper) error {
 		return fmt.Errorf("unmarshal config file failed, err: %s", err.Error())
 	}
 
-	updateConfFeedAddrs()
-	updateConfApps()
-	updateConfMatches()
-	if err := updateConfLabels(); err != nil {
+	if err := conf.Update(); err != nil {
 		return err
 	}
 
@@ -142,76 +135,6 @@ func initFromConfFile(v *viper.Viper) error {
 		return fmt.Errorf("read config file failed, err: %s", err.Error())
 	}
 	return nil
-}
-
-func updateConfFeedAddrs() {
-	// priority: FeedAddrs > FeedAddr, it has already exposed cmd flags "--feed-addrs"
-	if len(conf.FeedAddrs) == 0 && conf.FeedAddr != "" {
-		conf.FeedAddrs = strings.Split(conf.FeedAddr, ",")
-	}
-}
-
-func updateConfApps() {
-	// priority: App > Apps, it has already exposed cmd flags "--app"
-	if conf.App != "" {
-		var apps []*config.AppConfig
-		for _, app := range strings.Split(conf.App, ",") {
-			apps = append(apps, &config.AppConfig{Name: strings.TrimSpace(app)})
-		}
-		conf.Apps = apps
-	}
-}
-
-func updateConfMatches() {
-	// if global config matches exist, add them to all apps
-	if len(conf.ConfigMatches) == 0 {
-		return
-	}
-	for _, app := range conf.Apps {
-		app.ConfigMatches = append(app.ConfigMatches, conf.ConfigMatches...)
-	}
-}
-
-func updateConfLabels() error {
-	// labels is optional, if labels is not set, instance would match default group's release
-	if conf.LabelsStr != "" {
-		labels := make(map[string]string)
-		if json.Unmarshal([]byte(conf.LabelsStr), &labels) != nil {
-			return fmt.Errorf("labels is not a valid json string")
-		}
-		conf.Labels = util.MergeLabels(conf.Labels, labels)
-	}
-
-	updateLabelsFromEnv()
-
-	if conf.LabelsFile != "" {
-		labels, err := readLabelsFile(conf.LabelsFile)
-		if err != nil {
-			return fmt.Errorf("read labels file failed, err: %s", err)
-		}
-		conf.Labels = util.MergeLabels(conf.Labels, labels)
-	}
-
-	return nil
-}
-
-func updateLabelsFromEnv() {
-	envLabels := make(map[string]string)
-	// get multi labels from environment variables
-	envs := os.Environ()
-	for _, env := range envs {
-		kv := strings.Split(env, "=")
-		k, v := kv[0], kv[1]
-		// labels_file is a special env used to set labels file to watch
-		// TODO: set envLabelsPrefix to 'label_' so that env key would not conflict with labels_file
-		if k == "labels_file" {
-			continue
-		}
-		if strings.HasPrefix(k, envLabelsPrefix) && strings.TrimPrefix(k, envLabelsPrefix) != "" {
-			envLabels[strings.TrimPrefix(k, envLabelsPrefix)] = v
-		}
-	}
-	conf.Labels = util.MergeLabels(conf.Labels, envLabels)
 }
 
 func watchLabelsFile(ctx context.Context, path string, oldLabels map[string]string) (chan ReloadMessage, error) {
