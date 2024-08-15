@@ -52,12 +52,12 @@ config_templates:
                     value:
                       title: value
                       type: string
-              配置项匹配:
-                title: 配置项匹配
+              配置文件拉取筛选:
+                title: 配置文件拉取筛选
                 type: array
                 required: false
                 items:
-                  title: 匹配项
+                  title: 匹配规则
                   type: string
                   required: false
         Feed服务地址:
@@ -83,12 +83,12 @@ config_templates:
               value:
                 title: value
                 type: string
-        全局配置项匹配:
-          title: 全局配置项匹配
+        全局配置文件拉取筛选:
+          title: 全局配置文件拉取筛选
           type: array
           required: false
           items:
-            title: 匹配项
+            title: 匹配规则
             type: string
             required: false
         临时目录:
