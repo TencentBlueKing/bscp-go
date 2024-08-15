@@ -59,8 +59,7 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 
 	start := time.Now()
 
-	// tempFileDir: /tmp/bscp/async/download/{bizID}/{sha256}
-	tempDir := fmt.Sprintf("/tmp/bscp/async/download/%d", dl.bizID)
+	tempDir := os.TempDir()
 	resp, err := dl.upstream.AsyncDownload(dl.vas, &pbfs.AsyncDownloadReq{
 		BizId:         fileMeta.ConfigItemAttachment.BizId,
 		BkAgentId:     dl.bkAgentID,

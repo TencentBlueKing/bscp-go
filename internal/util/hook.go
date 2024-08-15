@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
@@ -53,7 +54,7 @@ const (
 // ExecuteHook executes the hook.
 func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	tempDir string, biz uint32, app string, relName string) error {
-	appTempDir := path.Join(tempDir, fmt.Sprintf("%d/%s", biz, app))
+	appTempDir := path.Join(tempDir, strconv.Itoa(int(biz)),app)
 	hookEnvs := []string{
 		fmt.Sprintf("%s=%s", EnvAppTempDir, appTempDir),
 		fmt.Sprintf("%s=%s", EnvTempDir, tempDir),
