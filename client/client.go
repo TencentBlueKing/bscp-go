@@ -258,6 +258,7 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { //
 			App:       app,
 			Labels:    req.AppMeta.Labels,
 			Uid:       req.AppMeta.Uid,
+			Match:     option.Match,
 			StartTime: time.Now().UTC(),
 		},
 	}
