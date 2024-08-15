@@ -63,6 +63,7 @@ func (w *watcher) loopHeartbeat() error { // nolint
 						App:                 subscriber.App,
 						Labels:              subscriber.Labels,
 						Uid:                 subscriber.UID,
+						Match:               subscriber.Match,
 						CursorID:            subscriber.CursorID,
 						ReleaseChangeStatus: subscriber.ReleaseChangeStatus,
 						DownloadFileNum:     subscriber.DownloadFileNum,

@@ -120,8 +120,8 @@ type Callback func(release *Release) error
 // Function 定义类型
 type Function func() error
 
-// compareRelease 对比当前服务版本
-// 返回值: 是否跳过本次版本变更事件（本地版本和事件版本一致）, 错误信息
+// compareRelease 对比当前服务版本、配置匹配规则
+// 返回值: 是否跳过本次版本变更事件（本地已有和事件的版本、配置匹配规则一致）, 错误信息
 func (r *Release) compareRelease() (bool, error) {
 	lastMetadata, exist, err := eventmeta.GetLatestMetadataFromFile(r.AppDir)
 	if err != nil {
@@ -133,7 +133,7 @@ func (r *Release) compareRelease() (bool, error) {
 		logger.Warn("can not find metadata file, maybe you should exec pull command first")
 		return false, nil
 	}
-	if lastMetadata.ReleaseID == r.ReleaseID {
+	if lastMetadata.ReleaseID == r.ReleaseID && util.StrSlicesEqual(lastMetadata.ConfigMatches, r.AppMate.Match) {
 		r.AppMate.CurrentReleaseID = r.ReleaseID
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", r.ReleaseID))
 		return true, nil
@@ -238,10 +238,15 @@ func (r *Release) UpdateFiles() Function {
 // UpdateMetadata 4.更新meatdata数据方法
 func (r *Release) UpdateMetadata() Function {
 	return func() error {
+		match := r.AppMate.Match
+		if match == nil {
+			match = []string{}
+		}
 		metadata := &eventmeta.EventMeta{
-			ReleaseID: r.ReleaseID,
-			Status:    eventmeta.EventStatusSuccess,
-			EventTime: time.Now().Format(time.RFC3339),
+			ReleaseID:     r.ReleaseID,
+			Status:        eventmeta.EventStatusSuccess,
+			ConfigMatches: match,
+			EventTime:     time.Now().Format(time.RFC3339),
 		}
 		err := eventmeta.AppendMetadataToFile(r.AppDir, metadata)
 		if err != nil {

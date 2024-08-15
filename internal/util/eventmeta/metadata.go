@@ -36,6 +36,8 @@ type EventMeta struct {
 	Status EventStatus `json:"status"`
 	// Message event message
 	Message string `json:"message"`
+	// ConfigMatches app config item's match conditions
+	ConfigMatches []string `json:"configMatches"`
 	// EventTime event time
 	EventTime string `json:"eventTime"`
 }

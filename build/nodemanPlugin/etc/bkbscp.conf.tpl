@@ -23,7 +23,7 @@ apps:
       {{ label.key }}: "{{ label.value }}"
       {%- endfor %}
     config_matches:
-      {%- for match in app.配置项匹配 %}
+      {%- for match in app.配置文件拉取筛选 %}
       - "{{ match }}"
       {%- endfor %}
   {%- endfor %}
@@ -39,10 +39,10 @@ labels:
   {{ label.key }}: "{{ label.value }}"
   {%- endfor %}
 {%- endif %}
-{%- if 全局配置项匹配 %}
-# 全局配置项匹配
+{%- if 全局配置文件拉取筛选 %}
+# 全局配置文件拉取筛选
 config_matches:
-  {%- for match in 全局配置项匹配 %}
+  {%- for match in 全局配置文件拉取筛选 %}
   - "{{ match }}"
   {%- endfor %}
 {%- endif %}

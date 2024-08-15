@@ -315,6 +315,7 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 					App:              subscriber.App,
 					Uid:              subscriber.UID,
 					Labels:           subscriber.Labels,
+					Match:            subscriber.Match,
 					CurrentReleaseID: subscriber.CurrentReleaseID,
 					TargetReleaseID:  pl.ReleaseMeta.ReleaseID,
 					TotalFileSize:    totalFileSize,
