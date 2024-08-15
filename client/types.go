@@ -133,7 +133,6 @@ func (r *Release) compareRelease() (bool, error) {
 		logger.Warn("can not find metadata file, maybe you should exec pull command first")
 		return false, nil
 	}
-	fmt.Printf("*** meta.match:%v, cmd.match:%v\n", lastMetadata.ConfigMatches, r.AppMate.Match)
 	if lastMetadata.ReleaseID == r.ReleaseID && util.StrSlicesEqual(lastMetadata.ConfigMatches, r.AppMate.Match) {
 		r.AppMate.CurrentReleaseID = r.ReleaseID
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", r.ReleaseID))
