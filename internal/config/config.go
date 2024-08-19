@@ -26,6 +26,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/pkg/env"
 )
 
 // ClientConfig config for bscp-go when run as daemon
@@ -142,6 +143,8 @@ func (c *ClientConfig) updateConfLabels() error {
 		c.Labels = util.MergeLabels(c.Labels, labels)
 	}
 
+	c.setDefaultLabels()
+
 	return nil
 }
 
@@ -184,6 +187,33 @@ func readLabelsFile(path string) (map[string]string, error) {
 		return nil, fmt.Errorf("unmarshal labels file %s failed, err: %s", path, err.Error())
 	}
 	return fileLabels, nil
+}
+
+var defaultLabels = []string{
+	env.IP,
+	env.PodName,
+	env.PodID,
+	env.NodeName,
+	env.Namespace,
+}
+
+// setDefaultLabels sets default labels
+// 不会覆盖已有同名标签，当默认标签没有被显示设置过且存在对应环境变量，则设置默认标签
+func (c *ClientConfig) setDefaultLabels() {
+	for _, label := range defaultLabels {
+		// 同名标签已存在，不再设置默认标签
+		if _, ok := c.Labels[label]; ok {
+			continue
+		}
+
+		if label == env.IP {
+			c.Labels[label] = util.GetClientIP()
+		}
+
+		if e := os.Getenv(label); e != "" {
+			c.Labels[label] = e
+		}
+	}
 }
 
 // ValidateBase validate the watch config
