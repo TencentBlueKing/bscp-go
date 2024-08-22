@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -74,7 +73,7 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 	}
 
 	logger.Info("start async download file",
-		slog.String("file", path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name)),
+		slog.String("file", filepath.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name)),
 		slog.String("taskID", resp.TaskId))
 
 	// Check the status of the download asynchronously with timeout

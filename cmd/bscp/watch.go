@@ -18,7 +18,6 @@ import (
 	"net/http"
 	_ "net/http/pprof" // nolint
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -95,7 +94,7 @@ func Watch(cmd *cobra.Command, args []string) {
 			UID:        subscriber.UID,
 			Lock:       sync.Mutex{},
 			TempDir:    conf.TempDir,
-			AppTempDir: path.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+			AppTempDir: filepath.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
 			bscp:       bscp,
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {

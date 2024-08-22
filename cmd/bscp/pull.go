@@ -16,7 +16,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -111,7 +111,7 @@ func Pull(cmd *cobra.Command, args []string) {
 func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz uint32, app string, opts []client.AppOption) error { // nolint
 
 	// 1. prepare app workspace dir
-	appDir := path.Join(tempDir, strconv.Itoa(int(biz)), app)
+	appDir := filepath.Join(tempDir, strconv.Itoa(int(biz)), app)
 	if e := os.MkdirAll(appDir, os.ModePerm); e != nil {
 		return e
 	}

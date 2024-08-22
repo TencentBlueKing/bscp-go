@@ -17,7 +17,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -83,7 +82,7 @@ type ConfigItemFile struct {
 func (c *ConfigItemFile) GetContent() ([]byte, error) {
 	if cache.Enable {
 		if hit, bytes := cache.GetCache().GetFileContent(c.FileMeta); hit {
-			logger.Debug("get file content from cache success", slog.String("file", path.Join(c.Path, c.Name)))
+			logger.Debug("get file content from cache success", slog.String("file", filepath.Join(c.Path, c.Name)))
 			return bytes, nil
 		}
 	}
@@ -94,7 +93,7 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 		logger.Error("download file failed", logger.ErrAttr(err))
 		return nil, err
 	}
-	logger.Debug("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
+	logger.Debug("get file content by downloading from repo success", slog.String("file", filepath.Join(c.Path, c.Name)))
 	return bytes, nil
 }
 
@@ -209,7 +208,7 @@ func (r *Release) ExecuteHook(hook ScriptStrategy) Function {
 // UpdateFiles 2.下载文件方法
 func (r *Release) UpdateFiles() Function {
 	return func() error {
-		filesDir := path.Join(r.AppDir, "files")
+		filesDir := filepath.Join(r.AppDir, "files")
 		if err := updateFiles(filesDir, r.FileItems, &r.AppMate.DownloadFileNum, &r.AppMate.DownloadFileSize,
 			r.SemaphoreCh); err != nil {
 			logger.Error("update file failed", logger.ErrAttr(err))
@@ -255,7 +254,7 @@ func (r *Release) UpdateMetadata() Function {
 
 // checkFileExists checks the file exists and the SHA256 is match.
 func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
-	filePath := path.Join(absPath, ci.ConfigItemSpec.Name)
+	filePath := filepath.Join(absPath, ci.ConfigItemSpec.Name)
 	_, err := os.Stat(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -299,6 +298,7 @@ func clearOldFiles(dir string, files []*ConfigItemFile) error {
 			if err := os.RemoveAll(filePath); err != nil {
 				return err
 			}
+			logger.Info("delete folder success", slog.String("folder", filePath))
 			return filepath.SkipDir
 		}
 
@@ -308,7 +308,11 @@ func clearOldFiles(dir string, files []*ConfigItemFile) error {
 				return nil
 			}
 		}
-		return os.Remove(filePath)
+		if err := os.Remove(filePath); err != nil {
+			return err
+		}
+		logger.Info("delete file success", slog.String("file", filePath))
+		return nil
 	})
 
 	return err
@@ -524,8 +528,8 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 		file := f
 		g.Go(func() error {
 			// 1. prapare file path
-			fileDir := path.Join(filesDir, file.Path)
-			filePath := path.Join(fileDir, file.Name)
+			fileDir := filepath.Join(filesDir, file.Path)
+			filePath := filepath.Join(fileDir, file.Name)
 			err := os.MkdirAll(fileDir, os.ModePerm)
 			if err != nil {
 				atomic.AddInt32(&failed, 1)

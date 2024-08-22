@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -54,7 +54,7 @@ const (
 // ExecuteHook executes the hook.
 func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	tempDir string, biz uint32, app string, relName string) error {
-	appTempDir := path.Join(tempDir, strconv.Itoa(int(biz)),app)
+	appTempDir := filepath.Join(tempDir, strconv.Itoa(int(biz)), app)
 	hookEnvs := []string{
 		fmt.Sprintf("%s=%s", EnvAppTempDir, appTempDir),
 		fmt.Sprintf("%s=%s", EnvTempDir, tempDir),
@@ -99,7 +99,7 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 
 func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.HookType, hookEnvs []string) (string,
 	error) {
-	hookDir := path.Join(workspace, "hooks")
+	hookDir := filepath.Join(workspace, "hooks")
 	if err := os.MkdirAll(hookDir, os.ModePerm); err != nil {
 		logger.Error("mkdir hook dir failed", slog.String("dir", hookDir), logger.ErrAttr(err))
 		return "", sfs.WrapSecondaryError(sfs.NewFolderFailed, err)
@@ -107,13 +107,13 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 	var filePath string
 	switch hook.Type {
 	case "shell":
-		filePath = path.Join(hookDir, hookType.String()+".sh")
+		filePath = filepath.Join(hookDir, hookType.String()+".sh")
 	case "python":
-		filePath = path.Join(hookDir, hookType.String()+".py")
+		filePath = filepath.Join(hookDir, hookType.String()+".py")
 	case "bat":
-		filePath = path.Join(hookDir, hookType.String()+".bat")
+		filePath = filepath.Join(hookDir, hookType.String()+".bat")
 	case "powershell":
-		filePath = path.Join(hookDir, hookType.String()+".ps1")
+		filePath = filepath.Join(hookDir, hookType.String()+".ps1")
 	default:
 		return "", sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))
 	}
@@ -122,7 +122,7 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 		return "", sfs.WrapSecondaryError(sfs.WriteFileFailed, err)
 	}
 
-	envfile := path.Join(hookDir, "env")
+	envfile := filepath.Join(hookDir, "env")
 	if err := os.WriteFile(envfile, []byte("export "+strings.Join(hookEnvs, "\nexport ")+"\n"), 0644); err != nil {
 		logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
 		return "", sfs.WrapSecondaryError(sfs.WriteEnvFileFailed, err)
