@@ -30,7 +30,7 @@ config_templates:
           title: 服务
           type: array
           items:
-            title: named_label
+            title: 服务配置
             type: object
             properties:
               服务名称:
@@ -44,15 +44,22 @@ config_templates:
                 items:
                   title: label
                   type: object
+                  required: false
                   properties:
                     key:
                       title: key
                       type: string
-                      required: false
                     value:
                       title: value
                       type: string
-                      required: false
+              配置文件拉取筛选:
+                title: 配置文件拉取筛选
+                type: array
+                required: false
+                items:
+                  title: 匹配规则
+                  type: string
+                  required: false
         Feed服务地址:
           title: 服务feed-server地址
           type: string
@@ -76,6 +83,14 @@ config_templates:
               value:
                 title: value
                 type: string
+        全局配置文件拉取筛选:
+          title: 全局配置文件拉取筛选
+          type: array
+          required: false
+          items:
+            title: 匹配规则
+            type: string
+            required: false
         临时目录:
           title: 临时目录
           type: string
@@ -86,6 +101,11 @@ config_templates:
           type: boolean
           required: true
           default: false
+        是否上报资源:
+          title: 是否上报资源
+          type:  boolean
+          required: true
+          default: true
 control:
   start: "__START_SCRIPT__ bkbscp"
   stop: "__STOP_SCRIPT__ bkbscp"

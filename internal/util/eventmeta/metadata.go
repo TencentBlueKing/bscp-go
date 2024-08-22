@@ -36,6 +36,8 @@ type EventMeta struct {
 	Status EventStatus `json:"status"`
 	// Message event message
 	Message string `json:"message"`
+	// ConfigMatches app config item's match conditions
+	ConfigMatches []string `json:"configMatches"`
 	// EventTime event time
 	EventTime string `json:"eventTime"`
 }
@@ -61,6 +63,11 @@ func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
 			sfs.SecondaryError{SpecificFailedReason: sfs.DataEmpty,
 				Err: errors.New("metadata is nil")})
+	}
+	// prepare temp dir, make sure it exists
+	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.NewFolderFailed, Err: err})
 	}
 
 	metaFilePath := filepath.Join(tempDir, "metadata.json")

@@ -25,6 +25,7 @@ import (
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
+	"github.com/TencentBlueKing/bscp-go/pkg/env"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
 
@@ -37,18 +38,6 @@ const (
 	executeBatCmd = "cmd"
 	// executePowershellCmd powershell script executor
 	executePowershellCmd = "powershell"
-
-	// EnvAppTempDir bscp app temp dir env
-	// !important: promise of compatibility
-	EnvAppTempDir = "bk_bscp_app_temp_dir"
-	// EnvTempDir bscp temp dir env
-	EnvTempDir = "bk_bscp_temp_dir"
-	// EnvBiz bscp biz id env
-	EnvBiz = "bk_bscp_biz"
-	// EnvApp bscp app name env
-	EnvApp = "bk_bscp_app"
-	// EnvRelName bscp release name env
-	EnvRelName = "bk_bscp_current_version_name"
 )
 
 // ExecuteHook executes the hook.
@@ -56,11 +45,11 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	tempDir string, biz uint32, app string, relName string) error {
 	appTempDir := filepath.Join(tempDir, strconv.Itoa(int(biz)), app)
 	hookEnvs := []string{
-		fmt.Sprintf("%s=%s", EnvAppTempDir, appTempDir),
-		fmt.Sprintf("%s=%s", EnvTempDir, tempDir),
-		fmt.Sprintf("%s=%d", EnvBiz, biz),
-		fmt.Sprintf("%s=%s", EnvApp, app),
-		fmt.Sprintf("%s=%s", EnvRelName, relName),
+		fmt.Sprintf("%s=%s", env.HookAppTempDir, appTempDir),
+		fmt.Sprintf("%s=%s", env.HookTempDir, tempDir),
+		fmt.Sprintf("%s=%d", env.HookBiz, biz),
+		fmt.Sprintf("%s=%s", env.HookApp, app),
+		fmt.Sprintf("%s=%s", env.HookRelName, relName),
 	}
 
 	hookPath, err := saveContentToFile(appTempDir, hook, hookType, hookEnvs)

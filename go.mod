@@ -3,7 +3,7 @@ module github.com/TencentBlueKing/bscp-go
 go 1.20
 
 require (
-	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240619073002-754d2df7a1e7
+	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20240725112708-e12da408a771
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/dustin/go-humanize v1.0.1
@@ -50,6 +50,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.17.1 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect

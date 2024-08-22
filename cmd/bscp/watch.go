@@ -88,14 +88,15 @@ func Watch(cmd *cobra.Command, args []string) {
 
 	for _, subscriber := range conf.Apps {
 		handler := &WatchHandler{
-			Biz:        conf.Biz,
-			App:        subscriber.Name,
-			Labels:     subscriber.Labels,
-			UID:        subscriber.UID,
-			Lock:       sync.Mutex{},
-			TempDir:    conf.TempDir,
-			AppTempDir: filepath.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
-			bscp:       bscp,
+			Biz:           conf.Biz,
+			App:           subscriber.Name,
+			Labels:        subscriber.Labels,
+			UID:           subscriber.UID,
+			ConfigMatches: subscriber.ConfigMatches,
+			Lock:          sync.Mutex{},
+			TempDir:       conf.TempDir,
+			AppTempDir:    filepath.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+			bscp:          bscp,
 		}
 		if err := bscp.AddWatcher(handler.watchCallback, handler.App, handler.getSubscribeOptions()...); err != nil {
 			logger.Error("add watch", logger.ErrAttr(err))
@@ -176,6 +177,8 @@ type WatchHandler struct {
 	Labels map[string]string
 	// UID instance unique uid
 	UID string
+	// ConfigMatches app config item's match conditions
+	ConfigMatches []string
 	// TempDir bscp temporary directory
 	TempDir string
 	// AppTempDir app temporary directory
@@ -238,6 +241,7 @@ func (w *WatchHandler) getSubscribeOptions() []client.AppOption {
 	var options []client.AppOption
 	options = append(options, client.WithAppLabels(w.Labels))
 	options = append(options, client.WithAppUID(w.UID))
+	options = append(options, client.WithAppConfigMatch(w.ConfigMatches))
 	return options
 }
 
@@ -257,6 +261,8 @@ func init() {
 	mustBindPFlag(watchViper, "labels_str", WatchCmd.Flags().Lookup("labels"))
 	WatchCmd.Flags().StringP("labels-file", "", "", "labels file path")
 	mustBindPFlag(watchViper, "labels_file", WatchCmd.Flags().Lookup("labels-file"))
+	WatchCmd.Flags().StringP("config-matches", "m", "", "app config item's match conditions，eg:'/etc/a*,/etc/b*'")
+	mustBindPFlag(watchViper, "config_matches", WatchCmd.Flags().Lookup("config-matches"))
 	// TODO: set client UID
 	WatchCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
 	mustBindPFlag(watchViper, "temp_dir", WatchCmd.Flags().Lookup("temp-dir"))

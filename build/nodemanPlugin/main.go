@@ -111,6 +111,10 @@ func initConf(v *viper.Viper) error {
 		return fmt.Errorf("unmarshal config file: %w", err)
 	}
 
+	if err := conf.Update(); err != nil {
+		return err
+	}
+
 	if err := conf.Validate(); err != nil {
 		return fmt.Errorf("validate config: %w", err)
 	}
@@ -168,6 +172,7 @@ func Watch(cmd *cobra.Command, args []string) error {
 			App:        subscriber.Name,
 			Labels:     subscriber.Labels,
 			UID:        subscriber.UID,
+			ConfigMatches: subscriber.ConfigMatches,
 			Lock:       sync.Mutex{},
 			TempDir:    conf.TempDir,
 			AppTempDir: filepath.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
@@ -272,6 +277,8 @@ type WatchHandler struct {
 	Labels map[string]string
 	// UID instance unique uid
 	UID string
+	// ConfigMatches app config item's match conditions
+	ConfigMatches []string
 	// TempDir bscp temporary directory
 	TempDir string
 	// AppTempDir app temporary directory
@@ -302,6 +309,7 @@ func (w *WatchHandler) getSubscribeOptions() []client.AppOption {
 	var options []client.AppOption
 	options = append(options, client.WithAppLabels(w.Labels))
 	options = append(options, client.WithAppUID(w.UID))
+	options = append(options, client.WithAppConfigMatch(w.ConfigMatches))
 	return options
 }
 

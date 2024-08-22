@@ -191,6 +191,7 @@ type execDownload struct {
 	header      http.Header
 	downloadUri string
 	fileSize    uint64
+	waitTimeMil int64
 }
 
 func (exec *execDownload) do() error {
@@ -227,6 +228,7 @@ func (exec *execDownload) do() error {
 				Err: fmt.Errorf("get temporary download url failed, err: %s", err.Error())})
 	}
 	exec.downloadUri = resp.Url
+	exec.waitTimeMil = resp.WaitTimeMil
 	if exec.fileSize <= exec.dl.balanceDownloadByteSize {
 		// the file size is not big enough, download directly
 		if e := exec.downloadDirectlyWithRetry(); e != nil {
@@ -325,6 +327,14 @@ func (exec *execDownload) isProviderSupportRangeDownload() (uint64, bool, error)
 
 // downloadDirectlyWithRetry download file directly with retry
 func (exec *execDownload) downloadDirectlyWithRetry() error {
+	logger.Debug("start download file directly",
+		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+		slog.Int64("waitTimeMil", exec.waitTimeMil))
+	// wait before downloading, used for traffic control, avoid file storage service overload
+	if exec.waitTimeMil > 0 {
+		time.Sleep(time.Millisecond * time.Duration(exec.waitTimeMil))
+	}
+
 	// do download with retry
 	retry := tools.NewRetryPolicy(1, [2]uint{500, 10000})
 	maxRetryCount := 5
@@ -375,7 +385,12 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 
 func (exec *execDownload) downloadWithRange() error {
 	logger.Info("start download file with range",
-		slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)))
+		slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+		slog.Int64("waitTimeMil", exec.waitTimeMil))
+	// wait before downloading, used for traffic control, avoid file storage service overload
+	if exec.waitTimeMil > 0 {
+		time.Sleep(time.Millisecond * time.Duration(exec.waitTimeMil))
+	}
 
 	var start, end uint64
 	batchSize := 2 * exec.dl.balanceDownloadByteSize

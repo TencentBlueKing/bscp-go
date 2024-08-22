@@ -105,6 +105,7 @@ func (w *watcher) StartWatch() error {
 			App:              subscriber.App,
 			Uid:              subscriber.UID,
 			Labels:           subscriber.Labels,
+			Match:            subscriber.Match,
 			CurrentReleaseID: subscriber.CurrentReleaseID,
 			CurrentCursorID:  0,
 		})
@@ -209,7 +210,7 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 
 				logger.Error("watch stream is corrupted", logger.ErrAttr(err), slog.String("rid", w.vas.Rid))
 				// 权限不足或者删除等会一直错误，限制重连频率
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Second * 5)
 				w.NotifyReconnect(reconnectSignal{Reason: "watch stream corrupted"})
 				return
 			}
@@ -316,6 +317,7 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 					App:              subscriber.App,
 					Uid:              subscriber.UID,
 					Labels:           subscriber.Labels,
+					Match:            subscriber.Match,
 					CurrentReleaseID: subscriber.CurrentReleaseID,
 					TargetReleaseID:  pl.ReleaseMeta.ReleaseID,
 					TotalFileSize:    totalFileSize,
@@ -372,6 +374,7 @@ func (w *watcher) Subscribe(callback Callback, app string, opts ...AppOption) *s
 		// merge labels, if key conflict, app value will overwrite client value
 		Labels:           util.MergeLabels(w.opts.labels, options.Labels),
 		UID:              options.UID,
+		Match:            options.Match,
 		Callback:         callback,
 		CurrentReleaseID: 0,
 	}
@@ -398,6 +401,8 @@ type subscriber struct {
 	Labels map[string]string
 	// UID is the unique id of the subscriber
 	UID string
+	// Match is app config item's match condition
+	Match []string
 	// currentConfigItems store the current config items of the subscriber, map[configItemName]commitID
 	currentConfigItems map[string]uint32
 	// CursorID 事件ID
