@@ -255,7 +255,8 @@ func (w *watcher) loopReceiveWatchedEvent(wStream pbfs.Upstream_WatchClient) {
 }
 
 // OnReleaseChange handle all instances release change event
-func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
+// nolint:funlen
+func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 	// parse payload according the api version.
 	pl := new(sfs.ReleaseChangePayload)
 	if err := json.Unmarshal(event.Payload, pl); err != nil {
@@ -263,6 +264,7 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 			logger.ErrAttr(err), slog.String("rid", event.Rid))
 		return
 	}
+
 	// 如果事件ID为0根据 bizID+当前时间生成 事件ID
 	var cursorID string
 	if pl.CursorID == 0 {
@@ -340,6 +342,8 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 				}
 			}(ctx)
 
+			// 不管是否成功都需要把当前ID变更成目标ID
+			subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
 			subscriber.ReleaseChangeStatus = sfs.Processing
 			if err := subscriber.Callback(release); err != nil {
 				cancel()
@@ -350,8 +354,6 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 				cancel()
 				subscriber.ReleaseChangeStatus = sfs.Success
 				subscriber.reportReleaseChangeCallbackMetrics("success", start)
-
-				subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
 			}
 		}
 	}

@@ -30,6 +30,7 @@ import (
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/constant"
 	"github.com/TencentBlueKing/bscp-go/internal/util"
+	"github.com/TencentBlueKing/bscp-go/internal/util/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/internal/util/process_collect"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 )
@@ -147,7 +148,8 @@ func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz u
 	// 3.执行后置脚本
 	// 4.更新Metadata
 	if err = release.Execute(release.ExecuteHook(&client.PreScriptStrategy{}), release.UpdateFiles(),
-		release.ExecuteHook(&client.PostScriptStrategy{}), release.UpdateMetadata()); err != nil {
+		release.ExecuteHook(&client.PostScriptStrategy{}),
+		release.UpdateMetadata(eventmeta.EventStatusSuccess)); err != nil {
 		return err
 	}
 	logger.Info("pull files success", slog.Any("releaseID", release.ReleaseID))

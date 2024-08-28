@@ -37,6 +37,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/config"
+	"github.com/TencentBlueKing/bscp-go/internal/util/eventmeta"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
@@ -299,7 +300,8 @@ func (w *WatchHandler) watchCallback(release *client.Release) error { // nolint
 	release.ClientMode = sfs.Watch
 
 	if err := release.Execute(release.ExecuteHook(&client.PreScriptStrategy{}), release.UpdateFiles(),
-		release.ExecuteHook(&client.PostScriptStrategy{}), release.UpdateMetadata()); err != nil {
+		release.ExecuteHook(&client.PostScriptStrategy{}),
+		release.UpdateMetadata(eventmeta.EventStatusSuccess)); err != nil {
 		return err
 	}
 	logger.Info("watch release change success", slog.Any("currentReleaseID", release.ReleaseID))

@@ -133,7 +133,9 @@ func (r *Release) compareRelease() (bool, error) {
 		logger.Warn("can not find metadata file, maybe you should exec pull command first")
 		return false, nil
 	}
-	if lastMetadata.ReleaseID == r.ReleaseID && util.StrSlicesEqual(lastMetadata.ConfigMatches, r.AppMate.Match) {
+	if lastMetadata.ReleaseID == r.ReleaseID &&
+		util.StrSlicesEqual(lastMetadata.ConfigMatches, r.AppMate.Match) &&
+		lastMetadata.Status == eventmeta.EventStatusSuccess {
 		r.AppMate.CurrentReleaseID = r.ReleaseID
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", r.ReleaseID))
 		return true, nil
@@ -236,7 +238,7 @@ func (r *Release) UpdateFiles() Function {
 }
 
 // UpdateMetadata 4.更新meatdata数据方法
-func (r *Release) UpdateMetadata() Function {
+func (r *Release) UpdateMetadata(eventStatus eventmeta.EventStatus) Function {
 	return func() error {
 		match := r.AppMate.Match
 		if match == nil {
@@ -244,7 +246,7 @@ func (r *Release) UpdateMetadata() Function {
 		}
 		metadata := &eventmeta.EventMeta{
 			ReleaseID:     r.ReleaseID,
-			Status:        eventmeta.EventStatusSuccess,
+			Status:        eventStatus,
 			ConfigMatches: match,
 			EventTime:     time.Now().Format(time.RFC3339),
 		}
@@ -352,6 +354,12 @@ func (r *Release) Execute(steps ...Function) error {
 				r.AppMate.FailedReason = e.FailedReason
 				r.AppMate.SpecificFailedReason = e.SpecificFailedReason
 				r.AppMate.FailedDetailReason = e.Err.Error()
+			}
+
+			// 更新matedata
+			updateMetadata := r.UpdateMetadata(eventmeta.EventStatusFailed)
+			if err = updateMetadata(); err != nil {
+				logger.Error("update metadata to file failed", logger.ErrAttr(err))
 			}
 		}
 
