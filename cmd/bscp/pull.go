@@ -77,6 +77,7 @@ func Pull(cmd *cobra.Command, args []string) {
 			CacheDir:    conf.FileCache.CacheDir,
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
+		client.WithTextLineBreak(conf.TextLineBreak),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -193,6 +194,8 @@ func init() {
 	mustBindPFlag(pullViper, "file_cache.threshold_gb", PullCmd.Flags().Lookup("cache-threshold-gb"))
 	PullCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
 	mustBindPFlag(pullViper, "enable_resource", PullCmd.Flags().Lookup("enable-resource"))
+	PullCmd.Flags().BoolP("text-line-break", "", false, "text file line break, default as LF")
+	mustBindPFlag(pullViper, "text_line_break", PullCmd.Flags().Lookup("text-line-break"))
 
 	for key, envName := range commonEnvs {
 		// bind env variable with viper

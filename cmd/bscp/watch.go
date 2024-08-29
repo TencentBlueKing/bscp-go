@@ -154,6 +154,7 @@ func newWatchClient(labels map[string]string) (client.Client, error) {
 			ThresholdMB: conf.KvCache.ThresholdMB,
 		}),
 		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
+		client.WithTextLineBreak(conf.TextLineBreak),
 	)
 }
 
@@ -292,6 +293,8 @@ func init() {
 	mustBindPFlag(watchViper, "kv_cache.threshold_mb", WatchCmd.Flags().Lookup("kv-cache-threshold-mb"))
 	WatchCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
 	mustBindPFlag(watchViper, "enable_resource", WatchCmd.Flags().Lookup("enable-resource"))
+	WatchCmd.Flags().StringP("text-line-break", "", "", "text line break, default as LF")
+	mustBindPFlag(watchViper, "text_line_break", WatchCmd.Flags().Lookup("text-line-break"))
 
 	envs := map[string]string{}
 	for key, envName := range commonEnvs {

@@ -22,22 +22,24 @@ config_templates:
       type: object
       required: true
       properties:
-        业务ID:
+        biz:
           title: 业务ID
           type: string
           required: true
-        服务:
+        apps:
           title: 服务
           type: array
+          required: true
           items:
             title: 服务配置
             type: object
+            required: true
             properties:
-              服务名称:
+              name:
                 title: 服务名称
                 type: string
                 required: true
-              标签:
+              labels:
                 title: 标签
                 type: array
                 required: false
@@ -49,26 +51,28 @@ config_templates:
                     key:
                       title: key
                       type: string
+                      required: true
                     value:
                       title: value
                       type: string
-              配置文件拉取筛选:
-                title: 配置文件拉取筛选
+                      required: true
+              config_matches:
+                title: 配置文件筛选
                 type: array
                 required: false
                 items:
                   title: 匹配规则
                   type: string
-                  required: false
-        Feed服务地址:
+                  required: true
+        feed_addr:
           title: 服务feed-server地址
           type: string
           required: true
-        客户端密钥:
+        token:
           title: 客户端密钥
           type: string
           required: true
-        全局标签:
+        global_labels:
           title: 全局标签
           type: array
           required: false
@@ -80,32 +84,38 @@ config_templates:
               key:
                 title: key
                 type: string
+                required: true
               value:
                 title: value
                 type: string
-        全局配置文件拉取筛选:
-          title: 全局配置文件拉取筛选
+                required: true
+        global_config_matches:
+          title: 全局配置文件筛选
           type: array
           required: false
           items:
             title: 匹配规则
             type: string
-            required: false
-        临时目录:
+            required: true
+        temp_dir:
           title: 临时目录
           type: string
           required: false
           default: /data/bscp
-        P2P文件下载加速:
+        enable_p2p_download:
           title: P2P文件下载加速
           type: boolean
           required: true
           default: false
-        是否上报资源:
+        enable_resource:
           title: 是否上报资源
           type:  boolean
           required: true
           default: true
+        text_line_break:
+          title: 文本文件换行符
+          type: string
+          required: false
 control:
   start: "__START_SCRIPT__ bkbscp"
   stop: "__STOP_SCRIPT__ bkbscp"

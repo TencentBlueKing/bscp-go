@@ -44,6 +44,8 @@ type options struct {
 	kvCache KvCache
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
 	enableMonitorResourceUsage bool
+	// textLineBreak is the text file line break character, default as LF
+	textLineBreak string
 }
 
 // FileCache option for file cache
@@ -202,6 +204,14 @@ func WithKvCache(c KvCache) Option {
 func WithEnableMonitorResourceUsage(enable bool) Option {
 	return func(o *options) error {
 		o.enableMonitorResourceUsage = enable
+		return nil
+	}
+}
+
+// WithTextLineBreak set text file line break character
+func WithTextLineBreak(lineBreak string) Option {
+	return func(o *options) error {
+		o.textLineBreak = lineBreak
 		return nil
 	}
 }

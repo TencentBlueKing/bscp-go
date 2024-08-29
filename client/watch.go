@@ -292,10 +292,11 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 			for _, ci := range pl.ReleaseMeta.CIMetas {
 				ci.ConfigItemSpec.Path = filepath.FromSlash(ci.ConfigItemSpec.Path)
 				configItemFiles = append(configItemFiles, &ConfigItemFile{
-					Name:       ci.ConfigItemSpec.Name,
-					Path:       ci.ConfigItemSpec.Path,
-					Permission: ci.ConfigItemSpec.Permission,
-					FileMeta:   ci,
+					Name:          ci.ConfigItemSpec.Name,
+					Path:          ci.ConfigItemSpec.Path,
+					TextLineBreak: w.opts.textLineBreak,
+					Permission:    ci.ConfigItemSpec.Permission,
+					FileMeta:      ci,
 				})
 				totalFileSize += ci.ContentSpec.ContentSpec().ByteSize
 			}

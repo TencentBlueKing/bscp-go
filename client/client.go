@@ -309,9 +309,10 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { //
 		totalFileSize += meta.CommitSpec.GetContent().ByteSize
 		meta.ConfigItemSpec.Path = filepath.FromSlash(meta.ConfigItemSpec.Path)
 		files[i] = &ConfigItemFile{
-			Name:       meta.ConfigItemSpec.Name,
-			Path:       meta.ConfigItemSpec.Path,
-			Permission: meta.ConfigItemSpec.Permission,
+			Name:          meta.ConfigItemSpec.Name,
+			Path:          meta.ConfigItemSpec.Path,
+			TextLineBreak: c.opts.textLineBreak,
+			Permission:    meta.ConfigItemSpec.Permission,
 			FileMeta: &sfs.ConfigItemMetaV1{
 				ID:                   meta.Id,
 				CommitID:             meta.CommitId,

@@ -160,6 +160,7 @@ func Watch(cmd *cobra.Command, args []string) error {
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
 		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
+		client.WithTextLineBreak(conf.TextLineBreak),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -168,15 +169,15 @@ func Watch(cmd *cobra.Command, args []string) error {
 
 	for _, subscriber := range conf.Apps {
 		handler := &WatchHandler{
-			Biz:        conf.Biz,
-			App:        subscriber.Name,
-			Labels:     subscriber.Labels,
-			UID:        subscriber.UID,
+			Biz:           conf.Biz,
+			App:           subscriber.Name,
+			Labels:        subscriber.Labels,
+			UID:           subscriber.UID,
 			ConfigMatches: subscriber.ConfigMatches,
-			Lock:       sync.Mutex{},
-			TempDir:    conf.TempDir,
-			AppTempDir: filepath.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
-			bscp:       bscp,
+			Lock:          sync.Mutex{},
+			TempDir:       conf.TempDir,
+			AppTempDir:    filepath.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+			bscp:          bscp,
 		}
 		if e := bscp.AddWatcher(
 			handler.watchCallback, handler.App, handler.getSubscribeOptions()...); e != nil {

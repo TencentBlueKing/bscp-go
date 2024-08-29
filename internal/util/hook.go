@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -100,8 +101,10 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 	case "python":
 		filePath = filepath.Join(hookDir, hookType.String()+".py")
 	case "bat":
+		hook.Content = strings.ReplaceAll(string(hook.Content), "\n", "\r\n")
 		filePath = filepath.Join(hookDir, hookType.String()+".bat")
 	case "powershell":
+		hook.Content = strings.ReplaceAll(string(hook.Content), "\n", "\r\n")
 		filePath = filepath.Join(hookDir, hookType.String()+".ps1")
 	default:
 		return "", sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))
@@ -111,10 +114,18 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 		return "", sfs.WrapSecondaryError(sfs.WriteFileFailed, err)
 	}
 
-	envfile := filepath.Join(hookDir, "env")
-	if err := os.WriteFile(envfile, []byte("export "+strings.Join(hookEnvs, "\nexport ")+"\n"), 0644); err != nil {
-		logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
-		return "", sfs.WrapSecondaryError(sfs.WriteEnvFileFailed, err)
+	if runtime.GOOS == "windows" {
+		envfile := filepath.Join(hookDir, "env.bat")
+		if err := os.WriteFile(envfile, []byte("set "+strings.Join(hookEnvs, "\r\nset ")+"\r\n"), 0644); err != nil {
+			logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
+			return "", sfs.WrapSecondaryError(sfs.WriteEnvFileFailed, err)
+		}
+	} else {
+		envfile := filepath.Join(hookDir, "env")
+		if err := os.WriteFile(envfile, []byte("export "+strings.Join(hookEnvs, "\nexport ")+"\n"), 0644); err != nil {
+			logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
+			return "", sfs.WrapSecondaryError(sfs.WriteEnvFileFailed, err)
+		}
 	}
 
 	return filePath, nil

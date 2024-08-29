@@ -72,6 +72,8 @@ type ConfigItemFile struct {
 	Name string `json:"name"`
 	// Path of config file
 	Path string `json:"path"`
+	// TextLineBreak text file line break
+	TextLineBreak string `json:"textLineBreak"`
 	// Permission file permission
 	Permission *pbci.FilePermission `json:"permission"`
 	// FileMeta data
@@ -107,6 +109,13 @@ func (c *ConfigItemFile) SaveToFile(dst string) error {
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 			c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, dst); err != nil {
 			logger.Error("download file failed", logger.ErrAttr(err))
+			return err
+		}
+	}
+	// 3. check whether need to convert line break
+	if c.FileMeta.ConfigItemSpec.FileType == "text" && c.TextLineBreak != "" {
+		if err := util.ConvertTextLineBreak(dst, c.TextLineBreak); err != nil {
+			logger.Error("convert text file line break failed", slog.String("file", dst), logger.ErrAttr(err))
 			return err
 		}
 	}
