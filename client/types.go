@@ -86,8 +86,8 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 			return bytes, nil
 		}
 	}
-	bytes := make([]byte, c.FileMeta.ContentSpec.ByteSize)
 
+	bytes := make([]byte, c.FileMeta.ContentSpec.ByteSize)
 	if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 		c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToBytes, bytes, ""); err != nil {
 		logger.Error("download file failed", logger.ErrAttr(err))
