@@ -179,7 +179,7 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 	return true
 }
 
-// ensureCache ensures cache exist, if not exist，then download file and add it to cache file
+// ensureCache ensures cache exist, if not exist, then download file and add it to cache file
 func (c *Cache) ensureCache(ci *sfs.ConfigItemMetaV1) bool {
 	if ci.ContentSpec.ByteSize > uint64(MaxSingleFileCacheSizeRate*c.thrsholdGB*GByte) {
 		logger.Warn("config item size is too large, skip copy to file",
