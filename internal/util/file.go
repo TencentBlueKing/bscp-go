@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+	"strings"
 
 	pbci "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/config-item"
 )
@@ -64,4 +65,31 @@ func SetFilePermission(filePath string, pm *pbci.FilePermission) error {
 	}
 
 	return nil
+}
+
+// ConvertTextLineBreak converts the text file line break type.
+func ConvertTextLineBreak(filePath string, lineBreak string) error {
+	// 读取文件内容
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	var targetLineBreak string
+	switch lineBreak {
+	case "", "LF":
+		// default line break type is LF, no need to convert
+		return nil
+	case "CRLF":
+		targetLineBreak = "\r\n"
+	case "CR":
+		targetLineBreak = "\r"
+	default:
+		return fmt.Errorf("invalid line break type: %s", lineBreak)
+	}
+
+	updatedContent := strings.ReplaceAll(string(content), "\n", targetLineBreak)
+
+	// 写回文件
+	return os.WriteFile(filePath, []byte(updatedContent), 0644)
 }

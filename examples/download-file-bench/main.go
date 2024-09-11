@@ -16,6 +16,7 @@ package main
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -124,7 +125,8 @@ func downloadAppFiles(release *client.Release) error {
 			return err
 		}
 		atomic.AddInt64(&success, 1)
-		logger.Debug("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
+		logger.Debug("get file content by downloading from repo success",
+			slog.String("file", filepath.Join(c.Path, c.Name)))
 	}
 
 	return nil

@@ -20,7 +20,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -161,6 +160,7 @@ func Watch(cmd *cobra.Command, args []string) error {
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
 		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
+		client.WithTextLineBreak(conf.TextLineBreak),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -176,7 +176,7 @@ func Watch(cmd *cobra.Command, args []string) error {
 			ConfigMatches: subscriber.ConfigMatches,
 			Lock:          sync.Mutex{},
 			TempDir:       conf.TempDir,
-			AppTempDir:    path.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
+			AppTempDir:    filepath.Join(conf.TempDir, strconv.Itoa(int(conf.Biz)), subscriber.Name),
 			bscp:          bscp,
 		}
 		if e := bscp.AddWatcher(

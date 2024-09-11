@@ -23,7 +23,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -140,6 +140,7 @@ func (dl *httpDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, 
 				sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
 					Err: fmt.Errorf("open the target file failed, err: %s", err.Error())})
 		}
+		logger.Info("open file success", "file", toFile)
 		defer file.Close()
 		exec.file = file
 	case DownloadToBytes:
@@ -327,7 +328,7 @@ func (exec *execDownload) isProviderSupportRangeDownload() (uint64, bool, error)
 // downloadDirectlyWithRetry download file directly with retry
 func (exec *execDownload) downloadDirectlyWithRetry() error {
 	logger.Debug("start download file directly",
-		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+		slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
 		slog.Int64("waitTimeMil", exec.waitTimeMil))
 	// wait before downloading, used for traffic control, avoid file storage service overload
 	if exec.waitTimeMil > 0 {
@@ -358,7 +359,7 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 	}
 
 	logger.Info("start download file directly",
-		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)))
+		slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)))
 
 	defer exec.dl.sem.Release(1)
 
@@ -375,7 +376,7 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 	}
 
 	logger.Debug("download directly success",
-		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+		slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
 		slog.Duration("cost", time.Since(start)),
 	)
 
@@ -384,7 +385,7 @@ func (exec *execDownload) downloadDirectly(timeoutSeconds int) error {
 
 func (exec *execDownload) downloadWithRange() error {
 	logger.Info("start download file with range",
-		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+		slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
 		slog.Int64("waitTimeMil", exec.waitTimeMil))
 	// wait before downloading, used for traffic control, avoid file storage service overload
 	if exec.waitTimeMil > 0 {
@@ -422,7 +423,7 @@ func (exec *execDownload) downloadWithRange() error {
 			if err := exec.downloadOneRangedPartWithRetry(from, to); err != nil {
 				hitError = err
 				logger.Error("download file part failed",
-					slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+					slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
 					slog.Int("part", pos),
 					slog.Uint64("start", from),
 					logger.ErrAttr(err))
@@ -430,7 +431,7 @@ func (exec *execDownload) downloadWithRange() error {
 			}
 
 			logger.Debug("download file range part success",
-				slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+				slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
 				slog.Int("part", pos),
 				slog.Uint64("from", from),
 				slog.Uint64("to", to),
@@ -447,7 +448,7 @@ func (exec *execDownload) downloadWithRange() error {
 	}
 
 	logger.Debug("download full file success",
-		slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)))
+		slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)))
 
 	return nil
 }

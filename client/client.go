@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/criteria/constant"
@@ -306,10 +307,12 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { //
 	var totalFileSize uint64
 	for i, meta := range resp.FileMetas {
 		totalFileSize += meta.CommitSpec.GetContent().ByteSize
+		meta.ConfigItemSpec.Path = filepath.FromSlash(meta.ConfigItemSpec.Path)
 		files[i] = &ConfigItemFile{
-			Name:       meta.ConfigItemSpec.Name,
-			Path:       meta.ConfigItemSpec.Path,
-			Permission: meta.ConfigItemSpec.Permission,
+			Name:          meta.ConfigItemSpec.Name,
+			Path:          meta.ConfigItemSpec.Path,
+			TextLineBreak: c.opts.textLineBreak,
+			Permission:    meta.ConfigItemSpec.Permission,
 			FileMeta: &sfs.ConfigItemMetaV1{
 				ID:                   meta.Id,
 				CommitID:             meta.CommitId,

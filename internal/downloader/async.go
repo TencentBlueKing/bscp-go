@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -59,8 +58,7 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 
 	start := time.Now()
 
-	// tempFileDir: /tmp/bscp/async/download/{bizID}/{sha256}
-	tempDir := fmt.Sprintf("/tmp/bscp/async/download/%d", dl.bizID)
+	tempDir := os.TempDir()
 	resp, err := dl.upstream.AsyncDownload(dl.vas, &pbfs.AsyncDownloadReq{
 		BizId:         fileMeta.ConfigItemAttachment.BizId,
 		BkAgentId:     dl.bkAgentID,
@@ -75,7 +73,7 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 	}
 
 	logger.Info("start async download file",
-		slog.String("file", path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name)),
+		slog.String("file", filepath.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name)),
 		slog.String("taskID", resp.TaskId))
 
 	// Check the status of the download asynchronously with timeout

@@ -17,8 +17,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -72,6 +72,8 @@ type ConfigItemFile struct {
 	Name string `json:"name"`
 	// Path of config file
 	Path string `json:"path"`
+	// TextLineBreak text file line break
+	TextLineBreak string `json:"textLineBreak"`
 	// Permission file permission
 	Permission *pbci.FilePermission `json:"permission"`
 	// FileMeta data
@@ -82,7 +84,7 @@ type ConfigItemFile struct {
 func (c *ConfigItemFile) GetContent() ([]byte, error) {
 	if cache.Enable {
 		if hit, bytes := cache.GetCache().GetFileContent(c.FileMeta); hit {
-			logger.Debug("get file content from cache success", slog.String("file", path.Join(c.Path, c.Name)))
+			logger.Debug("get file content from cache success", slog.String("file", filepath.Join(c.Path, c.Name)))
 			return bytes, nil
 		}
 	}
@@ -93,7 +95,7 @@ func (c *ConfigItemFile) GetContent() ([]byte, error) {
 		logger.Error("download file failed", logger.ErrAttr(err))
 		return nil, err
 	}
-	logger.Debug("get file content by downloading from repo success", slog.String("file", path.Join(c.Path, c.Name)))
+	logger.Debug("get file content by downloading from repo success", slog.String("file", filepath.Join(c.Path, c.Name)))
 	return bytes, nil
 }
 
@@ -107,6 +109,13 @@ func (c *ConfigItemFile) SaveToFile(dst string) error {
 		if err := downloader.GetDownloader().Download(c.FileMeta.PbFileMeta(), c.FileMeta.RepositoryPath,
 			c.FileMeta.ContentSpec.ByteSize, downloader.DownloadToFile, nil, dst); err != nil {
 			logger.Error("download file failed", logger.ErrAttr(err))
+			return err
+		}
+	}
+	// 3. check whether need to convert line break
+	if c.FileMeta.ConfigItemSpec.FileType == "text" && c.TextLineBreak != "" {
+		if err := util.ConvertTextLineBreak(dst, c.TextLineBreak); err != nil {
+			logger.Error("convert text file line break failed", slog.String("file", dst), logger.ErrAttr(err))
 			return err
 		}
 	}
@@ -208,7 +217,7 @@ func (r *Release) ExecuteHook(hook ScriptStrategy) Function {
 // UpdateFiles 2.下载文件方法
 func (r *Release) UpdateFiles() Function {
 	return func() error {
-		filesDir := path.Join(r.AppDir, "files")
+		filesDir := filepath.Join(r.AppDir, "files")
 		if err := updateFiles(filesDir, r.FileItems, &r.AppMate.DownloadFileNum, &r.AppMate.DownloadFileSize,
 			r.SemaphoreCh); err != nil {
 			logger.Error("update file failed", logger.ErrAttr(err))
@@ -259,7 +268,7 @@ func (r *Release) UpdateMetadata() Function {
 
 // checkFileExists checks the file exists and the SHA256 is match.
 func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
-	filePath := path.Join(absPath, ci.ConfigItemSpec.Name)
+	filePath := filepath.Join(absPath, ci.ConfigItemSpec.Name)
 	_, err := os.Stat(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -311,6 +320,7 @@ func clearOldFiles(dir string, files []*ConfigItemFile) error {
 			if err := os.RemoveAll(filePath); err != nil {
 				return err
 			}
+			logger.Info("delete folder success", slog.String("folder", filePath))
 			return filepath.SkipDir
 		}
 
@@ -320,7 +330,11 @@ func clearOldFiles(dir string, files []*ConfigItemFile) error {
 				return nil
 			}
 		}
-		return os.Remove(filePath)
+		if err := os.Remove(filePath); err != nil {
+			return err
+		}
+		logger.Info("delete file success", slog.String("file", filePath))
+		return nil
 	})
 
 	return err
@@ -536,8 +550,8 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 		file := f
 		g.Go(func() error {
 			// 1. prapare file path
-			fileDir := path.Join(filesDir, file.Path)
-			filePath := path.Join(fileDir, file.Name)
+			fileDir := filepath.Join(filesDir, file.Path)
+			filePath := filepath.Join(fileDir, file.Name)
 			err := os.MkdirAll(fileDir, os.ModePerm)
 			if err != nil {
 				atomic.AddInt32(&failed, 1)
@@ -567,8 +581,10 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 					slog.String("file", filePath))
 			}
 			// 3. set file permission
-			if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
-				logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
+			if runtime.GOOS != "windows" {
+				if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
+					logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
+				}
 			}
 			atomic.AddInt32(successDownloads, 1)
 			atomic.AddUint64(successFileSize, file.FileMeta.ContentSpec.ByteSize)

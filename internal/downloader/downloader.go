@@ -15,7 +15,7 @@ package downloader
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
 	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
@@ -113,7 +113,7 @@ func (d *downloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, fileS
 	// if file size is larger than 1MB, try async download
 	if err := d.asyncDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath); err != nil {
 		logger.Warn("async download file failed, fallback to http download", "file",
-			path.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name), "err", err.Error())
+			filepath.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name), "err", err.Error())
 		// if async download failed, fallback to http download
 		return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
 	}

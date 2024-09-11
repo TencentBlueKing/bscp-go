@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"sync/atomic"
@@ -289,11 +290,13 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 			// 计算总文件大小和总文件数
 			var totalFileSize uint64
 			for _, ci := range pl.ReleaseMeta.CIMetas {
+				ci.ConfigItemSpec.Path = filepath.FromSlash(ci.ConfigItemSpec.Path)
 				configItemFiles = append(configItemFiles, &ConfigItemFile{
-					Name:       ci.ConfigItemSpec.Name,
-					Path:       ci.ConfigItemSpec.Path,
-					Permission: ci.ConfigItemSpec.Permission,
-					FileMeta:   ci,
+					Name:          ci.ConfigItemSpec.Name,
+					Path:          ci.ConfigItemSpec.Path,
+					TextLineBreak: w.opts.textLineBreak,
+					Permission:    ci.ConfigItemSpec.Permission,
+					FileMeta:      ci,
 				})
 				totalFileSize += ci.ContentSpec.ContentSpec().ByteSize
 			}
