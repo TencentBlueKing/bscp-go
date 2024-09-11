@@ -52,6 +52,12 @@ build_docker: build_initContainer build_sidecar
 	cd build/initContainer && docker build . -t bscp-init
 	cd build/sidecar && docker build . -t bscp-sidecar
 
+.PHONY: build
+build:
+	${GOBUILD} -ldflags "${LDVersionFLAG} \
+	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=command" \
+	-o bin/${BIN_NAME} cmd/bscp/*.go
+
 .PHONY: build_nodemanPlugin
 build_nodemanPlugin:
 	@echo "Building nodemanPlugin version: ${SEM_VERSION}"
