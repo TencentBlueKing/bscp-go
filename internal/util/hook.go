@@ -101,10 +101,10 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 	case "python":
 		filePath = filepath.Join(hookDir, hookType.String()+".py")
 	case "bat":
-		hook.Content = strings.ReplaceAll(string(hook.Content), "\n", "\r\n")
+		hook.Content = strings.ReplaceAll(hook.Content, "\n", "\r\n")
 		filePath = filepath.Join(hookDir, hookType.String()+".bat")
 	case "powershell":
-		hook.Content = strings.ReplaceAll(string(hook.Content), "\n", "\r\n")
+		hook.Content = strings.ReplaceAll(hook.Content, "\n", "\r\n")
 		filePath = filepath.Join(hookDir, hookType.String()+".ps1")
 	default:
 		return "", sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))

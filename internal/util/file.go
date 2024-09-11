@@ -67,6 +67,7 @@ func SetFilePermission(filePath string, pm *pbci.FilePermission) error {
 	return nil
 }
 
+// ConvertTextLineBreak converts the text file line break type.
 func ConvertTextLineBreak(filePath string, lineBreak string) error {
 	// 读取文件内容
 	content, err := os.ReadFile(filePath)
