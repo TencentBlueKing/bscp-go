@@ -38,7 +38,7 @@ jobs:
           goversion: 1.20.4
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          build_command: make build GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION=${{ github.event.release.tag_name }} -ldflags "-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=command"
+          build_command: make build GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION=${{ github.event.release.tag_name }}
           extra_files: LICENSE.txt readme.md readme_en.md bin/${{ matrix.bin_name }}
           asset_name: bscp-${{ github.event.release.tag_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
           md5sum: false
