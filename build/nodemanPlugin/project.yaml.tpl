@@ -100,7 +100,7 @@ config_templates:
         temp_dir:
           title: 临时目录
           type: string
-          required: false
+          required: true
           default: /data/bscp
         enable_p2p_download:
           title: P2P文件下载加速
@@ -116,6 +116,7 @@ config_templates:
           title: 文本文件换行符
           type: string
           required: false
+          default: LF
 control:
   start: "__START_SCRIPT__ bkbscp"
   stop: "__STOP_SCRIPT__ bkbscp"

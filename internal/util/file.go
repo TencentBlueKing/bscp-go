@@ -76,7 +76,7 @@ func ConvertTextLineBreak(filePath string, lineBreak string) error {
 
 	var targetLineBreak string
 	switch lineBreak {
-	case "LF":
+	case "", "LF":
 		// default line break type is LF, no need to convert
 		return nil
 	case "CRLF":
