@@ -342,7 +342,8 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 					}
 				}
 			}(ctx)
-
+			// 不管是否成功都需要把当前ID变更成目标ID
+			subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
 			subscriber.ReleaseChangeStatus = sfs.Processing
 			if err := subscriber.Callback(release); err != nil {
 				cancel()
@@ -353,8 +354,6 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 				cancel()
 				subscriber.ReleaseChangeStatus = sfs.Success
 				subscriber.reportReleaseChangeCallbackMetrics("success", start)
-
-				subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
 			}
 		}
 	}

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
@@ -141,4 +142,87 @@ func GetLatestMetadataFromFile(tempDir string) (*EventMeta, bool, error) {
 	}
 
 	return metadata, true, nil
+}
+
+// RecordChangedReleaseID 记录更改后的 release ID
+// 不管是否成功
+func RecordChangedReleaseID(tempDir string, releaseID uint32) error {
+
+	if tempDir == "" {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.FilePathNotFound,
+				Err: errors.New("the file path for recording change release ID is empty")})
+	}
+
+	// prepare temp dir, make sure it exists
+	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.NewFolderFailed, Err: err})
+	}
+
+	metaFilePath := filepath.Join(tempDir, "release_id_file")
+
+	metaFile, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
+				Err: fmt.Errorf("open release id file failed, err: %s", err.Error())})
+	}
+	defer metaFile.Close()
+
+	releaseIDStr := strconv.FormatUint(uint64(releaseID), 10)
+	if _, err := metaFile.WriteString(releaseIDStr + "\n"); err != nil {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.WriteFileFailed,
+				Err: fmt.Errorf("append release id to release id file failed, err: %s", err.Error())})
+	}
+	logger.Info("append release id to release id file success", slog.String("releaseID", releaseIDStr))
+
+	return nil
+}
+
+// GetLatestReleaseIDFromFile get the last data from the file that records the release id
+func GetLatestReleaseIDFromFile(tempDir string) (uint32, error) {
+	if tempDir == "" {
+		return 0, sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.DataEmpty,
+				Err: errors.New("the file path for recording change release ID is empty")})
+	}
+
+	metaFilePath := filepath.Join(tempDir, "release_id_file")
+
+	metaFile, err := os.Open(metaFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
+				Err: err})
+	}
+	defer metaFile.Close()
+	var lastLine string
+	scanner := bufio.NewScanner(metaFile)
+	for scanner.Scan() {
+		lastLine = scanner.Text()
+	}
+
+	if len(lastLine) == 0 {
+		return 0, nil
+	}
+
+	if err = scanner.Err(); err != nil {
+		return 0, sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.ReadFileFailed,
+				Err: err})
+	}
+
+	releaseID, err := strconv.ParseUint(lastLine, 10, 32)
+	if err != nil {
+		return 0, sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.ReadFileFailed,
+				Err: err})
+	}
+
+	return uint32(releaseID), nil
 }

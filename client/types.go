@@ -412,8 +412,25 @@ func (r *Release) Execute(steps ...Function) error {
 }
 
 // sendVersionChangeMessaging 发送客户端版本变更信息
-func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData) error {
+func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData) (err error) {
 	r.AppMate.FailedDetailReason = util.TruncateString(r.AppMate.FailedDetailReason, 1024)
+
+	defer func(r *Release) {
+		// 在上报完消息后记录变更的ID(处理上报中)
+		if r.AppMate.ReleaseChangeStatus != sfs.Processing {
+			err = eventmeta.RecordChangedReleaseID(r.AppDir, r.AppMate.TargetReleaseID)
+		}
+	}(r)
+
+	rid, err := eventmeta.GetLatestReleaseIDFromFile(r.AppDir)
+	if err != nil {
+		return err
+	}
+
+	if rid > 0 {
+		r.AppMate.CurrentReleaseID = rid
+	}
+
 	pullPayload := sfs.VersionChangePayload{
 		BasicData:     bd,
 		Application:   r.AppMate,
@@ -429,7 +446,8 @@ func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData) error {
 	if err != nil {
 		return err
 	}
-	return nil
+
+	return err
 }
 
 // handleBasicData 处理基础数据
