@@ -94,7 +94,7 @@ func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 		if exists {
 			continue
 		}
-		filePath := path.Join(c.path, ci.ContentSpec.Signature)
+		filePath := filepath.Join(c.path, ci.ContentSpec.Signature)
 		// TODO: gse 现在分发文件时，target 的目录必须一致，因此这里 Cache 和 SDK 的下载目录会被视为同一个目录，并发下载时会有问题
 		// 两个并发下载任务下载到同一个文件中，但是 Downloader 中并发移动这个文件时会导致其中一个任务失败
 		// 在 GSE 解决这个问题（支持根据 target 设置目录）之前，先不启用 Cahce.OnReleaseChange 回调
@@ -108,7 +108,7 @@ func (c *Cache) OnReleaseChange(event *sfs.ReleaseChangeEvent) {
 
 // checkFileCacheExists verify the config content is exist or not in the local.
 func (c *Cache) checkFileCacheExists(ci *sfs.ConfigItemMetaV1) (bool, error) {
-	filePath := path.Join(c.path, ci.ContentSpec.Signature)
+	filePath := filepath.Join(c.path, ci.ContentSpec.Signature)
 	_, err := os.Stat(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {

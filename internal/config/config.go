@@ -74,6 +74,8 @@ type ClientConfig struct {
 	KvCache *KvCacheConfig `json:"kv_cache" mapstructure:"kv_cache"`
 	// EnableMonitorResourceUsage 是否采集/监控资源使用率
 	EnableMonitorResourceUsage bool `json:"enable_resource" mapstructure:"enable_resource"`
+	// TextLineBreak 文本文件换行符
+	TextLineBreak string `json:"text_line_break" mapstructure:"text_line_break"`
 }
 
 // String get config string

@@ -16,7 +16,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -77,6 +77,7 @@ func Pull(cmd *cobra.Command, args []string) {
 			CacheDir:    conf.FileCache.CacheDir,
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
+		client.WithTextLineBreak(conf.TextLineBreak),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
@@ -111,7 +112,7 @@ func Pull(cmd *cobra.Command, args []string) {
 func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz uint32, app string, opts []client.AppOption) error { // nolint
 
 	// 1. prepare app workspace dir
-	appDir := path.Join(tempDir, strconv.Itoa(int(biz)), app)
+	appDir := filepath.Join(tempDir, strconv.Itoa(int(biz)), app)
 	if e := os.MkdirAll(appDir, os.ModePerm); e != nil {
 		return e
 	}
@@ -193,6 +194,8 @@ func init() {
 	mustBindPFlag(pullViper, "file_cache.threshold_gb", PullCmd.Flags().Lookup("cache-threshold-gb"))
 	PullCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
 	mustBindPFlag(pullViper, "enable_resource", PullCmd.Flags().Lookup("enable-resource"))
+	PullCmd.Flags().BoolP("text-line-break", "", false, "text file line break, default as LF")
+	mustBindPFlag(pullViper, "text_line_break", PullCmd.Flags().Lookup("text-line-break"))
 
 	for key, envName := range commonEnvs {
 		// bind env variable with viper

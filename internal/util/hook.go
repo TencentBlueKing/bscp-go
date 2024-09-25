@@ -16,7 +16,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
@@ -33,12 +35,16 @@ const (
 	executeShellCmd = "bash"
 	// executePythonCmd python script executor
 	executePythonCmd = "python3"
+	// executeBatCmd bat script executor
+	executeBatCmd = "cmd"
+	// executePowershellCmd powershell script executor
+	executePowershellCmd = "powershell"
 )
 
 // ExecuteHook executes the hook.
 func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 	tempDir string, biz uint32, app string, relName string) error {
-	appTempDir := path.Join(tempDir, fmt.Sprintf("%d/%s", biz, app))
+	appTempDir := filepath.Join(tempDir, strconv.Itoa(int(biz)), app)
 	hookEnvs := []string{
 		fmt.Sprintf("%s=%s", env.HookAppTempDir, appTempDir),
 		fmt.Sprintf("%s=%s", env.HookTempDir, tempDir),
@@ -53,15 +59,22 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 		return err
 	}
 	var command string
+	args := []string{}
 	switch hook.Type {
 	case "shell":
 		command = executeShellCmd
 	case "python":
 		command = executePythonCmd
+	case "bat":
+		command = executeBatCmd
+		args = append(args, "/C")
+	case "powershell":
+		command = executePowershellCmd
+		args = append(args, "-ExecutionPolicy", "Bypass", "-File")
 	default:
 		return sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))
 	}
-	args := []string{hookPath}
+	args = append(args, hookPath)
 	cmd := exec.Command(command, args...)
 	cmd.Dir = appTempDir
 	cmd.Env = append(os.Environ(), hookEnvs...)
@@ -76,7 +89,7 @@ func ExecuteHook(hook *pbhook.HookSpec, hookType table.HookType,
 
 func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.HookType, hookEnvs []string) (string,
 	error) {
-	hookDir := path.Join(workspace, "hooks")
+	hookDir := filepath.Join(workspace, "hooks")
 	if err := os.MkdirAll(hookDir, os.ModePerm); err != nil {
 		logger.Error("mkdir hook dir failed", slog.String("dir", hookDir), logger.ErrAttr(err))
 		return "", sfs.WrapSecondaryError(sfs.NewFolderFailed, err)
@@ -84,9 +97,15 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 	var filePath string
 	switch hook.Type {
 	case "shell":
-		filePath = path.Join(hookDir, hookType.String()+".sh")
+		filePath = filepath.Join(hookDir, hookType.String()+".sh")
 	case "python":
-		filePath = path.Join(hookDir, hookType.String()+".py")
+		filePath = filepath.Join(hookDir, hookType.String()+".py")
+	case "bat":
+		hook.Content = strings.ReplaceAll(hook.Content, "\n", "\r\n")
+		filePath = filepath.Join(hookDir, hookType.String()+".bat")
+	case "powershell":
+		hook.Content = strings.ReplaceAll(hook.Content, "\n", "\r\n")
+		filePath = filepath.Join(hookDir, hookType.String()+".ps1")
 	default:
 		return "", sfs.WrapSecondaryError(sfs.ScriptTypeNotSupported, fmt.Errorf("invalid hook type: %s", hook.Type))
 	}
@@ -95,10 +114,18 @@ func saveContentToFile(workspace string, hook *pbhook.HookSpec, hookType table.H
 		return "", sfs.WrapSecondaryError(sfs.WriteFileFailed, err)
 	}
 
-	envfile := path.Join(hookDir, "env")
-	if err := os.WriteFile(envfile, []byte("export "+strings.Join(hookEnvs, "\nexport ")+"\n"), 0644); err != nil {
-		logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
-		return "", sfs.WrapSecondaryError(sfs.WriteEnvFileFailed, err)
+	if runtime.GOOS == "windows" {
+		envfile := filepath.Join(hookDir, "env.bat")
+		if err := os.WriteFile(envfile, []byte("set "+strings.Join(hookEnvs, "\r\nset ")+"\r\n"), 0644); err != nil {
+			logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
+			return "", sfs.WrapSecondaryError(sfs.WriteEnvFileFailed, err)
+		}
+	} else {
+		envfile := filepath.Join(hookDir, "env")
+		if err := os.WriteFile(envfile, []byte("export "+strings.Join(hookEnvs, "\nexport ")+"\n"), 0644); err != nil {
+			logger.Error("write hook env file failed", slog.String("file", envfile), logger.ErrAttr(err))
+			return "", sfs.WrapSecondaryError(sfs.WriteEnvFileFailed, err)
+		}
 	}
 
 	return filePath, nil

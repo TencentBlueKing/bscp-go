@@ -44,6 +44,8 @@ const (
 	Token = "token"
 	// TempDir is environment variable for temp_dir
 	TempDir = "temp_dir"
+	// ConfigMatches is environment variable for config_matches
+	ConfigMatches = "config_matches"
 	// EnableP2PDownload is environment variable for enable_p2p_download
 	EnableP2PDownload = "enable_p2p_download"
 	// BkAgentID is environment variable for bk_agent_id

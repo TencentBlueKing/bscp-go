@@ -16,7 +16,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -220,7 +219,7 @@ func runGetFileList(bscp client.Client, app string, match []string) error {
 		table.SetHeader([]string{"File", "SHA256", "MD5", "Size", "Reviser", "UpdateAt"})
 		for _, v := range release.FileItems {
 			table.Append([]string{
-				path.Join(v.Path, v.Name),
+				filepath.Join(v.Path, v.Name),
 				v.FileMeta.ContentSpec.Signature,
 				v.FileMeta.ContentSpec.Md5,
 				humanize.IBytes(v.FileMeta.ContentSpec.ByteSize),
@@ -286,7 +285,7 @@ func getFileOutput(bscp client.Client, app string, match []string) (string, erro
 	output := ""
 	for idx, file := range release.FileItems {
 		output += fmt.Sprintf("***start No.%d***\nfile: %s\nconent: \n%s\n***end No.%d***\n\n",
-			idx+1, path.Join(file.Path, file.Name), contents[idx], idx+1)
+			idx+1, filepath.Join(file.Path, file.Name), contents[idx], idx+1)
 	}
 	return output, nil
 }
@@ -337,11 +336,11 @@ func runDownloadFile(bscp client.Client, app string, match []string) error {
 	fileNames := make(map[string][]string)
 	for idx, f := range release.FileItems {
 		if ignoreDir {
-			dstFile = path.Join(downloadDir, f.Name)
+			dstFile = filepath.Join(downloadDir, f.Name)
 			// used to check files with the same name when --ignore-dir is enabled
-			fileNames[f.Name] = append(fileNames[f.Name], path.Join(f.Path, f.Name))
+			fileNames[f.Name] = append(fileNames[f.Name], filepath.Join(f.Path, f.Name))
 		} else {
-			dstFile = path.Join(downloadDir, f.Path, f.Name)
+			dstFile = filepath.Join(downloadDir, f.Path, f.Name)
 		}
 		dstFiles[idx] = dstFile
 	}

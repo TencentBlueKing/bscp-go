@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 
 	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
@@ -70,7 +70,7 @@ func AppendMetadataToFile(tempDir string, metadata *EventMeta) error {
 			sfs.SecondaryError{SpecificFailedReason: sfs.NewFolderFailed, Err: err})
 	}
 
-	metaFilePath := path.Join(tempDir, "metadata.json")
+	metaFilePath := filepath.Join(tempDir, "metadata.json")
 
 	metaFile, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -110,7 +110,7 @@ func GetLatestMetadataFromFile(tempDir string) (*EventMeta, bool, error) {
 				Err: errors.New("metadata file path can not be empty")})
 	}
 
-	metaFilePath := path.Join(tempDir, "metadata.json")
+	metaFilePath := filepath.Join(tempDir, "metadata.json")
 
 	metaFile, err := os.Open(metaFilePath)
 	if err != nil {
