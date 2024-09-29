@@ -194,7 +194,7 @@ func init() {
 	mustBindPFlag(pullViper, "file_cache.threshold_gb", PullCmd.Flags().Lookup("cache-threshold-gb"))
 	PullCmd.Flags().BoolP("enable-resource", "e", true, "enable report resource usage")
 	mustBindPFlag(pullViper, "enable_resource", PullCmd.Flags().Lookup("enable-resource"))
-	PullCmd.Flags().BoolP("text-line-break", "", false, "text file line break, default as LF")
+	PullCmd.Flags().StringP("text-line-break", "", "", "text file line break, default as LF")
 	mustBindPFlag(pullViper, "text_line_break", PullCmd.Flags().Lookup("text-line-break"))
 
 	for key, envName := range commonEnvs {
