@@ -276,8 +276,7 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 	for _, subscriber := range w.subscribers {
 		if subscriber.App == pl.Instance.App &&
 			subscriber.UID == pl.Instance.Uid &&
-			reflect.DeepEqual(subscriber.Labels, pl.Instance.Labels) &&
-			subscriber.CurrentReleaseID != pl.ReleaseMeta.ReleaseID {
+			reflect.DeepEqual(subscriber.Labels, pl.Instance.Labels) {
 
 			// 更新心跳数据需要cursorID
 			subscriber.CursorID = cursorID
