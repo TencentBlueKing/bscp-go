@@ -118,14 +118,14 @@ func (dl *httpDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, 
 
 	start := time.Now()
 	exec := &execDownload{
-		ctx:         context.Background(),
-		dl:          dl,
-		fileMeta:    fileMeta,
-		to:          to,
-		client:      dl.initClient(),
-		header:      http.Header{},
-		downloadUri: downloadUri,
-		fileSize:    fileSize,
+		ctx:          context.Background(),
+		dl:           dl,
+		fileMeta:     fileMeta,
+		to:           to,
+		client:       dl.initClient(),
+		header:       http.Header{},
+		downloadUris: []string{downloadUri},
+		fileSize:     fileSize,
 	}
 	switch to {
 	case DownloadToFile:
@@ -181,17 +181,18 @@ func (dl *httpDownloader) initClient() *http.Client {
 }
 
 type execDownload struct {
-	fileMeta    *pbfs.FileMeta
-	ctx         context.Context
-	dl          *httpDownloader
-	to          DownloadTo
-	bytes       []byte
-	file        *os.File
-	client      *http.Client
-	header      http.Header
-	downloadUri string
-	fileSize    uint64
-	waitTimeMil int64
+	fileMeta     *pbfs.FileMeta
+	ctx          context.Context
+	dl           *httpDownloader
+	to           DownloadTo
+	bytes        []byte
+	file         *os.File
+	client       *http.Client
+	header       http.Header
+	downloadUri  string   // used for every request
+	downloadUris []string // returned by feed server
+	fileSize     uint64
+	waitTimeMil  int64
 }
 
 func (exec *execDownload) do() error {
@@ -227,8 +228,33 @@ func (exec *execDownload) do() error {
 			sfs.SecondaryError{SpecificFailedReason: sfs.NoDownloadPermission,
 				Err: fmt.Errorf("get temporary download url failed, err: %s", err.Error())})
 	}
-	exec.downloadUri = resp.Url
+
 	exec.waitTimeMil = resp.WaitTimeMil
+	exec.downloadUris = resp.Urls
+	logger.Debug("download uri info", slog.String("file", path.Join(exec.fileMeta.ConfigItemSpec.Path,
+		exec.fileMeta.ConfigItemSpec.Name)), slog.Any("uris", exec.downloadUris))
+	// 兼容老版服务端
+	if len(resp.Urls) == 0 {
+		exec.downloadUris = []string{resp.Url}
+	}
+
+	var errs []error
+	for _, uri := range exec.downloadUris {
+		exec.downloadUri = uri
+		e := exec.download()
+		if e == nil {
+			return nil
+		}
+		errs = append(errs, e)
+	}
+
+	if len(errs) == 1 {
+		return errs[0]
+	}
+	return fmt.Errorf("master repo err: %v, slave repo err: %v", errs[0], errs[1])
+}
+
+func (exec *execDownload) download() error {
 	if exec.fileSize <= exec.dl.balanceDownloadByteSize {
 		// the file size is not big enough, download directly
 		if e := exec.downloadDirectlyWithRetry(); e != nil {
