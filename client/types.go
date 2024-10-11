@@ -112,13 +112,6 @@ func (c *ConfigItemFile) SaveToFile(dst string) error {
 			return err
 		}
 	}
-	// 3. check whether need to convert line break
-	if c.FileMeta.ConfigItemSpec.FileType == "text" && c.TextLineBreak != "" {
-		if err := util.ConvertTextLineBreak(dst, c.TextLineBreak); err != nil {
-			logger.Error("convert text file line break failed", slog.String("file", dst), logger.ErrAttr(err))
-			return err
-		}
-	}
 
 	return nil
 }
@@ -580,7 +573,14 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 				logger.Debug("file is already exists and has not been modified, skip download",
 					slog.String("file", filePath))
 			}
-			// 3. set file permission
+			// 4. check whether need to convert line break
+			if file.FileMeta.ConfigItemSpec.FileType == "text" && file.TextLineBreak != "" {
+				if err := util.ConvertTextLineBreak(filePath, file.TextLineBreak); err != nil {
+					logger.Error("convert text file line break failed", slog.String("file", filePath), logger.ErrAttr(err))
+					return err
+				}
+			}
+			// 5. set file permission
 			if runtime.GOOS != "windows" {
 				if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
 					logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
