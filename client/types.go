@@ -142,7 +142,20 @@ func (r *Release) compareRelease() (bool, error) {
 		logger.Warn("can not find metadata file, maybe you should exec pull command first")
 		return false, nil
 	}
-	if lastMetadata.ReleaseID == r.ReleaseID && util.StrSlicesEqual(lastMetadata.ConfigMatches, r.AppMate.Match) {
+
+	lastChangeEventData, err := eventmeta.GetLatestChangeEventFromFile(r.AppDir)
+	if err != nil {
+		logger.Error("get metadata file failed", logger.ErrAttr(err))
+		return false, err
+	}
+
+	if lastChangeEventData == nil {
+		logger.Warn("can not find change event file, maybe you should exec pull command first")
+		return false, err
+	}
+
+	if lastMetadata.ReleaseID == r.ReleaseID && util.StrSlicesEqual(lastMetadata.ConfigMatches, r.AppMate.Match) &&
+		lastChangeEventData.ReleaseID == r.ReleaseID && lastChangeEventData.Status == eventmeta.EventStatusSuccess {
 		r.AppMate.CurrentReleaseID = r.ReleaseID
 		logger.Info("current release is consistent with the received release, skip", slog.Any("releaseID", r.ReleaseID))
 		return true, nil
@@ -412,8 +425,27 @@ func (r *Release) Execute(steps ...Function) error {
 }
 
 // sendVersionChangeMessaging 发送客户端版本变更信息
-func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData) error {
+func (r *Release) sendVersionChangeMessaging(bd *sfs.BasicData) (err error) {
 	r.AppMate.FailedDetailReason = util.TruncateString(r.AppMate.FailedDetailReason, 1024)
+
+	defer func(r *Release) {
+		// 在上报完消息后记录变更的ID以及成功还是失败
+		if r.AppMate.ReleaseChangeStatus != sfs.Processing {
+			err = r.recordChangeEvent()
+		}
+	}(r)
+
+	changeEvent, err := eventmeta.GetLatestChangeEventFromFile(r.AppDir)
+	if err != nil {
+		return err
+	}
+
+	if r.ClientMode != sfs.Pull {
+		if changeEvent != nil && changeEvent.ReleaseID > 0 {
+			r.AppMate.CurrentReleaseID = changeEvent.ReleaseID
+		}
+	}
+
 	pullPayload := sfs.VersionChangePayload{
 		BasicData:     bd,
 		Application:   r.AppMate,
@@ -608,5 +640,25 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 				Err: err})
 	}
 
+	return nil
+}
+
+// recordChangeEvent 记录变更事件
+func (r *Release) recordChangeEvent() error {
+	var eventStatus eventmeta.EventStatus
+	if r.AppMate.ReleaseChangeStatus == sfs.Success {
+		eventStatus = eventmeta.EventStatusSuccess
+	} else {
+		eventStatus = eventmeta.EventStatusFailed
+	}
+	metadata := &eventmeta.ChangeEvent{
+		ReleaseID: r.ReleaseID,
+		Status:    eventStatus,
+	}
+	err := eventmeta.RecordChangeEvent(r.AppDir, metadata)
+	if err != nil {
+		logger.Error("record change event failed", logger.ErrAttr(err))
+		return err
+	}
 	return nil
 }
