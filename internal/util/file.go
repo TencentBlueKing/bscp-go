@@ -75,11 +75,15 @@ func ConvertTextLineBreak(filePath string, lineBreak string) error {
 		return err
 	}
 
+	// 将所有换行符规范化为 LF，使函数可重入执行
+	normalizedContent := strings.ReplaceAll(string(content), "\r\n", "\n")
+	normalizedContent = strings.ReplaceAll(normalizedContent, "\r", "\n")
+
 	var targetLineBreak string
 	switch lineBreak {
 	case "", "LF":
 		// default line break type is LF, no need to convert
-		return nil
+		targetLineBreak = "\n"
 	case "CRLF":
 		targetLineBreak = "\r\n"
 	case "CR":
@@ -88,7 +92,8 @@ func ConvertTextLineBreak(filePath string, lineBreak string) error {
 		return fmt.Errorf("invalid line break type: %s", lineBreak)
 	}
 
-	updatedContent := strings.ReplaceAll(string(content), "\n", targetLineBreak)
+	// 替换换行符
+	updatedContent := strings.ReplaceAll(normalizedContent, "\n", targetLineBreak)
 
 	// 写回文件
 	return os.WriteFile(filePath, []byte(updatedContent), 0644)
