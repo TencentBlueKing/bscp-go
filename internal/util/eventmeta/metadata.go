@@ -142,3 +142,99 @@ func GetLatestMetadataFromFile(tempDir string) (*EventMeta, bool, error) {
 
 	return metadata, true, nil
 }
+
+// ChangeEvent 记录变更事件的结构体
+type ChangeEvent struct {
+	// ReleaseID release id
+	ReleaseID uint32 `json:"releaseID"`
+	// Status event status
+	Status EventStatus `json:"status"`
+}
+
+// RecordChangeEvent 记录变更的事件
+func RecordChangeEvent(tempDir string, eventData *ChangeEvent) error {
+	if tempDir == "" {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.FilePathNotFound,
+				Err: errors.New("the file path for record change event is empty")})
+	}
+
+	// prepare temp dir, make sure it exists
+	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.NewFolderFailed, Err: err})
+	}
+
+	metaFilePath := filepath.Join(tempDir, "changeevent.json")
+
+	metaFile, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
+				Err: fmt.Errorf("open record change event file failed, err: %s", err.Error())})
+	}
+	defer metaFile.Close()
+
+	b, err := json.Marshal(eventData)
+	if err != nil {
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.SerializationFailed,
+				Err: fmt.Errorf("marshal metadata failed, err: %s", err.Error())})
+	}
+	compress := bytes.NewBuffer([]byte{})
+	if err := json.Compact(compress, b); err != nil {
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.FormattingFailed,
+				Err: fmt.Errorf("compress metadata failed, err: %s", err.Error())})
+	}
+	if _, err := metaFile.WriteString(compress.String() + "\n"); err != nil {
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.WriteFileFailed,
+				Err: fmt.Errorf("record change event failed, err: %s", err.Error())})
+	}
+
+	logger.Info("record change event success", slog.String("event", compress.String()))
+
+	return nil
+}
+
+// GetLatestChangeEventFromFile get the last data from the file that change event
+func GetLatestChangeEventFromFile(tempDir string) (*ChangeEvent, error) {
+	if tempDir == "" {
+		return nil, sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.DataEmpty,
+				Err: errors.New("the file path for record change event is empty")})
+	}
+
+	metaFilePath := filepath.Join(tempDir, "changeevent.json")
+
+	metaFile, err := os.Open(metaFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
+				Err: err})
+	}
+	defer metaFile.Close()
+	var lastLine string
+	scanner := bufio.NewScanner(metaFile)
+	for scanner.Scan() {
+		lastLine = scanner.Text()
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.ReadFileFailed,
+				Err: err})
+	}
+
+	metadata := &ChangeEvent{}
+	if err := json.Unmarshal([]byte(lastLine), metadata); err != nil {
+		return nil, sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.SerializationFailed,
+				Err: fmt.Errorf("unmarshal metadata failed, err: %s", err.Error())})
+	}
+
+	return metadata, nil
+}
