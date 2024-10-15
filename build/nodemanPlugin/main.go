@@ -204,10 +204,7 @@ func serveHttp() error {
 		return err
 	}
 
-	// 强制清理老的sock文件
-	unitSocketPath := filepath.Join(conf.PidPath, unitSocketFile)
-	_ = os.Remove(unitSocketPath)
-	listen, err := net.Listen("unix", unitSocketPath)
+	listen, err := netListen()
 	if err != nil {
 		logger.Error("start http server failed", logger.ErrAttr(err))
 		return err
@@ -219,6 +216,15 @@ func serveHttp() error {
 	}
 
 	return nil
+}
+
+// netListen 默认监听 unix_socket, 可以支持多个实例
+func netListen() (net.Listener, error) {
+	// 强制清理老的sock文件
+	unitSocketPath := filepath.Join(conf.PidPath, unitSocketFile)
+	_ = os.Remove(unitSocketPath)
+
+	return net.Listen("unix", unitSocketPath)
 }
 
 func checkProcess(pidPath string) error {
