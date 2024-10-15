@@ -17,7 +17,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,6 +35,7 @@ import (
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/config"
+	"github.com/TencentBlueKing/bscp-go/internal/util"
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
 	"github.com/TencentBlueKing/bscp-go/pkg/metrics"
 )
@@ -204,7 +204,8 @@ func serveHttp() error {
 		return err
 	}
 
-	listen, err := netListen()
+	unitSocketPath := filepath.Join(conf.PidPath, unitSocketFile)
+	listen, err := util.ListenLocal(unitSocketPath)
 	if err != nil {
 		logger.Error("start http server failed", logger.ErrAttr(err))
 		return err
@@ -216,15 +217,6 @@ func serveHttp() error {
 	}
 
 	return nil
-}
-
-// netListen 默认监听 unix_socket, 可以支持多个实例
-func netListen() (net.Listener, error) {
-	// 强制清理老的sock文件
-	unitSocketPath := filepath.Join(conf.PidPath, unitSocketFile)
-	_ = os.Remove(unitSocketPath)
-
-	return net.Listen("unix", unitSocketPath)
 }
 
 func checkProcess(pidPath string) error {
