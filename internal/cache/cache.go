@@ -20,6 +20,7 @@ import (
 	"io/fs"
 	"math"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"time"
@@ -131,21 +132,16 @@ func (c *Cache) checkFileCacheExists(ci *sfs.ConfigItemMetaV1) (bool, error) {
 }
 
 // GetFileContent return the config content bytes.
+// get from cache first, if not exist, then get from remote repo and add it to cache
 func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
-	exists, err := c.checkFileCacheExists(ci)
-	if err != nil {
-		logger.Error("check config item cache exists failed",
-			slog.String("item", ci.ContentSpec.Signature), logger.ErrAttr(err))
+	if ok := c.ensureCache(ci); !ok {
 		return false, nil
 	}
-	if !exists {
-		return false, nil
-	}
-	filePath := filepath.Join(c.path, ci.ContentSpec.Signature)
-	bytes, err := os.ReadFile(filePath)
+
+	cacheFilePath := path.Join(c.path, ci.ContentSpec.Signature)
+	bytes, err := os.ReadFile(cacheFilePath)
 	if err != nil {
-		logger.Error("read config item cache file failed",
-			slog.String("file", filePath), logger.ErrAttr(err))
+		logger.Error("read config item cache file failed", slog.String("file", cacheFilePath), logger.ErrAttr(err))
 		return false, nil
 	}
 	return true, bytes
@@ -154,30 +150,13 @@ func (c *Cache) GetFileContent(ci *sfs.ConfigItemMetaV1) (bool, []byte) {
 // CopyToFile copy the config content to the specified file.
 // get from cache first, if not exist, then get from remote repo and add it to cache
 func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
-	if ci.ContentSpec.ByteSize > uint64(MaxSingleFileCacheSizeRate*c.thrsholdGB*GByte) {
-		logger.Warn("config item size is too large, skip cache",
-			slog.String("item", filepath.Join(ci.ConfigItemSpec.Path, ci.ConfigItemSpec.Name)),
-			slog.Int64("size", int64(ci.ContentSpec.ByteSize)))
-		return false
-	}
-	exists, err := c.checkFileCacheExists(ci)
-	if err != nil {
-		logger.Error("check config item cache exists failed",
-			slog.String("item", ci.ContentSpec.Signature), logger.ErrAttr(err))
+	if ok := c.ensureCache(ci); !ok {
 		return false
 	}
 
-	cacheFilePath := filepath.Join(c.path, ci.ContentSpec.Signature)
-	if !exists {
-		// get from remote repo and add it to cache
-		if err = downloader.GetDownloader().Download(ci.PbFileMeta(), ci.RepositoryPath, ci.ContentSpec.ByteSize,
-			downloader.DownloadToFile, nil, cacheFilePath); err != nil {
-			logger.Error("download file failed", logger.ErrAttr(err))
-			return false
-		}
-	}
-
+	cacheFilePath := path.Join(c.path, ci.ContentSpec.Signature)
 	var src, dst *os.File
+	var err error
 	src, err = os.Open(cacheFilePath)
 	if err != nil {
 		logger.Error("open config item cache file failed", slog.String("file", cacheFilePath), logger.ErrAttr(err))
@@ -196,6 +175,33 @@ func (c *Cache) CopyToFile(ci *sfs.ConfigItemMetaV1, filePath string) bool {
 		logger.Error("copy config item cache file to destination file failed",
 			slog.String("cache_file", cacheFilePath), slog.String("file", filePath), logger.ErrAttr(err))
 		return false
+	}
+	return true
+}
+
+// ensureCache ensures cache exist, if not exist, then download file and add it to cache file
+func (c *Cache) ensureCache(ci *sfs.ConfigItemMetaV1) bool {
+	if ci.ContentSpec.ByteSize > uint64(MaxSingleFileCacheSizeRate*c.thrsholdGB*GByte) {
+		logger.Warn("config item size is too large, skip copy to file",
+			slog.String("item", path.Join(ci.ConfigItemSpec.Path, ci.ConfigItemSpec.Name)),
+			slog.Int64("size", int64(ci.ContentSpec.ByteSize)))
+		return false
+	}
+	exists, err := c.checkFileCacheExists(ci)
+	if err != nil {
+		logger.Error("check config item cache exists failed",
+			slog.String("item", ci.ContentSpec.Signature), logger.ErrAttr(err))
+		return false
+	}
+
+	cacheFilePath := path.Join(c.path, ci.ContentSpec.Signature)
+	if !exists {
+		// get from remote repo and add it to cache
+		if err = downloader.GetDownloader().Download(ci.PbFileMeta(), ci.RepositoryPath, ci.ContentSpec.ByteSize,
+			downloader.DownloadToFile, nil, cacheFilePath); err != nil {
+			logger.Error("download file failed", logger.ErrAttr(err))
+			return false
+		}
 	}
 	return true
 }
