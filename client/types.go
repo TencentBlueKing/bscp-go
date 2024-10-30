@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -571,6 +572,7 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 	var success, failed, skip int32
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(updateFileConcurrentLimit)
+	var mu sync.Mutex
 	for _, f := range files {
 		file := f
 		g.Go(func() error {
@@ -612,12 +614,22 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 					return err
 				}
 			}
+
 			// 5. set file permission
 			if runtime.GOOS != "windows" {
+				mu.Lock()
+				// 如果是 sidecar 需要创建用户权限组
+				if version.CLIENTTYPE == string(sfs.Sidecar) {
+					if err := util.SetUserAndUserGroup(file.FileMeta.ConfigItemSpec.Permission); err != nil {
+						logger.Warn("set user permission failed", slog.String("file", filePath), logger.ErrAttr(err))
+					}
+				}
 				if err := util.SetFilePermission(filePath, file.FileMeta.ConfigItemSpec.Permission); err != nil {
 					logger.Warn("set file permission failed", slog.String("file", filePath), logger.ErrAttr(err))
 				}
+				mu.Unlock()
 			}
+
 			atomic.AddInt32(successDownloads, 1)
 			atomic.AddUint64(successFileSize, file.FileMeta.ContentSpec.ByteSize)
 			semaphoreCh <- struct{}{}

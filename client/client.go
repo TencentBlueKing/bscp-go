@@ -145,6 +145,9 @@ func New(opts ...Option) (Client, error) {
 	if err = initKvCache(clientOpt); err != nil {
 		return nil, err
 	}
+	if err = initPermissionCache(clientOpt); err != nil {
+		return nil, err
+	}
 
 	watcher, err := newWatcher(u, clientOpt)
 	if err != nil {
@@ -192,6 +195,30 @@ func initKvCache(opts *options) error {
 	return nil
 }
 
+// initPermissionCache init permission cache
+func initPermissionCache(opts *options) error {
+
+	if err := cache.InitMemCache(opts.kvCache.ThresholdMB); err != nil {
+		return fmt.Errorf("init permission cache failed, err: %s", err.Error())
+	}
+
+	go func() {
+		mc := cache.GetMemCache()
+		for {
+			hit, miss, kvCnt := mc.Stats().Hits, mc.Stats().Misses, mc.Len()
+			var hitRatio float64
+			if hit+miss > 0 {
+				hitRatio = float64(hit) / float64(hit+miss)
+			}
+			slog.Debug("kv cache statistics", slog.Int64("hit", hit), slog.Int64("miss", miss),
+				slog.String("hit-ratio", fmt.Sprintf("%.3f", hitRatio)), slog.Int("kv-count", kvCnt))
+			time.Sleep(time.Second * 15)
+		}
+	}()
+
+	return nil
+}
+
 // AddWatcher add a watcher to client
 func (c *client) AddWatcher(callback Callback, app string, opts ...AppOption) error {
 	_ = c.watcher.Subscribe(callback, app, opts...)
@@ -219,7 +246,8 @@ func (c *client) ResetLabels(labels map[string]string) {
 }
 
 // PullFiles pull files from remote
-func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { // nolint
+// nolint:funlen
+func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)

@@ -109,7 +109,8 @@ func Pull(cmd *cobra.Command, args []string) {
 	cancel()
 }
 
-func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz uint32, app string, opts []client.AppOption) error { // nolint
+func pullAppFiles(ctx context.Context, bscp client.Client, tempDir string, biz uint32, app string,
+	opts []client.AppOption) error {
 
 	// 1. prepare app workspace dir
 	appDir := filepath.Join(tempDir, strconv.Itoa(int(biz)), app)
