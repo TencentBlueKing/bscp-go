@@ -80,6 +80,11 @@ func Watch(cmd *cobra.Command, args []string) {
 		labels = r.mergeLabels
 	}
 
+	// 设置pod name
+	if version.CLIENTTYPE == string(sfs.Sidecar) {
+		conf.Labels["pod_name"] = os.Getenv("HOSTNAME")
+	}
+
 	bscp, err := newWatchClient(labels)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))

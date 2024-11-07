@@ -61,6 +61,11 @@ func Pull(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// 设置pod name
+	if version.CLIENTTYPE == string(sfs.Sidecar) {
+		conf.Labels["pod_name"] = os.Getenv("HOSTNAME")
+	}
+
 	bscp, err := client.New(
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
