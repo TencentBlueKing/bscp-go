@@ -16,19 +16,11 @@ package util
 import (
 	"fmt"
 	"time"
-
-	"github.com/denisbrodbeck/machineid"
 )
 
 // GenerateFingerPrint generate finger print
 func GenerateFingerPrint() (string, error) {
-	// 1. try to get machine id
-	// 2. 在 WSL 系统下获取 machineID 不会报错但是拿到的是空字符串
-	machineID, err := machineid.ID()
-	if err == nil && machineID != "" {
-		return machineID, nil
-	}
-	// 2. try to get id from
+	// 1. try to get id from MAC+Hostname+ClientIP
 	fp, err := GenerateClientID()
 	if err == nil {
 		return fp, nil
