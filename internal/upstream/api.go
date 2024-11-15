@@ -71,6 +71,17 @@ func (uc *upstreamClient) Messaging(vas *kit.Vas, typ sfs.MessagingType, payload
 	return uc.client.Messaging(vas.Ctx, msg)
 }
 
+// GetSingleFileContent implements Upstream.
+func (uc *upstreamClient) GetSingleFileContent(vas *kit.Vas, req *pbfs.GetSingleFileContentReq) (
+	pbfs.Upstream_GetSingleFileContentClient, error) {
+
+	if err := uc.wait.WaitWithContext(vas.Ctx); err != nil {
+		return nil, err
+	}
+
+	return uc.client.GetSingleFileContent(vas.Ctx, req)
+}
+
 // PullAppFileMeta pulls the app file meta from upstream feed server.
 func (uc *upstreamClient) PullAppFileMeta(vas *kit.Vas, req *pbfs.PullAppFileMetaReq) (
 	*pbfs.PullAppFileMetaResp, error) {

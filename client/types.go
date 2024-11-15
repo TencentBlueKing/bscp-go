@@ -27,6 +27,7 @@ import (
 	"github.com/TencentBlueKing/bk-bscp/pkg/kit"
 	pbci "github.com/TencentBlueKing/bk-bscp/pkg/protocol/core/config-item"
 	pbhook "github.com/TencentBlueKing/bk-bscp/pkg/protocol/core/hook"
+	pbfs "github.com/TencentBlueKing/bk-bscp/pkg/protocol/feed-server"
 	sfs "github.com/TencentBlueKing/bk-bscp/pkg/sf-share"
 	"github.com/TencentBlueKing/bk-bscp/pkg/tools"
 	"github.com/TencentBlueKing/bk-bscp/pkg/version"
@@ -661,4 +662,34 @@ func (r *Release) recordChangeEvent() error {
 		return err
 	}
 	return nil
+}
+
+// FileStreamReader 定义Reader结构体
+type FileStreamReader struct {
+	stream pbfs.Upstream_GetSingleFileContentClient
+	buffer []byte
+}
+
+// Read 从 stream 获取数据
+func (r *FileStreamReader) Read(p []byte) (int, error) {
+	if len(r.buffer) == 0 {
+		// 从 stream 拉取数据
+		resp, err := r.stream.Recv()
+		if err != nil {
+			return 0, err
+		}
+		r.buffer = resp.GetContent()
+	}
+
+	// 读取 buffer 数据到 p 中
+	n := copy(p, r.buffer)
+	// 更新 buffer，移除已读取的部分
+	r.buffer = r.buffer[n:]
+
+	return n, nil
+}
+
+// Close 关闭流
+func (r *FileStreamReader) Close() error {
+	return r.stream.CloseSend()
 }
