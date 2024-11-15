@@ -13,7 +13,7 @@
 package main
 
 import (
-	bscpVersion "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
+	bscpVersion "github.com/TencentBlueKing/bk-bscp/pkg/version"
 	"github.com/spf13/cobra"
 )
 

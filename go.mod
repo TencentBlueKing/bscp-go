@@ -3,7 +3,7 @@ module github.com/TencentBlueKing/bscp-go
 go 1.20
 
 require (
-	github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp v0.0.0-20241014100623-5cbfebdf0c7e
+	github.com/TencentBlueKing/bk-bscp/pkg v0.0.0-20241115074928-2eaffd75d8d5
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.7.0
@@ -113,5 +113,6 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gorm.io/gorm v1.25.4 // indirect
 	k8s.io/klog/v2 v2.130.0 // indirect
 )

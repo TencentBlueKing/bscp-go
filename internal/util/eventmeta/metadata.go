@@ -22,7 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
-	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	sfs "github.com/TencentBlueKing/bk-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/pkg/logger"
