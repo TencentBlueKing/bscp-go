@@ -24,11 +24,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/criteria/constant"
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
-	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
-	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
+	"github.com/TencentBlueKing/bk-bscp/pkg/criteria/constant"
+	"github.com/TencentBlueKing/bk-bscp/pkg/kit"
+	pbfs "github.com/TencentBlueKing/bk-bscp/pkg/protocol/feed-server"
+	sfs "github.com/TencentBlueKing/bk-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bscp/pkg/version"
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 

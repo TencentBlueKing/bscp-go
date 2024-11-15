@@ -25,10 +25,10 @@ endif
 # 语义化版本, 使用 sed 去掉版本前缀v
 SEM_VERSION = $(shell echo $(VERSION) | sed 's/^v//')
 
-export LDVersionFLAG = -X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.VERSION=${VERSION} \
-    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
-    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.GITHASH=${GITHASH} \
-    	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.DEBUG=${DEBUG}
+export LDVersionFLAG = -X github.com/TencentBlueKing/bk-bscp/pkg/version.VERSION=${VERSION} \
+    	-X github.com/TencentBlueKing/bk-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
+    	-X github.com/TencentBlueKing/bk-bscp/pkg/version.GITHASH=${GITHASH} \
+    	-X github.com/TencentBlueKing/bk-bscp/pkg/version.DEBUG=${DEBUG}
 
 
 .PHONY: lint
@@ -38,13 +38,13 @@ lint:
 .PHONY: build_initContainer
 build_initContainer:
 	${GOBUILD} -ldflags "${LDVersionFLAG} \
-	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=sidecar" \
+	-X github.com/TencentBlueKing/bk-bscp/pkg/version.CLIENTTYPE=sidecar" \
 	-o build/initContainer/bscp cmd/bscp/*.go
 
 .PHONY: build_sidecar
 build_sidecar:
 	${GOBUILD} -ldflags "${LDVersionFLAG} \
-	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=sidecar" \
+	-X github.com/TencentBlueKing/bk-bscp/pkg/version.CLIENTTYPE=sidecar" \
 	-o build/sidecar/bscp cmd/bscp/*.go
 
 .PHONY: build_docker
@@ -55,7 +55,7 @@ build_docker: build_initContainer build_sidecar
 .PHONY: build
 build:
 	${GOBUILD} -ldflags "${LDVersionFLAG} \
-	-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=command" \
+	-X github.com/TencentBlueKing/bk-bscp/pkg/version.CLIENTTYPE=command" \
 	-o bin/${BIN_NAME} cmd/bscp/*.go
 
 .PHONY: build_nodemanPlugin
@@ -65,7 +65,7 @@ build_nodemanPlugin:
 	# build linux x64
 	mkdir -p "build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/etc" "build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin"
 	${GOBUILD_LINUX_X64} -ldflags "${LDVersionFLAG} \
-		-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=agent" \
+		-X github.com/TencentBlueKing/bk-bscp/pkg/version.CLIENTTYPE=agent" \
 		-o build/nodemanPlugin/bkbscp/plugins_linux_x86_64/bkbscp/bin/bkbscp build/nodemanPlugin/main.go
 	sed -e "s/__VERSION__/$(SEM_VERSION)/g" \
 	-e "s/__START_SCRIPT__/.\/start.sh/g" \
@@ -77,7 +77,7 @@ build_nodemanPlugin:
 	# build windows x64
 	mkdir -p "build/nodemanPlugin/bkbscp/plugins_windows_x86_64/bkbscp/etc" "build/nodemanPlugin/bkbscp/plugins_windows_x86_64/bkbscp/bin"
 	${GOBUILD_WINDOWS_X64} -ldflags "${LDVersionFLAG} \
-		-X github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version.CLIENTTYPE=agent" \
+		-X github.com/TencentBlueKing/bk-bscp/pkg/version.CLIENTTYPE=agent" \
 		-o build/nodemanPlugin/bkbscp/plugins_windows_x86_64/bkbscp/bin/bkbscp.exe build/nodemanPlugin/main.go
 	sed -e "s/__VERSION__/$(SEM_VERSION)/g" \
 	-e "s/__START_SCRIPT__/start.bat/g" \

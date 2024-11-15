@@ -21,9 +21,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/dal/table"
-	pbhook "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/core/hook"
-	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bscp/pkg/dal/table"
+	pbhook "github.com/TencentBlueKing/bk-bscp/pkg/protocol/core/hook"
+	sfs "github.com/TencentBlueKing/bk-bscp/pkg/sf-share"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/pkg/env"

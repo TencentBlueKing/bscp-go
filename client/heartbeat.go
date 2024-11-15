@@ -15,10 +15,10 @@ package client
 import (
 	"time"
 
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
-	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/version"
+	"github.com/TencentBlueKing/bk-bscp/pkg/kit"
+	sfs "github.com/TencentBlueKing/bk-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bscp/pkg/tools"
+	"github.com/TencentBlueKing/bk-bscp/pkg/version"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/util"

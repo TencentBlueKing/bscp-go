@@ -24,8 +24,8 @@ import (
 	"sort"
 	"time"
 
-	sfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/sf-share"
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
+	sfs "github.com/TencentBlueKing/bk-bscp/pkg/sf-share"
+	"github.com/TencentBlueKing/bk-bscp/pkg/tools"
 	"github.com/dustin/go-humanize"
 	"golang.org/x/exp/slog"
 

@@ -22,9 +22,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/kit"
-	pbfs "github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/protocol/feed-server"
-	"github.com/TencentBlueKing/bk-bcs/bcs-services/bcs-bscp/pkg/tools"
+	"github.com/TencentBlueKing/bk-bscp/pkg/kit"
+	pbfs "github.com/TencentBlueKing/bk-bscp/pkg/protocol/feed-server"
+	"github.com/TencentBlueKing/bk-bscp/pkg/tools"
 	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/internal/upstream"
