@@ -57,6 +57,8 @@ type Client interface {
 	StopWatch()
 	// ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value
 	ResetLabels(labels map[string]string)
+	// GetFile get files from remote
+	GetFile(app string, filePath string, opts ...AppOption) (*FileStreamReader, error)
 }
 
 // ErrNotFoundKvMD5 is err not found kv md5
@@ -216,6 +218,45 @@ func (c *client) ResetLabels(labels map[string]string) {
 	}
 
 	c.watcher.NotifyReconnect(reconnectSignal{Reason: "reset labels"})
+}
+
+// GetFile implements Client.
+func (c *client) GetFile(app string, filePath string, opts ...AppOption) (*FileStreamReader, error) {
+	option := &AppOptions{}
+	for _, opt := range opts {
+		opt(option)
+	}
+
+	vas, _ := c.buildVas()
+
+	req := &pbfs.GetSingleFileContentReq{
+		ApiVersion: sfs.CurrentAPIVersion,
+		BizId:      c.opts.bizID,
+		AppMeta: &pbfs.AppMeta{
+			App:    app,
+			Labels: c.opts.labels,
+			Uid:    c.opts.uid,
+		},
+		Token:    c.opts.token,
+		FilePath: filePath,
+	}
+
+	// merge labels, if key conflict, app value will overwrite client value
+	req.AppMeta.Labels = util.MergeLabels(c.opts.labels, option.Labels)
+	// reset uid
+	if option.UID != "" {
+		req.AppMeta.Uid = option.UID
+	}
+	if req.AppMeta.Uid == "" {
+		req.AppMeta.Uid = c.opts.fingerprint
+	}
+
+	stream, err := c.upstream.GetSingleFileContent(vas, req)
+	if err != nil {
+		return nil, fmt.Errorf("get app file failed, err: %v", err)
+	}
+
+	return &FileStreamReader{stream: stream}, nil
 }
 
 // PullFiles pull files from remote

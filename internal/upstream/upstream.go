@@ -53,6 +53,7 @@ type Upstream interface {
 	ListApps(vas *kit.Vas, req *pbfs.ListAppsReq) (*pbfs.ListAppsResp, error)
 	AsyncDownload(vas *kit.Vas, req *pbfs.AsyncDownloadReq) (*pbfs.AsyncDownloadResp, error)
 	AsyncDownloadStatus(vas *kit.Vas, req *pbfs.AsyncDownloadStatusReq) (*pbfs.AsyncDownloadStatusResp, error)
+	GetSingleFileContent(vas *kit.Vas, req *pbfs.GetSingleFileContentReq) (pbfs.Upstream_GetSingleFileContentClient, error)
 }
 
 // New create a rolling client instance.
