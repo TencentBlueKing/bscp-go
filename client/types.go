@@ -349,7 +349,10 @@ func clearOldFiles(dir string, files []*ConfigItemFile) error {
 
 // Execute 统一执行入口
 func (r *Release) Execute(steps ...Function) error {
-	var err error
+	var (
+		err  error
+		skip bool
+	)
 	// 填充appMate数据
 	r.AppMate.CursorID = r.CursorID
 	r.AppMate.StartTime = time.Now().UTC()
@@ -376,22 +379,28 @@ func (r *Release) Execute(steps ...Function) error {
 			}
 		}
 
-		if err = r.sendVersionChangeMessaging(bd); err != nil {
-			logger.Error("description failed to report the client change event",
-				slog.String("client_mode", r.ClientMode.String()), slog.Uint64("biz", uint64(r.BizID)),
-				slog.String("app", r.AppMate.App), logger.ErrAttr(err))
+		// 如果是跳过版本变更则不上报数据
+		if !skip {
+			if err = r.sendVersionChangeMessaging(bd); err != nil {
+				logger.Error("description failed to report the client change event",
+					slog.String("client_mode", r.ClientMode.String()), slog.Uint64("biz", uint64(r.BizID)),
+					slog.String("app", r.AppMate.App), logger.ErrAttr(err))
+			}
 		}
-
 	}()
 
 	// 一定要在该位置
 	// 不然会导致current_release_id是0的问题
-	var skip bool
 	if r.ClientMode == sfs.Watch {
 		skip, err = r.compareRelease()
 		if err != nil {
 			return err
 		}
+	}
+
+	// 跳过版本变更
+	if skip {
+		return nil
 	}
 
 	// 发送拉取前事件
@@ -403,10 +412,6 @@ func (r *Release) Execute(steps ...Function) error {
 	// 发送心跳数据
 	if r.ClientMode == sfs.Pull {
 		r.loopHeartbeat(bd)
-	}
-
-	if skip {
-		return nil
 	}
 
 	for _, step := range steps {
