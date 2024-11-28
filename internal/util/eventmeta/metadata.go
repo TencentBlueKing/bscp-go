@@ -238,3 +238,64 @@ func GetLatestChangeEventFromFile(tempDir string) (*ChangeEvent, error) {
 
 	return metadata, nil
 }
+
+// ChangeLog 记录变更后的文件
+type ChangeLog struct {
+	// CurrentReleaseID is sidecar's current effected release id.
+	CurrentReleaseID uint32 `json:"currentReleaseID"`
+	// TargetReleaseID is sidecar's target release id
+	TargetReleaseID uint32 `json:"targetReleaseID"`
+	// Add newly added files
+	Add []string `json:"add"`
+	// Delete deletion files
+	Delete []string `json:"delete"`
+	// Modif modified file
+	Modif []string `json:"modif"`
+}
+
+// RecordChangeLog 记录变更的日志
+func RecordChangeLog(tempDir string, log *ChangeLog) error {
+	if tempDir == "" {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.FilePathNotFound,
+				Err: errors.New("the file path for record change log is empty")})
+	}
+
+	// prepare temp dir, make sure it exists
+	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.NewFolderFailed, Err: err})
+	}
+
+	metaFilePath := filepath.Join(tempDir, "changelog.json")
+
+	metaFile, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return sfs.WrapPrimaryError(sfs.UnknownFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.OpenFileFailed,
+				Err: fmt.Errorf("open record change log file failed, err: %s", err.Error())})
+	}
+	defer metaFile.Close()
+
+	b, err := json.Marshal(log)
+	if err != nil {
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.SerializationFailed,
+				Err: fmt.Errorf("marshal metadata failed, err: %s", err.Error())})
+	}
+	compress := bytes.NewBuffer([]byte{})
+	if err := json.Compact(compress, b); err != nil {
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.FormattingFailed,
+				Err: fmt.Errorf("compress metadata failed, err: %s", err.Error())})
+	}
+	if _, err := metaFile.WriteString(compress.String() + "\n"); err != nil {
+		return sfs.WrapPrimaryError(sfs.UpdateMetadataFailed,
+			sfs.SecondaryError{SpecificFailedReason: sfs.WriteFileFailed,
+				Err: fmt.Errorf("record change log failed, err: %s", err.Error())})
+	}
+
+	logger.Info("record change log success", slog.String("event", compress.String()))
+
+	return nil
+}
