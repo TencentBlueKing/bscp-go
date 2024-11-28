@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -65,6 +66,7 @@ type Release struct {
 	BizID       uint32
 	ClientMode  sfs.ClientMode
 	AppMate     *sfs.SideAppMeta
+	ChangeLog   *eventmeta.ChangeLog
 }
 
 // ConfigItemFile defines config item file
@@ -196,6 +198,12 @@ func (p *PostScriptStrategy) executeScript(r *Release) error {
 	if r.PostHook == nil {
 		return nil
 	}
+
+	// 记录变更的文件的差异
+	if err := r.recordChangeLog(); err != nil {
+		logger.Error("record changeLog file failed", logger.ErrAttr(err))
+	}
+
 	err := util.ExecuteHook(r.PostHook, table.PostHook, r.TempDir, r.BizID, r.AppMate.App, r.ReleaseName)
 	if err != nil {
 		logger.Error("execute post hook", logger.ErrAttr(err))
@@ -226,10 +234,20 @@ func (r *Release) UpdateFiles() Function {
 	return func() error {
 		filesDir := filepath.Join(r.AppDir, "files")
 		if err := updateFiles(filesDir, r.FileItems, &r.AppMate.DownloadFileNum, &r.AppMate.DownloadFileSize,
-			r.SemaphoreCh); err != nil {
+			r.SemaphoreCh, r.ChangeLog); err != nil {
 			logger.Error("update file failed", logger.ErrAttr(err))
 			return err
 		}
+
+		// 查找被删除的文件
+		delFiles, err := findDeletedFiles(util.ConvertBackslashes(filesDir), r.FileItems)
+		if err != nil {
+			return sfs.WrapPrimaryError(sfs.DownloadFailed,
+				sfs.SecondaryError{SpecificFailedReason: sfs.UnknownSpecificFailed,
+					Err: fmt.Errorf("search for deleted files failed, %s", err.Error())})
+		}
+		r.ChangeLog.Delete = delFiles
+
 		if r.ClientMode == sfs.Pull {
 			return nil
 		}
@@ -274,12 +292,16 @@ func (r *Release) UpdateMetadata() Function {
 }
 
 // checkFileExists checks the file exists and the SHA256 is match.
-func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
+func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1, changeLog *eventmeta.ChangeLog) (bool, error) {
 	filePath := filepath.Join(absPath, ci.ConfigItemSpec.Name)
 	_, err := os.Stat(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// content is not exist
+			// 记录需要新增的文件
+			changeLog.Add = append(changeLog.Add, path.Join(
+				util.ConvertBackslashes(ci.ConfigItemSpec.Path),
+				ci.ConfigItemSpec.Name))
 			return false, nil
 		}
 
@@ -292,6 +314,10 @@ func checkFileExists(absPath string, ci *sfs.ConfigItemMetaV1) (bool, error) {
 	}
 
 	if sha != ci.ContentSpec.Signature {
+		// 记录需要更新的文件
+		changeLog.Modif = append(changeLog.Modif, path.Join(
+			util.ConvertBackslashes(ci.ConfigItemSpec.Path),
+			ci.ConfigItemSpec.Name))
 		logger.Debug("configuration item's SHA256 is not match, need to update",
 			slog.String("localHash", sha), slog.String("remoteHash", ci.ContentSpec.Signature))
 		return false, nil
@@ -353,6 +379,12 @@ func (r *Release) Execute(steps ...Function) error {
 		err  error
 		skip bool
 	)
+	// 初始化变更文件日志
+	r.ChangeLog = &eventmeta.ChangeLog{
+		Add:    make([]string, 0),
+		Modif:  make([]string, 0),
+		Delete: make([]string, 0),
+	}
 	// 填充appMate数据
 	r.AppMate.CursorID = r.CursorID
 	r.AppMate.StartTime = time.Now().UTC()
@@ -569,7 +601,7 @@ func (r *Release) sendHeartbeatMessaging(vas *kit.Vas, msgType sfs.MessagingType
 
 // updateFiles updates the files to the target directory.
 func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int32, successFileSize *uint64,
-	semaphoreCh chan struct{}) error {
+	semaphoreCh chan struct{}, changeLog *eventmeta.ChangeLog) error {
 	start := time.Now()
 	// Initialize the successDownloads and successFileSize to zero at the beginning of the function.
 	atomic.StoreInt32(successDownloads, 0)
@@ -591,7 +623,7 @@ func updateFiles(filesDir string, files []*ConfigItemFile, successDownloads *int
 						Err: fmt.Errorf("create dir %s failed, err: %s", fileDir, err.Error())})
 			}
 			// 2. check and download file
-			exists, err := checkFileExists(fileDir, file.FileMeta)
+			exists, err := checkFileExists(fileDir, file.FileMeta, changeLog)
 			if err != nil {
 				atomic.AddInt32(&failed, 1)
 				return sfs.WrapPrimaryError(sfs.DownloadFailed,
@@ -697,4 +729,54 @@ func (r *FileStreamReader) Read(p []byte) (int, error) {
 // Close 关闭流
 func (r *FileStreamReader) Close() error {
 	return r.stream.CloseSend()
+}
+
+// recordChangeLog 记录变更日志
+func (r *Release) recordChangeLog() error {
+	r.ChangeLog.CurrentReleaseID = r.AppMate.CurrentReleaseID
+	r.ChangeLog.TargetReleaseID = r.AppMate.TargetReleaseID
+	err := eventmeta.RecordChangeLog(r.AppDir, r.ChangeLog)
+	if err != nil {
+		logger.Error("record change log failed", logger.ErrAttr(err))
+		return err
+	}
+	return nil
+}
+
+// findDeletedFiles 查找删除的文件
+func findDeletedFiles(folder string, files []*ConfigItemFile) ([]string, error) {
+	deletedFiles := []string{}
+
+	// 将路径数组转换为一个集合以方便查找
+	pathSet := make(map[string]struct{})
+	for _, file := range files {
+		// 1. prapare file path
+		fileDir := filepath.Join(folder, file.Path)
+		filePath := filepath.Join(fileDir, file.Name)
+		pathSet[filePath] = struct{}{}
+	}
+
+	// 遍历文件夹中的文件
+	err := filepath.Walk(folder, func(file string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// 跳过目录
+		if info.IsDir() {
+			return nil
+		}
+
+		// 检查文件路径是否在给定路径数组中
+		if _, exists := pathSet[file]; !exists {
+			fileDir, _ := filepath.Rel(folder, file)
+			deletedFiles = append(deletedFiles, "/"+util.ConvertBackslashes(fileDir))
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return deletedFiles, nil
 }

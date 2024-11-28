@@ -12,6 +12,8 @@
 
 package util
 
+import "strings"
+
 // TruncateString It accepts a string s and an integer maxLength as parameters,
 // If the length of string s is greater than maxLength, the first maxLength characters are
 // truncated and '...' is appended to the end.
@@ -21,4 +23,9 @@ func TruncateString(s string, maxLength int) string {
 		return s[:maxLength] + "..."
 	}
 	return s
+}
+
+// ConvertBackslashes 用于将字符串中的反斜杠转换为正斜杠
+func ConvertBackslashes(input string) string {
+	return strings.ReplaceAll(input, `\`, "/")
 }
