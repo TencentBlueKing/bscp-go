@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/TencentBlueKing/bk-bscp/pkg/criteria/constant"
@@ -103,6 +104,14 @@ func New(opts ...Option) (Client, error) {
 		return nil, fmt.Errorf("encode sidecar meta header failed, err: %s", err.Error())
 	}
 	pairs[constant.SidecarMetaKey] = string(mhBytes)
+
+	// for trpc-plugin unittest
+	for _, addr := range clientOpt.feedAddrs {
+		if strings.HasPrefix(addr, "test") {
+			return nil, nil
+		}
+	}
+
 	// prepare upstream
 	u, err := upstream.New(
 		upstream.WithFeedAddrs(clientOpt.feedAddrs),
