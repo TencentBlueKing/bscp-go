@@ -3,7 +3,7 @@ module github.com/TencentBlueKing/bscp-go
 go 1.20
 
 require (
-	github.com/TencentBlueKing/bk-bscp/pkg v0.0.0-20250116071441-0dd411829434
+	github.com/TencentBlueKing/bk-bscp/pkg v0.0.1
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.7.0
