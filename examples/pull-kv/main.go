@@ -15,12 +15,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/slog"
 
 	"github.com/TencentBlueKing/bscp-go/client"
 	"github.com/TencentBlueKing/bscp-go/internal/constant"
@@ -75,28 +74,51 @@ func main() {
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []client.AppOption{}
-	key := "key1"
-	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
-		logger.Error("pull", logger.ErrAttr(err))
+	keys := []string{}
+
+	values, err := fetchConfigurationValues(bscp, appName, keys, opts)
+	if err != nil {
+		logger.Error("fetch configuration values", logger.ErrAttr(err))
 		os.Exit(1)
 	}
-	// 验证从缓存中获取value：此时可停掉feed-server服务端，使其不可用
-	time.Sleep(time.Second * 10)
-	if err = pullAppKvs(bscp, appName, key, opts); err != nil {
-		logger.Error("pull", logger.ErrAttr(err))
-		os.Exit(1)
+	for key, value := range values {
+		fmt.Printf("Key: %s, Value: %s\n", key, value)
 	}
-	// wait to see more kv cache statistics log
 	time.Sleep(time.Second * 6)
 }
 
-// pullAppKvs 拉取 key 的值
-func pullAppKvs(bscp client.Client, app string, key string, opts []client.AppOption) error {
-	value, err := bscp.Get(app, key, opts...)
-	if err != nil {
-		return err
+func fetchConfigurationValues(bscp client.Client, app string, keys []string,
+	opts []client.AppOption) (map[string]string, error) {
+	kvs := make(map[string]string)
+
+	keySet := make(map[string]struct{})
+	isAll := false
+
+	// 检查是否包含 "*"，如果包含，则获取所有数据
+	for _, v := range keys {
+		if v == "*" {
+			isAll = true
+			break // 找到 "*" 后，直接退出
+		}
+		keySet[v] = struct{}{} // 否则，将 key 加入 map
 	}
 
-	logger.Info("get value done", slog.String("key", key), slog.String("value", value))
-	return nil
+	release, err := bscp.PullKvs(app, []string{}, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	// 遍历 release.KvItems，根据 isAll 和 keySet 来获取数据
+	for _, v := range release.KvItems {
+		value, err := bscp.Get(app, v.Key, opts...)
+		if err != nil {
+			return nil, err
+		}
+		_, exists := keySet[v.Key]
+		if isAll || exists {
+			kvs[v.Key] = value
+		}
+	}
+
+	return kvs, nil
 }
