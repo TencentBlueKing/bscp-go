@@ -31,7 +31,7 @@ import (
 
 var (
 	// DefaultDialTimeoutMS is the default dial timeout in milliseconds for upstream client.
-	DefaultDialTimeoutMS int64 = 2000
+	DefaultDialTimeoutMS int64 = 5000
 )
 
 // Upstream implement all the client which is used to connect with upstream
