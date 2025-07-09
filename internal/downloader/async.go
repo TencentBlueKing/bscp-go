@@ -58,7 +58,6 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 
 	start := time.Now()
 
-	tempDir := os.TempDir()
 	resp, err := dl.upstream.AsyncDownload(dl.vas, &pbfs.AsyncDownloadReq{
 		BizId:         fileMeta.ConfigItemAttachment.BizId,
 		BkAgentId:     dl.bkAgentID,
@@ -66,7 +65,7 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 		PodId:         dl.podID,
 		ContainerName: dl.containerName,
 		FileMeta:      fileMeta,
-		FileDir:       tempDir,
+		FileDir:       filepath.Dir(toFile),
 	})
 	if err != nil {
 		return err
@@ -82,9 +81,9 @@ func (dl *asyncDownloader) Download(fileMeta *pbfs.FileMeta, downloadUri string,
 	}
 
 	// move the downloaded file from temp dir to the target path
-	if err := MoveFile(filepath.Join(tempDir, fileMeta.CommitSpec.Content.Signature), toFile); err != nil {
+	if err := MoveFile(filepath.Join(filepath.Dir(toFile), fileMeta.CommitSpec.Content.Signature), toFile); err != nil {
 		return fmt.Errorf("move file from %s to %s failed, err: %s",
-			filepath.Join(tempDir, fileMeta.CommitSpec.Content.Signature), toFile, err)
+			filepath.Join(filepath.Dir(toFile), fileMeta.CommitSpec.Content.Signature), toFile, err)
 	}
 
 	// Verify the checksum of the downloaded file
@@ -151,10 +150,12 @@ func MoveFile(srcPath, dstPath string) error {
 	if err != nil {
 		// cross-device link error
 		if linkErr, ok := err.(*os.LinkError); ok && linkErr.Err == syscall.EXDEV {
+			logger.Debug("cross-device move file", "src", srcPath, "dst", dstPath)
 			return crossDeviceMoveFile(srcPath, dstPath)
 		}
 		return err
 	}
+	logger.Debug("rename file", "src", srcPath, "dst", dstPath)
 	return nil
 }
 
