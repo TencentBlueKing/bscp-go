@@ -33,7 +33,7 @@ export LDVersionFLAG = -X github.com/TencentBlueKing/bk-bscp/pkg/version.VERSION
 
 .PHONY: lint
 lint:
-	@golangci-lint run --issues-exit-code=0
+	@golangci-lint run --fix --issues-exit-code=0
 
 .PHONY: build_initContainer
 build_initContainer:

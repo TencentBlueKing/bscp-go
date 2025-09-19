@@ -99,6 +99,8 @@ type downloader struct {
 
 func (d *downloader) Download(fileMeta *pbfs.FileMeta, downloadUri string, fileSize uint64, to DownloadTo, b []byte,
 	filePath string) error {
+	logger.Info("start download file", "file", filepath.Join(fileMeta.ConfigItemSpec.Path, fileMeta.ConfigItemSpec.Name))
+
 	if !d.enableAsyncDownload {
 		return d.httpDownloader.Download(fileMeta, downloadUri, fileSize, to, b, filePath)
 	}
