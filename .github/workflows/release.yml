@@ -53,7 +53,7 @@ jobs:
         uses: wangyoucao577/go-release-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          goversion: 1.20.4
+          goversion: 1.23.7
           goos: linux
           goarch: amd64
           build_command: make build_nodemanPlugin VERSION=${{ github.event.release.tag_name }}
