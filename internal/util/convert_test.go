@@ -19,29 +19,40 @@ import (
 )
 
 func TestTruncateString(t *testing.T) {
-	// 使用 strings.Builder 高效地构建长字符串
-	var builder strings.Builder
-
-	// 设置生成字符串的长度
-	length := 1024
-
-	// 使用循环生成一个包含 1500 个字符的字符串
-	for i := 0; i < length; i++ {
-		builder.WriteString("a") // 每次写入一个字符 'a'
+	// Test with English characters
+	englishString := strings.Repeat("a", 1000)
+	result := TruncateString(englishString, 800)
+	expectedLength := 800 + 3 // 800 characters + "..."
+	if len([]rune(result)) != expectedLength {
+		t.Errorf("Expected length %d, got %d", expectedLength, len([]rune(result)))
 	}
 
-	// 获取生成的字符串
-	longString := builder.String()
+	// Test with Chinese characters
+	chineseString := strings.Repeat("中", 1000) // 1000 Chinese characters
+	result = TruncateString(chineseString, 800)
+	resultRunes := []rune(result)
+	expectedLength = 800 + 3 // 800 Chinese characters + "..."
+	if len(resultRunes) != expectedLength {
+		t.Errorf("Expected Chinese string length %d, got %d", expectedLength, len(resultRunes))
+	}
 
-	// 打印字符串的长度
-	fmt.Println("字符串长度:", longString)
-	fmt.Println("字符串长度:", len(longString))
+	// Test with mixed characters
+	mixedString := "Error: 错误信息：" + strings.Repeat("测试", 400) // Mixed English and Chinese
+	result = TruncateString(mixedString, 800)
+	resultRunes = []rune(result)
+	if len(resultRunes) > 803 { // Should not exceed 800 + 3 ("...")
+		t.Errorf("Mixed string truncation failed, length: %d", len(resultRunes))
+	}
 
-	// 设置最大长度
-	maxLength := 1024
+	// Test string shorter than max length
+	shortString := "短字符串"
+	result = TruncateString(shortString, 800)
+	if result != shortString {
+		t.Errorf("Short string should not be truncated")
+	}
 
-	// 调用截断函数
-	result := TruncateString(longString, maxLength)
-
-	fmt.Println(result)
+	fmt.Printf("English test passed\n")
+	fmt.Printf("Chinese test passed\n")
+	fmt.Printf("Mixed test passed\n")
+	fmt.Printf("Short string test passed\n")
 }
