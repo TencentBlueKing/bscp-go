@@ -88,6 +88,11 @@ func Pull(cmd *cobra.Command, args []string) {
 		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
+	defer func() {
+		if err = bscp.Close(); err != nil {
+			logger.Error("close client", logger.ErrAttr(err))
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	// 是否采集/监控资源使用率
@@ -108,7 +113,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		if err = pullAppFiles(ctx, bscp, conf.TempDir, conf.Biz, app.Name, opts); err != nil {
 			cancel()
 			logger.Error("pull files failed", logger.ErrAttr(err))
-			os.Exit(1)
+			return
 		}
 	}
 	cancel()

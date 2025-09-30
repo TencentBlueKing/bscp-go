@@ -99,8 +99,14 @@ func newWatcher(u upstream.Upstream, opts *options) (*watcher, error) {
 func (w *watcher) StartWatch() error {
 	w.vas, w.cancel = w.buildVas()
 
+	// Reset all subscriber states for reconnection
+	for _, subscriber := range w.subscribers {
+		subscriber.resetForReconnect()
+	}
+
 	var err error
 	apps := []sfs.SideAppMeta{}
+
 	for _, subscriber := range w.subscribers {
 		apps = append(apps, sfs.SideAppMeta{
 			App:              subscriber.App,
@@ -165,7 +171,7 @@ func (w *watcher) StopWatch() {
 
 	// Close all subscriber event queues to stop event processing goroutines
 	for _, subscriber := range w.subscribers {
-		close(subscriber.eventQueue)
+		subscriber.closeEventQueue()
 	}
 
 	w.vas.Wg.Wait()
@@ -368,6 +374,7 @@ type subscriber struct {
 	processing   sync.Mutex
 	enqueueMutex sync.Mutex // Protects event enqueuing operations
 	watcher      *watcher
+	closed       int32
 }
 
 // CheckConfigItemsChanged check if the subscriber watched config items are changed
@@ -431,6 +438,15 @@ func (s *subscriber) processEvents() {
 func (s *subscriber) enqueueLatestEvent(event *releaseChangeEvent) {
 	s.enqueueMutex.Lock()
 	defer s.enqueueMutex.Unlock()
+
+	// Check if subscriber is closed to avoid panic on closed channel
+	if atomic.LoadInt32(&s.closed) == 1 {
+		logger.Warn("subscriber is closed, skipping event enqueue",
+			slog.String("app", s.App),
+			slog.Any("releaseID", event.payload.ReleaseMeta.ReleaseID),
+			slog.String("rid", event.event.Rid))
+		return
+	}
 
 	select {
 	case s.eventQueue <- event:
@@ -566,4 +582,35 @@ func (w *watcher) sendClientMessaging(meta []sfs.SideAppMeta, annotations map[st
 		return err
 	}
 	return nil
+}
+
+// closeEventQueue safely closes the subscriber's event queue channel
+// Uses atomic flag to prevent double-close panic
+func (s *subscriber) closeEventQueue() {
+	// Use atomic compare-and-swap to ensure we only close once
+	if atomic.CompareAndSwapInt32(&s.closed, 0, 1) {
+		close(s.eventQueue)
+		logger.Debug("subscriber event queue closed", slog.String("app", s.App))
+	}
+}
+
+// resetForReconnect resets subscriber state for reconnection
+// This method is called when the watcher reconnects to ensure proper event processing
+func (s *subscriber) resetForReconnect() {
+	s.enqueueMutex.Lock()
+	defer s.enqueueMutex.Unlock()
+
+	// If the subscriber was closed, reset it for reconnection
+	if atomic.LoadInt32(&s.closed) == 1 {
+		// Reset the closed flag
+		atomic.StoreInt32(&s.closed, 0)
+
+		// Create a new event queue
+		s.eventQueue = make(chan *releaseChangeEvent, 1)
+
+		// Start a new event processing goroutine
+		go s.processEvents()
+
+		logger.Info("subscriber reset for reconnect", slog.String("app", s.App))
+	}
 }

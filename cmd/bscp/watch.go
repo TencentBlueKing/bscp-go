@@ -90,6 +90,11 @@ func Watch(cmd *cobra.Command, args []string) {
 		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
+	defer func() {
+		if err := bscp.Close(); err != nil {
+			logger.Error("close client", logger.ErrAttr(err))
+		}
+	}()
 
 	for _, subscriber := range conf.Apps {
 		handler := &WatchHandler{

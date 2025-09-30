@@ -56,6 +56,7 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("init client failed, err: %v", err)
 		}
+		defer bscp.Close()
 		opts := []client.AppOption{}
 		// 拉取单文件
 		reader, err := bscp.GetFile(app, targetFileName, opts...)
