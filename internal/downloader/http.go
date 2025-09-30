@@ -352,7 +352,7 @@ func (exec *execDownload) isProviderSupportRangeDownload() (uint64, bool, error)
 
 }
 
-// downloadDirectlyWithRetry download file directly with retry)
+// downloadDirectlyWithRetry download file directly with retry
 func (exec *execDownload) downloadDirectlyWithRetry() error {
 	logger.Debug("start download file directly",
 		slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
