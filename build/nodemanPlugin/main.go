@@ -319,6 +319,13 @@ func (w *WatchHandler) getSubscribeOptions() []client.AppOption {
 
 func init() {
 	cobra.OnInitialize(func() {
+		// 检查是否需要显示详细版本信息
+		if rootCmd.Flags().Changed("full-version") {
+			version.ShowVersion("", version.Row)
+			os.Exit(0)
+		}
+
+		// 只有在不是版本检查时才初始化配置
 		cobra.CheckErr(initConf(watchViper))
 	})
 
@@ -329,9 +336,12 @@ func init() {
 	rootCmd.SilenceErrors = true
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	// 添加版本
-	rootCmd.Version = version.FormatVersion("", version.Row)
+	// 添加版本 - 简洁版本输出
+	rootCmd.Version = version.Version().Version
 	rootCmd.SetVersionTemplate(`{{println .Version}}`)
+
+	// 添加详细版本标志参数
+	rootCmd.PersistentFlags().Bool("full-version", false, "show detailed version information")
 
 	rootCmd.PersistentFlags().StringVarP(
 		&configPath, "config", "c", defaultConfigPath, "config file path")
