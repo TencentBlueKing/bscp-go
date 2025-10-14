@@ -1,6 +1,8 @@
 module github.com/TencentBlueKing/bscp-go
 
-go 1.20
+go 1.23
+
+toolchain go1.23.7
 
 require (
 	github.com/TencentBlueKing/bk-bscp/pkg v0.0.1

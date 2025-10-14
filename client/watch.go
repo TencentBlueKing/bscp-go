@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -98,8 +99,14 @@ func newWatcher(u upstream.Upstream, opts *options) (*watcher, error) {
 func (w *watcher) StartWatch() error {
 	w.vas, w.cancel = w.buildVas()
 
+	// Reset all subscriber states for reconnection
+	for _, subscriber := range w.subscribers {
+		subscriber.resetForReconnect()
+	}
+
 	var err error
 	apps := []sfs.SideAppMeta{}
+
 	for _, subscriber := range w.subscribers {
 		apps = append(apps, sfs.SideAppMeta{
 			App:              subscriber.App,
@@ -161,6 +168,11 @@ func (w *watcher) StopWatch() {
 	}
 
 	w.cancel()
+
+	// Close all subscriber event queues to stop event processing goroutines
+	for _, subscriber := range w.subscribers {
+		subscriber.closeEventQueue()
+	}
 
 	w.vas.Wg.Wait()
 	logger.Info("stop watch done", slog.String("rid", w.vas.Rid), slog.Duration("duration", time.Since(st)))
@@ -278,83 +290,15 @@ func (w *watcher) OnReleaseChange(event *sfs.ReleaseChangeEvent) { // nolint
 			subscriber.UID == pl.Instance.Uid &&
 			reflect.DeepEqual(subscriber.Labels, pl.Instance.Labels) {
 
-			// 更新心跳数据需要cursorID
-			subscriber.CursorID = cursorID
-
-			// TODO: check if the subscriber watched config items are changed
-			// if subscriber.CheckConfigItemsChanged(pl.ReleaseMeta.CIMetas) {
-			subscriber.ResetConfigItems(pl.ReleaseMeta.CIMetas)
-			// TODO: filter config items by subscriber options
-			configItemFiles := []*ConfigItemFile{}
-			// 计算总文件大小和总文件数
-			var totalFileSize uint64
-			for _, ci := range pl.ReleaseMeta.CIMetas {
-				ci.ConfigItemSpec.Path = filepath.FromSlash(ci.ConfigItemSpec.Path)
-				configItemFiles = append(configItemFiles, &ConfigItemFile{
-					Name:          ci.ConfigItemSpec.Name,
-					Path:          ci.ConfigItemSpec.Path,
-					TextLineBreak: w.opts.textLineBreak,
-					Permission:    ci.ConfigItemSpec.Permission,
-					FileMeta:      ci,
-				})
-				totalFileSize += ci.ContentSpec.ContentSpec().ByteSize
+			// Create release change event
+			releaseEvent := &releaseChangeEvent{
+				event:    event,
+				payload:  pl,
+				cursorID: cursorID,
 			}
 
-			release := &Release{
-				ReleaseID:   pl.ReleaseMeta.ReleaseID,
-				ReleaseName: pl.ReleaseMeta.ReleaseName,
-				FileItems:   configItemFiles,
-				KvItems:     pl.ReleaseMeta.KvMetas,
-				PreHook:     pl.ReleaseMeta.PreHook,
-				PostHook:    pl.ReleaseMeta.PostHook,
-				vas:         w.vas,
-				upstream:    w.upstream,
-				BizID:       w.opts.bizID,
-				CursorID:    cursorID,
-				ClientMode:  sfs.Watch,
-				SemaphoreCh: make(chan struct{}),
-				AppMate: &sfs.SideAppMeta{
-					App:              subscriber.App,
-					Uid:              subscriber.UID,
-					Labels:           subscriber.Labels,
-					Match:            subscriber.Match,
-					CurrentReleaseID: subscriber.CurrentReleaseID,
-					TargetReleaseID:  pl.ReleaseMeta.ReleaseID,
-					TotalFileSize:    totalFileSize,
-					TotalFileNum:     len(configItemFiles),
-				},
-			}
-
-			start := time.Now()
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			go func(ctx context.Context) {
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case <-release.SemaphoreCh:
-						successDownloads := atomic.LoadInt32(&release.AppMate.DownloadFileNum)
-						successFileSize := atomic.LoadUint64(&release.AppMate.DownloadFileSize)
-						subscriber.DownloadFileNum = successDownloads
-						subscriber.DownloadFileSize = successFileSize
-					}
-				}
-			}(ctx)
-
-			subscriber.ReleaseChangeStatus = sfs.Processing
-			if err := subscriber.Callback(release); err != nil {
-				cancel()
-				subscriber.ReleaseChangeStatus = sfs.Failed
-				logger.Error("execute watch callback failed", slog.String("app", subscriber.App), logger.ErrAttr(err))
-				subscriber.reportReleaseChangeCallbackMetrics("failed", start)
-			} else {
-				cancel()
-				subscriber.ReleaseChangeStatus = sfs.Success
-				subscriber.reportReleaseChangeCallbackMetrics("success", start)
-
-				subscriber.CurrentReleaseID = pl.ReleaseMeta.ReleaseID
-			}
+			// Enqueue the latest event, replacing any pending event
+			subscriber.enqueueLatestEvent(releaseEvent)
 		}
 	}
 }
@@ -377,7 +321,13 @@ func (w *watcher) Subscribe(callback Callback, app string, opts ...AppOption) *s
 		Match:            options.Match,
 		Callback:         callback,
 		CurrentReleaseID: 0,
+		eventQueue:       make(chan *releaseChangeEvent, 1), // Buffer for 1 event only
+		watcher:          w,
 	}
+
+	// Start event processing goroutine
+	go subscriber.processEvents()
+
 	w.subscribers = append(w.subscribers, subscriber)
 	return subscriber
 }
@@ -385,6 +335,13 @@ func (w *watcher) Subscribe(callback Callback, app string, opts ...AppOption) *s
 // Subscribers return all subscribers
 func (w *watcher) Subscribers() []*subscriber {
 	return w.subscribers
+}
+
+// releaseChangeEvent represents a release change event to be processed
+type releaseChangeEvent struct {
+	event    *sfs.ReleaseChangeEvent
+	payload  *sfs.ReleaseChangePayload
+	cursorID string
 }
 
 // Subscriber is the subscriber of the instance
@@ -411,6 +368,13 @@ type subscriber struct {
 	ReleaseChangeStatus sfs.Status
 	DownloadFileNum     int32
 	DownloadFileSize    uint64
+
+	// Event processing queue and synchronization
+	eventQueue   chan *releaseChangeEvent
+	processing   sync.Mutex
+	enqueueMutex sync.Mutex // Protects event enqueuing operations
+	watcher      *watcher
+	closed       int32
 }
 
 // CheckConfigItemsChanged check if the subscriber watched config items are changed
@@ -457,6 +421,143 @@ func (s *subscriber) reportReleaseChangeCallbackMetrics(status string, start tim
 	metrics.ReleaseChangeCallbackHandingSecond.WithLabelValues(s.App, status, releaseID).Observe(seconds)
 }
 
+// processEvents processes release change events sequentially
+func (s *subscriber) processEvents() {
+	for event := range s.eventQueue {
+		logger.Info("processing release change event",
+			slog.String("app", s.App),
+			slog.Any("releaseID", event.payload.ReleaseMeta.ReleaseID),
+			slog.String("rid", event.event.Rid))
+		s.processing.Lock()
+		s.handleReleaseChangeEvent(event)
+		s.processing.Unlock()
+	}
+}
+
+// enqueueLatestEvent enqueues the latest event, replacing any pending event if necessary
+func (s *subscriber) enqueueLatestEvent(event *releaseChangeEvent) {
+	s.enqueueMutex.Lock()
+	defer s.enqueueMutex.Unlock()
+
+	// Check if subscriber is closed to avoid panic on closed channel
+	if atomic.LoadInt32(&s.closed) == 1 {
+		logger.Warn("subscriber is closed, skipping event enqueue",
+			slog.String("app", s.App),
+			slog.Any("releaseID", event.payload.ReleaseMeta.ReleaseID),
+			slog.String("rid", event.event.Rid))
+		return
+	}
+
+	select {
+	case s.eventQueue <- event:
+		// Successfully enqueued the event
+		logger.Debug("enqueued release change event",
+			slog.String("app", s.App),
+			slog.Any("releaseID", event.payload.ReleaseMeta.ReleaseID),
+			slog.String("rid", event.event.Rid))
+	default:
+		// Queue is full (capacity 1), drain the old event and enqueue the new one
+		select {
+		case oldEvent := <-s.eventQueue:
+			// Successfully drained the old event, now enqueue the new one
+			s.eventQueue <- event
+			logger.Info("replaced pending release change event with newer one",
+				slog.String("app", s.App),
+				slog.Any("oldReleaseID", oldEvent.payload.ReleaseMeta.ReleaseID),
+				slog.Any("newReleaseID", event.payload.ReleaseMeta.ReleaseID),
+				slog.String("old_rid", oldEvent.event.Rid),
+				slog.String("new_rid", event.event.Rid))
+		default:
+			// This should not happen with capacity 1, but log it just in case
+			logger.Warn("unexpected: could not drain event from queue with capacity 1",
+				slog.String("app", s.App),
+				slog.Any("releaseID", event.payload.ReleaseMeta.ReleaseID),
+				slog.String("rid", event.event.Rid))
+		}
+	}
+}
+
+// handleReleaseChangeEvent handles a single release change event
+func (s *subscriber) handleReleaseChangeEvent(event *releaseChangeEvent) {
+
+	// 更新心跳数据需要cursorID
+	s.CursorID = event.cursorID
+
+	// TODO: check if the subscriber watched config items are changed
+	// if subscriber.CheckConfigItemsChanged(pl.ReleaseMeta.CIMetas) {
+	s.ResetConfigItems(event.payload.ReleaseMeta.CIMetas)
+	// TODO: filter config items by subscriber options
+	configItemFiles := []*ConfigItemFile{}
+	// 计算总文件大小和总文件数
+	var totalFileSize uint64
+	for _, ci := range event.payload.ReleaseMeta.CIMetas {
+		ci.ConfigItemSpec.Path = filepath.FromSlash(ci.ConfigItemSpec.Path)
+		configItemFiles = append(configItemFiles, &ConfigItemFile{
+			Name:          ci.ConfigItemSpec.Name,
+			Path:          ci.ConfigItemSpec.Path,
+			TextLineBreak: s.watcher.opts.textLineBreak,
+			Permission:    ci.ConfigItemSpec.Permission,
+			FileMeta:      ci,
+		})
+		totalFileSize += ci.ContentSpec.ContentSpec().ByteSize
+	}
+
+	release := &Release{
+		ReleaseID:   event.payload.ReleaseMeta.ReleaseID,
+		ReleaseName: event.payload.ReleaseMeta.ReleaseName,
+		FileItems:   configItemFiles,
+		KvItems:     event.payload.ReleaseMeta.KvMetas,
+		PreHook:     event.payload.ReleaseMeta.PreHook,
+		PostHook:    event.payload.ReleaseMeta.PostHook,
+		vas:         s.watcher.vas,
+		upstream:    s.watcher.upstream,
+		BizID:       s.watcher.opts.bizID,
+		CursorID:    event.cursorID,
+		ClientMode:  sfs.Watch,
+		SemaphoreCh: make(chan struct{}),
+		AppMate: &sfs.SideAppMeta{
+			App:              s.App,
+			Uid:              s.UID,
+			Labels:           s.Labels,
+			Match:            s.Match,
+			CurrentReleaseID: s.CurrentReleaseID,
+			TargetReleaseID:  event.payload.ReleaseMeta.ReleaseID,
+			TotalFileSize:    totalFileSize,
+			TotalFileNum:     len(configItemFiles),
+		},
+	}
+
+	start := time.Now()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-release.SemaphoreCh:
+				successDownloads := atomic.LoadInt32(&release.AppMate.DownloadFileNum)
+				successFileSize := atomic.LoadUint64(&release.AppMate.DownloadFileSize)
+				s.DownloadFileNum = successDownloads
+				s.DownloadFileSize = successFileSize
+			}
+		}
+	}(ctx)
+
+	s.ReleaseChangeStatus = sfs.Processing
+	if err := s.Callback(release); err != nil {
+		cancel()
+		s.ReleaseChangeStatus = sfs.Failed
+		logger.Error("execute watch callback failed", slog.String("app", s.App), logger.ErrAttr(err))
+		s.reportReleaseChangeCallbackMetrics("failed", start)
+	} else {
+		cancel()
+		s.ReleaseChangeStatus = sfs.Success
+		s.reportReleaseChangeCallbackMetrics("success", start)
+		s.CurrentReleaseID = event.payload.ReleaseMeta.ReleaseID
+	}
+}
+
 // sendClientMessaging 发送客户端连接信息
 func (w *watcher) sendClientMessaging(meta []sfs.SideAppMeta, annotations map[string]interface{}) error {
 	clientInfoPayload := sfs.HeartbeatPayload{
@@ -481,4 +582,35 @@ func (w *watcher) sendClientMessaging(meta []sfs.SideAppMeta, annotations map[st
 		return err
 	}
 	return nil
+}
+
+// closeEventQueue safely closes the subscriber's event queue channel
+// Uses atomic flag to prevent double-close panic
+func (s *subscriber) closeEventQueue() {
+	// Use atomic compare-and-swap to ensure we only close once
+	if atomic.CompareAndSwapInt32(&s.closed, 0, 1) {
+		close(s.eventQueue)
+		logger.Debug("subscriber event queue closed", slog.String("app", s.App))
+	}
+}
+
+// resetForReconnect resets subscriber state for reconnection
+// This method is called when the watcher reconnects to ensure proper event processing
+func (s *subscriber) resetForReconnect() {
+	s.enqueueMutex.Lock()
+	defer s.enqueueMutex.Unlock()
+
+	// If the subscriber was closed, reset it for reconnection
+	if atomic.LoadInt32(&s.closed) == 1 {
+		// Reset the closed flag
+		atomic.StoreInt32(&s.closed, 0)
+
+		// Create a new event queue
+		s.eventQueue = make(chan *releaseChangeEvent, 1)
+
+		// Start a new event processing goroutine
+		go s.processEvents()
+
+		logger.Info("subscriber reset for reconnect", slog.String("app", s.App))
+	}
 }

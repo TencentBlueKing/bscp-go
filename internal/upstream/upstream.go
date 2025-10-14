@@ -15,6 +15,7 @@ package upstream
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/TencentBlueKing/bk-bscp/pkg/kit"
@@ -54,6 +55,7 @@ type Upstream interface {
 	AsyncDownload(vas *kit.Vas, req *pbfs.AsyncDownloadReq) (*pbfs.AsyncDownloadResp, error)
 	AsyncDownloadStatus(vas *kit.Vas, req *pbfs.AsyncDownloadStatusReq) (*pbfs.AsyncDownloadStatusResp, error)
 	GetSingleFileContent(vas *kit.Vas, req *pbfs.GetSingleFileContentReq) (pbfs.Upstream_GetSingleFileContentClient, error)
+	Close() error
 }
 
 // New create a rolling client instance.
@@ -120,6 +122,11 @@ type upstreamClient struct {
 	wait   *blocker
 	conn   *grpc.ClientConn
 	client pbfs.UpstreamClient
+
+	// stateWatchCancel is used to cancel the state watching goroutine
+	stateWatchCancel context.CancelFunc
+	// stateMutex protects state-related operations
+	stateMutex sync.RWMutex
 }
 
 // dial blocks until the connection is established.
@@ -186,10 +193,121 @@ func (uc *upstreamClient) EnableBounce(bounceIntervalHour uint) {
 
 // waitForStateChange use the connection state to determine what to do next.
 func (uc *upstreamClient) waitForStateChange() {
+	// Create a cancellable context for state watching
+	ctx, cancel := context.WithCancel(context.Background())
+	uc.stateMutex.Lock()
+	uc.stateWatchCancel = cancel
+	uc.stateMutex.Unlock()
+
+	defer func() {
+		uc.stateMutex.Lock()
+		uc.stateWatchCancel = nil
+		uc.stateMutex.Unlock()
+	}()
+
 	for {
-		//nolint:staticcheck
-		if uc.conn.WaitForStateChange(context.TODO(), connectivity.Ready) {
-			// TODO: loop and wait and then determine whether we need to create a new connection
+		select {
+		case <-ctx.Done():
+			logger.Info("state change watcher stopped")
+			return
+		default:
+		}
+
+		// Check if connection exists
+		uc.stateMutex.RLock()
+		conn := uc.conn
+		uc.stateMutex.RUnlock()
+
+		if conn == nil {
+			// No connection, wait a bit and check again
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Second):
+				continue
+			}
+		}
+
+		currentState := conn.GetState()
+		logger.Debug("current connection state", slog.String("state", currentState.String()))
+
+		// Wait for state change with timeout
+		stateCtx, stateCancel := context.WithTimeout(ctx, 30*time.Second)
+		stateChanged := conn.WaitForStateChange(stateCtx, currentState)
+		stateCancel()
+
+		if !stateChanged {
+			// Timeout or canceled, continue to next iteration
+			continue
+		}
+
+		newState := conn.GetState()
+		logger.Info("connection state changed",
+			slog.String("from", currentState.String()),
+			slog.String("to", newState.String()))
+
+		// Handle state change
+		uc.handleStateChange(newState)
+
+		// Add a short delay to avoid excessive state checking
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(1 * time.Second):
+			// Continue to next iteration
 		}
 	}
+}
+
+// handleStateChange handles connection state changes
+func (uc *upstreamClient) handleStateChange(state connectivity.State) {
+	logger.Info("handling connection state change", slog.String("state", state.String()))
+
+	switch state {
+	case connectivity.TransientFailure, connectivity.Shutdown:
+		// Handle connection failure
+		logger.Warn("connection in failure state, may need reconnect")
+		// Note: Reconnection logic is handled by other components (bounce, watcher)
+		// to avoid circular dependencies and race conditions
+	case connectivity.Ready:
+		// Connection recovered
+		logger.Info("connection recovered to ready state")
+	case connectivity.Connecting:
+		// Connection is establishing
+		logger.Debug("connection is establishing")
+	case connectivity.Idle:
+		// Connection is idle
+		logger.Debug("connection is idle")
+	}
+}
+
+// Close gracefully shuts down the upstream client
+func (uc *upstreamClient) Close() error {
+	logger.Info("closing upstream client")
+
+	// Stop state watching
+	uc.stateMutex.Lock()
+	if uc.stateWatchCancel != nil {
+		uc.stateWatchCancel()
+		uc.stateWatchCancel = nil
+	}
+	uc.stateMutex.Unlock()
+
+	// Cancel dial context if exists
+	if uc.cancelCtx != nil {
+		uc.cancelCtx()
+		uc.cancelCtx = nil
+	}
+
+	// Close connection
+	if uc.conn != nil {
+		if err := uc.conn.Close(); err != nil {
+			logger.Error("failed to close grpc connection", logger.ErrAttr(err))
+			return err
+		}
+		uc.conn = nil
+	}
+
+	logger.Info("upstream client closed successfully")
+	return nil
 }

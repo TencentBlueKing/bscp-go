@@ -60,6 +60,8 @@ type Client interface {
 	ResetLabels(labels map[string]string)
 	// GetFile get files from remote
 	GetFile(app string, filePath string, opts ...AppOption) (*FileStreamReader, error)
+	// Close gracefully shuts down the client and releases resources
+	Close() error
 }
 
 // ErrNotFoundKvMD5 is err not found kv md5
@@ -217,6 +219,23 @@ func (c *client) StartWatch() error {
 // StopWatch stop watch
 func (c *client) StopWatch() {
 	c.watcher.StopWatch()
+}
+
+// Close gracefully shuts down the client and releases all resources
+func (c *client) Close() error {
+	// First stop the watcher to prevent new events
+	c.StopWatch()
+
+	// Close the upstream connection
+	if c.upstream != nil {
+		if err := c.upstream.Close(); err != nil {
+			logger.Error("failed to close upstream client", logger.ErrAttr(err))
+			return err
+		}
+	}
+
+	logger.Info("bscp client closed successfully")
+	return nil
 }
 
 // ResetLabels reset bscp client labels, if key conflict, app value will overwrite client value

@@ -63,6 +63,7 @@ func main() {
 		slog.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
 	}
+	defer bscp.Close()
 
 	appName := os.Getenv("BSCP_APP")
 	opts := []client.AppOption{}

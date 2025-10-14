@@ -173,12 +173,17 @@ func runGetApp(args []string) error {
 	if err != nil {
 		return err
 	}
-
+	defer func() {
+		if err = bscp.Close(); err != nil {
+			logger.Error("close client", logger.ErrAttr(err))
+		}
+	}()
 	apps, err := bscp.ListApps(args)
 	if err != nil {
 		return err
 	}
 
+	// nolint:unparam
 	tableOutput := func() error {
 		table := newTable()
 		table.SetHeader([]string{"Name", "Config_Type", "Reviser", "UpdateAt"})
@@ -407,7 +412,11 @@ func runGetFile(args []string) error {
 	if err != nil {
 		return err
 	}
-
+	defer func() {
+		if err := bscp.Close(); err != nil {
+			logger.Error("close client", logger.ErrAttr(err))
+		}
+	}()
 	if downloadDir != "" {
 		return runDownloadFile(bscp, conf.App, args)
 	}
@@ -546,6 +555,11 @@ func runGetKv(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := bscp.Close(); err != nil {
+			logger.Error("close client", logger.ErrAttr(err))
+		}
+	}()
 
 	switch outputFormat {
 	case outputFormatValue:

@@ -365,12 +365,37 @@ func (exec *execDownload) downloadDirectlyWithRetry() error {
 	// do download with retry
 	retry := tools.NewRetryPolicy(1, [2]uint{500, 10000})
 	maxRetryCount := 5
+	var lastErr error
+	var allErrors []error
+
 	for {
 		if retry.RetryCount() >= uint32(maxRetryCount) {
-			return fmt.Errorf("exec do download failed, retry count: %d", maxRetryCount)
+			logger.Error("exec do download failed after all retries",
+				slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+				slog.String("download_uri", exec.downloadUri),
+				slog.Uint64("file_size", exec.fileSize),
+				slog.Int("max_retry_count", maxRetryCount),
+				slog.Int("total_errors", len(allErrors)),
+				logger.ErrAttr(lastErr))
+
+			// Return detailed error with all retry attempts
+			if len(allErrors) == 1 {
+				return fmt.Errorf("download failed after %d retries, error: %v", maxRetryCount, lastErr)
+			}
+			return fmt.Errorf("download failed after %d retries, last error: %v, all errors: %v",
+				maxRetryCount, lastErr, allErrors)
 		}
+
 		if err := exec.downloadDirectly(requestAwaitResponseTimeoutSeconds); err != nil {
-			logger.Error("exec do download failed", logger.ErrAttr(err), slog.Any("retry_count", retry.RetryCount()))
+			lastErr = err
+			allErrors = append(allErrors, err)
+			logger.Error("exec do download failed",
+				slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+				slog.String("download_uri", exec.downloadUri),
+				slog.Uint64("file_size", exec.fileSize),
+				slog.Any("retry_count", retry.RetryCount()),
+				slog.Int("max_retry_count", maxRetryCount),
+				logger.ErrAttr(err))
 			retry.Sleep()
 			continue
 		}
@@ -483,12 +508,42 @@ func (exec *execDownload) downloadWithRange() error {
 func (exec *execDownload) downloadOneRangedPartWithRetry(start uint64, end uint64) error {
 	retry := tools.NewRetryPolicy(1, [2]uint{500, 10000})
 	maxRetryCount := 5
+	var lastErr error
+	var allErrors []error
+
 	for {
 		if retry.RetryCount() >= uint32(maxRetryCount) {
-			return fmt.Errorf("download file part failed, retry count: %d", maxRetryCount)
+			logger.Error("download file part failed after all retries",
+				slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+				slog.String("download_uri", exec.downloadUri),
+				slog.Uint64("start_byte", start),
+				slog.Uint64("end_byte", end),
+				slog.Uint64("part_size", end-start+1),
+				slog.Int("max_retry_count", maxRetryCount),
+				slog.Int("total_errors", len(allErrors)),
+				logger.ErrAttr(lastErr))
+
+			// Return detailed error with all retry attempts
+			if len(allErrors) == 1 {
+				return fmt.Errorf("download file part (bytes %d-%d) failed after %d retries, error: %v",
+					start, end, maxRetryCount, lastErr)
+			}
+			return fmt.Errorf("download file part (bytes %d-%d) failed after %d retries, last error: %v, all errors: %v",
+				start, end, maxRetryCount, lastErr, allErrors)
 		}
+
 		if err := exec.downloadOneRangedPart(start, end); err != nil {
-			logger.Error("download file part failed", logger.ErrAttr(err), slog.Any("retry_count", retry.RetryCount()))
+			lastErr = err
+			allErrors = append(allErrors, err)
+			logger.Error("download file part failed",
+				slog.String("file", filepath.Join(exec.fileMeta.ConfigItemSpec.Path, exec.fileMeta.ConfigItemSpec.Name)),
+				slog.String("download_uri", exec.downloadUri),
+				slog.Uint64("start_byte", start),
+				slog.Uint64("end_byte", end),
+				slog.Uint64("part_size", end-start+1),
+				slog.Any("retry_count", retry.RetryCount()),
+				slog.Int("max_retry_count", maxRetryCount),
+				logger.ErrAttr(err))
 			retry.Sleep()
 			continue
 		}
