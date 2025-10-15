@@ -35,7 +35,7 @@ jobs:
         uses: wangyoucao577/go-release-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          goversion: 1.20.4
+          goversion: 1.23.7
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           build_command: make build GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION=${{ github.event.release.tag_name }}
