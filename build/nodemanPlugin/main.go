@@ -336,8 +336,8 @@ func init() {
 	rootCmd.SilenceErrors = true
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	// 添加版本 - 简洁版本输出
-	rootCmd.Version = version.Version().Version
+	// 添加版本 - 简洁版本输出，移除v前缀
+	rootCmd.Version = strings.TrimPrefix(version.Version().Version, "v")
 	rootCmd.SetVersionTemplate(`{{println .Version}}`)
 
 	// 添加详细版本标志参数
