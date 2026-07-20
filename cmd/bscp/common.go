@@ -71,6 +71,7 @@ var (
 		"feed_addrs":          env.FeedAddrs,
 		"token":               env.Token,
 		"temp_dir":            env.TempDir,
+		"dial_timeout_ms":     env.DialTimeoutMS,
 		"config_matches":      env.ConfigMatches,
 		"enable_p2p_download": env.EnableP2PDownload,
 		"bk_agent_id":         env.BkAgentID,

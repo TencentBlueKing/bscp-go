@@ -120,6 +120,15 @@ func WithBizID(id uint32) Option {
 	}
 }
 
+// WithDialTimeoutMS set dial upstream timeout in millisecond.
+// if timeout <= 0, the upstream client will use its default dial timeout.
+func WithDialTimeoutMS(timeout int64) Option {
+	return func(o *options) error {
+		o.dialTimeoutMS = timeout
+		return nil
+	}
+}
+
 // WithLabels set instance labels
 func WithLabels(labels map[string]string) Option {
 	return func(o *options) error {

@@ -149,6 +149,7 @@ func newWatchClient(labels map[string]string) (client.Client, error) {
 		client.WithToken(conf.Token),
 		client.WithLabels(labels),
 		client.WithUID(conf.UID),
+		client.WithDialTimeoutMS(conf.DialTimeoutMS),
 		client.WithP2PDownload(conf.EnableP2PDownload),
 		client.WithBkAgentID(conf.BkAgentID),
 		client.WithClusterID(conf.ClusterID),
@@ -275,6 +276,9 @@ func init() {
 	WatchCmd.Flags().StringP("config-matches", "m", "", "app config item's match conditions，eg:'/etc/a*,/etc/b*'")
 	mustBindPFlag(watchViper, "config_matches", WatchCmd.Flags().Lookup("config-matches"))
 	// TODO: set client UID
+	WatchCmd.Flags().Int64P("dial-timeout-ms", "", constant.DefaultDialTimeoutMS,
+		"dial upstream timeout in millisecond")
+	mustBindPFlag(watchViper, "dial_timeout_ms", WatchCmd.Flags().Lookup("dial-timeout-ms"))
 	WatchCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
 	mustBindPFlag(watchViper, "temp_dir", WatchCmd.Flags().Lookup("temp-dir"))
 	WatchCmd.Flags().IntP("port", "p", constant.DefaultHttpPort, "sidecar http port")

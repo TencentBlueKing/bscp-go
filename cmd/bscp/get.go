@@ -98,10 +98,13 @@ func init() {
 	getCmd.PersistentFlags().StringP("feed-addrs", "f", "", "feed server address, eg: 'bscp-feed.example.com:9510'")
 	getCmd.PersistentFlags().IntP("biz", "b", 0, "biz id")
 	getCmd.PersistentFlags().StringP("token", "t", "", "sdk token")
+	getCmd.PersistentFlags().Int64P("dial-timeout-ms", "", constant.DefaultDialTimeoutMS,
+		"dial upstream timeout in millisecond")
 	for _, v := range getVipers {
 		mustBindPFlag(v, "feed_addrs", getCmd.PersistentFlags().Lookup("feed-addrs"))
 		mustBindPFlag(v, "biz", getCmd.PersistentFlags().Lookup("biz"))
 		mustBindPFlag(v, "token", getCmd.PersistentFlags().Lookup("token"))
+		mustBindPFlag(v, "dial_timeout_ms", getCmd.PersistentFlags().Lookup("dial-timeout-ms"))
 
 		for key, envName := range commonEnvs {
 			// bind env variable with viper
@@ -168,6 +171,7 @@ func runGetApp(args []string) error {
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
+		client.WithDialTimeoutMS(conf.DialTimeoutMS),
 	)
 
 	if err != nil {
@@ -402,6 +406,7 @@ func runGetFile(args []string) error {
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
+		client.WithDialTimeoutMS(conf.DialTimeoutMS),
 		client.WithFileCache(client.FileCache{
 			Enabled:     conf.FileCache.Enabled,
 			CacheDir:    conf.FileCache.CacheDir,
@@ -550,6 +555,7 @@ func runGetKv(args []string) error {
 		client.WithFeedAddrs(conf.FeedAddrs),
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
+		client.WithDialTimeoutMS(conf.DialTimeoutMS),
 	)
 
 	if err != nil {
