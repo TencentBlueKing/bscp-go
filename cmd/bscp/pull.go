@@ -72,6 +72,7 @@ func Pull(cmd *cobra.Command, args []string) {
 		client.WithToken(conf.Token),
 		client.WithLabels(conf.Labels),
 		client.WithUID(conf.UID),
+		client.WithDialTimeoutMS(conf.DialTimeoutMS),
 		client.WithP2PDownload(conf.EnableP2PDownload),
 		client.WithBkAgentID(conf.BkAgentID),
 		client.WithClusterID(conf.ClusterID),
@@ -183,6 +184,9 @@ func init() {
 	PullCmd.Flags().StringP("config-matches", "m", "", "app config item's match conditions，eg:'/etc/a*,/etc/b*'")
 	mustBindPFlag(pullViper, "config_matches", PullCmd.Flags().Lookup("config-matches"))
 	// TODO: set client UID
+	PullCmd.Flags().Int64P("dial-timeout-ms", "", constant.DefaultDialTimeoutMS,
+		"dial upstream timeout in millisecond")
+	mustBindPFlag(pullViper, "dial_timeout_ms", PullCmd.Flags().Lookup("dial-timeout-ms"))
 	PullCmd.Flags().StringP("temp-dir", "d", constant.DefaultTempDir, "bscp temp dir")
 	mustBindPFlag(pullViper, "temp_dir", PullCmd.Flags().Lookup("temp-dir"))
 	PullCmd.Flags().BoolP("enable-p2p-download", "", false, "enable p2p download or not")

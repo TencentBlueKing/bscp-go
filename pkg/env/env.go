@@ -44,6 +44,8 @@ const (
 	Token = "token"
 	// TempDir is environment variable for temp_dir
 	TempDir = "temp_dir"
+	// DialTimeoutMS is environment variable for dial_timeout_ms
+	DialTimeoutMS = "dial_timeout_ms"
 	// ConfigMatches is environment variable for config_matches
 	ConfigMatches = "config_matches"
 	// EnableP2PDownload is environment variable for enable_p2p_download

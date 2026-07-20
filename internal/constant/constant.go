@@ -47,4 +47,7 @@ const (
 	// DefaultHttpPort is the bscp sidecar default http port.
 	// !important: promise of compatibility
 	DefaultHttpPort = 9616
+
+	// DefaultDialTimeoutMS is the bscp cli default dial upstream timeout in millisecond.
+	DefaultDialTimeoutMS = 8000
 )

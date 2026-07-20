@@ -50,6 +50,8 @@ type ClientConfig struct {
 	LabelsStr string `json:"labels_str" mapstructure:"labels_str"`
 	// UID bscp sdk uid
 	UID string `json:"uid" mapstructure:"uid"`
+	// DialTimeoutMS dial upstream timeout in millisecond
+	DialTimeoutMS int64 `json:"dial_timeout_ms" mapstructure:"dial_timeout_ms"`
 	// TempDir config files temporary directory
 	TempDir string `json:"temp_dir" mapstructure:"temp_dir"`
 	// LabelsFile labels file path
@@ -232,6 +234,9 @@ func (c *ClientConfig) ValidateBase() error {
 
 	if c.TempDir == "" {
 		c.TempDir = constant.DefaultTempDir
+	}
+	if c.DialTimeoutMS <= 0 {
+		c.DialTimeoutMS = constant.DefaultDialTimeoutMS
 	}
 	if c.Port == 0 {
 		c.Port = constant.DefaultHttpPort
