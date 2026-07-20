@@ -25,6 +25,9 @@ endif
 # 语义化版本, 使用 sed 去掉版本前缀v
 SEM_VERSION = $(shell echo $(VERSION) | sed 's/^v//')
 
+IMAGE_REGISTRY ?=
+IMAGE_TAG      ?= $(VERSION)
+
 export LDVersionFLAG = -X github.com/TencentBlueKing/bk-bscp/pkg/version.VERSION=${VERSION} \
     	-X github.com/TencentBlueKing/bk-bscp/pkg/version.BUILDTIME=${BUILDTIME} \
     	-X github.com/TencentBlueKing/bk-bscp/pkg/version.GITHASH=${GITHASH} \
@@ -51,6 +54,17 @@ build_sidecar:
 build_docker: build_initContainer build_sidecar
 	cd build/initContainer && docker build . -t bscp-init
 	cd build/sidecar && docker build . -t bscp-sidecar
+
+.PHONY: push_docker
+push_docker: build_docker
+	@if [ -z "$(IMAGE_REGISTRY)" ]; then \
+		echo "ERROR: IMAGE_REGISTRY is not set, e.g. make push_docker IMAGE_REGISTRY=<your.registry/namespace> IMAGE_TAG=v1.3.9"; \
+		exit 1; \
+	fi
+	docker tag bscp-init    $(IMAGE_REGISTRY)/bscp-init:$(IMAGE_TAG)
+	docker tag bscp-sidecar $(IMAGE_REGISTRY)/bscp-sidecar:$(IMAGE_TAG)
+	docker push $(IMAGE_REGISTRY)/bscp-init:$(IMAGE_TAG)
+	docker push $(IMAGE_REGISTRY)/bscp-sidecar:$(IMAGE_TAG)
 
 .PHONY: build
 build:
