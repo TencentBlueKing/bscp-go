@@ -42,6 +42,12 @@ const (
 	outputFormatContent   = "content"
 )
 
+// column headers shared by the output tables
+const (
+	tableHeaderReviser  = "Reviser"
+	tableHeaderUpdateAt = "UpdateAt"
+)
+
 var (
 	// getCmd is parent cmd for other sub cmds
 	getCmd = &cobra.Command{
@@ -196,7 +202,7 @@ func runGetApp(args []string) error {
 	// nolint:unparam
 	tableOutput := func() error {
 		table := newTable()
-		table.SetHeader([]string{"Name", "Config_Type", "Reviser", "UpdateAt"})
+		table.SetHeader([]string{"Name", "Config_Type", tableHeaderReviser, tableHeaderUpdateAt})
 		for _, v := range apps {
 			table.Append([]string{
 				v.Name,
@@ -231,7 +237,7 @@ func runGetFileList(bscp client.Client, app string, match []string) error {
 
 	tableOutput := func() error {
 		table := newTable()
-		table.SetHeader([]string{"File", "SHA256", "MD5", "Size", "Reviser", "UpdateAt"})
+		table.SetHeader([]string{"File", "SHA256", "MD5", "Size", tableHeaderReviser, tableHeaderUpdateAt})
 		for _, v := range release.FileItems {
 			table.Append([]string{
 				filepath.Join(v.Path, v.Name),
@@ -450,7 +456,7 @@ func runGetKvList(bscp client.Client, app string, match []string) error {
 
 	tableOutput := func() error {
 		table := newTable()
-		table.SetHeader([]string{"Key", "Type", "Reviser", "UpdateAt"})
+		table.SetHeader([]string{"Key", "Type", tableHeaderReviser, tableHeaderUpdateAt})
 
 		for _, v := range release.KvItems {
 			table.Append([]string{
@@ -495,10 +501,7 @@ func runGetKvValues(bscp client.Client, app string, keys []string) error {
 		return err
 	}
 	kvTypeMap := make(map[string]string)
-	isAll := false
-	if len(keys) == 0 {
-		isAll = true
-	}
+	isAll := len(keys) == 0
 	for _, k := range release.KvItems {
 		kvTypeMap[k.Key] = k.KvType
 		if isAll {

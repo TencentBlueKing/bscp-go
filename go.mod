@@ -2,6 +2,8 @@ module github.com/TencentBlueKing/bscp-go
 
 go 1.25.0
 
+toolchain go1.25.12
+
 require (
 	github.com/TencentBlueKing/bk-bscp/pkg v0.0.2-0.20260727092514-3da13e93a9f0
 	github.com/allegro/bigcache/v3 v3.1.0
