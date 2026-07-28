@@ -78,6 +78,8 @@ var (
 		"cluster_id":          env.ClusterID,
 		"pod_id":              env.PodID,
 		"container_name":      env.ContainerName,
+		"project_id":          env.ProjectID,
+		"env_id":              env.EnvID,
 	}
 
 	watchEnvs = map[string]string{

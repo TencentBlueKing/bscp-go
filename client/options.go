@@ -46,6 +46,10 @@ type options struct {
 	enableMonitorResourceUsage bool
 	// textLineBreak is the text file line break character, default as LF
 	textLineBreak string
+	// projectID is the project id of the bscp business
+	projectID uint32
+	// envID is the environment id of the bscp business
+	envID uint32
 }
 
 // FileCache option for file cache
@@ -221,6 +225,22 @@ func WithEnableMonitorResourceUsage(enable bool) Option {
 func WithTextLineBreak(lineBreak string) Option {
 	return func(o *options) error {
 		o.textLineBreak = lineBreak
+		return nil
+	}
+}
+
+// WithProjectID set project id
+func WithProjectID(projectID uint32) Option {
+	return func(o *options) error {
+		o.projectID = projectID
+		return nil
+	}
+}
+
+// WithEnvID set env id
+func WithEnvID(envID uint32) Option {
+	return func(o *options) error {
+		o.envID = envID
 		return nil
 	}
 }

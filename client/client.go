@@ -99,8 +99,12 @@ func New(opts ...Option) (Client, error) {
 	// add finger printer
 	mh := sfs.SidecarMetaHeader{
 		BizID:       clientOpt.bizID,
+		Token:       clientOpt.token,
 		Fingerprint: clientOpt.fingerprint,
+		ProjectID:   clientOpt.projectID,
+		EnvID:       clientOpt.envID,
 	}
+
 	mhBytes, err := json.Marshal(mh)
 	if err != nil {
 		return nil, fmt.Errorf("encode sidecar meta header failed, err: %s", err.Error())
@@ -288,7 +292,8 @@ func (c *client) GetFile(app string, filePath string, opts ...AppOption) (*FileS
 }
 
 // PullFiles pull files from remote
-func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { // nolint
+// nolint
+func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)

@@ -161,6 +161,8 @@ func Watch(cmd *cobra.Command, args []string) error {
 		}),
 		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
 		client.WithTextLineBreak(conf.TextLineBreak),
+		client.WithProjectID(conf.ProjectID),
+		client.WithEnvID(conf.EnvID),
 	)
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
