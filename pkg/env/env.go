@@ -68,4 +68,8 @@ const (
 	IP = "ip"
 	// Port is environment variable for port
 	Port = "port"
+	// ProjectKey is environment variable for project_key
+	ProjectKey = "project_key"
+	// EnvName is environment variable for env_name
+	EnvName = "env_name"
 )

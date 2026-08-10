@@ -46,6 +46,10 @@ type options struct {
 	enableMonitorResourceUsage bool
 	// textLineBreak is the text file line break character, default as LF
 	textLineBreak string
+	// projectKey is the project key of the bscp business
+	projectKey string
+	// envName is the environment name of the bscp business
+	envName string
 }
 
 // FileCache option for file cache
@@ -221,6 +225,22 @@ func WithEnableMonitorResourceUsage(enable bool) Option {
 func WithTextLineBreak(lineBreak string) Option {
 	return func(o *options) error {
 		o.textLineBreak = lineBreak
+		return nil
+	}
+}
+
+// WithProjectKey set project key
+func WithProjectKey(projectKey string) Option {
+	return func(o *options) error {
+		o.projectKey = projectKey
+		return nil
+	}
+}
+
+// WithEnvName set env name
+func WithEnvName(envName string) Option {
+	return func(o *options) error {
+		o.envName = envName
 		return nil
 	}
 }
