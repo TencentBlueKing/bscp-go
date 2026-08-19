@@ -6,9 +6,14 @@ VERSION   = $(shell echo ${ENV_BK_BSCP_VERSION})
 DEBUG     = $(shell echo ${ENV_BK_BSCP_ENABLE_DEBUG})
 PREFIX   ?= $(shell pwd)
 
+# 插件 Windows 产物使用 XTLS/go-win7 补丁工具链，兼容 Server 2008 R2 / 2012。
+# 官方 Go 1.21+ 在这些系统上会因 ProcessPrng 启动即崩溃。
+GO_WIN_TOOLCHAIN_TAG ?= patched-1.26.6
+GO_WIN_TOOLCHAIN_DIR ?= $(PRO_DIR)/.toolchain/go-win7-$(GO_WIN_TOOLCHAIN_TAG)
+
 GOBUILD=CGO_ENABLED=0 go build -trimpath
 GOBUILD_LINUX_X64=CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath
-GOBUILD_WINDOWS_X64=CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath
+GOBUILD_WINDOWS_X64=env -u GOROOT GOTOOLCHAIN=local CGO_ENABLED=0 GOOS=windows GOARCH=amd64 "$(GO_WIN_TOOLCHAIN_DIR)/bin/go" build -trimpath
 
 ifeq (${GOOS}, windows)
     BIN_NAME=bscp.exe
@@ -35,6 +40,12 @@ export LDVersionFLAG = -X github.com/TencentBlueKing/bk-bscp/pkg/version.VERSION
 lint:
 	@golangci-lint run --fix --issues-exit-code=0
 
+.PHONY: install_go_win_toolchain
+install_go_win_toolchain:
+	@GO_WIN_TOOLCHAIN_TAG="$(GO_WIN_TOOLCHAIN_TAG)" \
+		GO_WIN_TOOLCHAIN_DIR="$(GO_WIN_TOOLCHAIN_DIR)" \
+		bash scripts/install-go-win-toolchain.sh
+
 .PHONY: build_initContainer
 build_initContainer:
 	${GOBUILD} -ldflags "${LDVersionFLAG} \
@@ -59,7 +70,7 @@ build:
 	-o bin/${BIN_NAME} cmd/bscp/*.go
 
 .PHONY: build_nodemanPlugin
-build_nodemanPlugin:
+build_nodemanPlugin: install_go_win_toolchain
 	@echo "Building nodemanPlugin version: ${SEM_VERSION}"
 	rm -rf build/nodemanPlugin/bkbscp
 	# build linux x64
