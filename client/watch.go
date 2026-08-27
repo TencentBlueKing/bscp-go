@@ -378,7 +378,9 @@ type subscriber struct {
 }
 
 // CheckConfigItemsChanged check if the subscriber watched config items are changed
+//
 // Deprecated: commit id can not be used to check config items changed anymore
+//
 // ? Should it used in file mode ?
 func (s *subscriber) CheckConfigItemsChanged(cis []*sfs.ConfigItemMetaV1) bool {
 	if len(cis) == 0 {
@@ -398,6 +400,7 @@ func (s *subscriber) CheckConfigItemsChanged(cis []*sfs.ConfigItemMetaV1) bool {
 }
 
 // ResetConfigItems reset the current config items of the subscriber
+//
 // Deprecated: commit id can not be used to check config items changed anymore
 func (s *subscriber) ResetConfigItems(cis []*sfs.ConfigItemMetaV1) {
 	// TODO: Filter by watch options(pattern/regex)
