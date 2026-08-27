@@ -100,11 +100,15 @@ func init() {
 	getCmd.PersistentFlags().StringP("token", "t", "", "sdk token")
 	getCmd.PersistentFlags().Int64P("dial-timeout-ms", "", constant.DefaultDialTimeoutMS,
 		"dial upstream timeout in millisecond")
+	getCmd.PersistentFlags().StringP("project-key", "", "", "project key")
+	getCmd.PersistentFlags().StringP("env-name", "", "", "env name")
 	for _, v := range getVipers {
 		mustBindPFlag(v, "feed_addrs", getCmd.PersistentFlags().Lookup("feed-addrs"))
 		mustBindPFlag(v, "biz", getCmd.PersistentFlags().Lookup("biz"))
 		mustBindPFlag(v, "token", getCmd.PersistentFlags().Lookup("token"))
 		mustBindPFlag(v, "dial_timeout_ms", getCmd.PersistentFlags().Lookup("dial-timeout-ms"))
+		mustBindPFlag(v, "project_key", getCmd.PersistentFlags().Lookup("project-key"))
+		mustBindPFlag(v, "env_name", getCmd.PersistentFlags().Lookup("env-name"))
 
 		for key, envName := range commonEnvs {
 			// bind env variable with viper
@@ -172,6 +176,8 @@ func runGetApp(args []string) error {
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
 		client.WithDialTimeoutMS(conf.DialTimeoutMS),
+		client.WithProjectKey(conf.ProjectKey),
+		client.WithEnvName(conf.EnvName),
 	)
 
 	if err != nil {
@@ -412,6 +418,8 @@ func runGetFile(args []string) error {
 			CacheDir:    conf.FileCache.CacheDir,
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
+		client.WithProjectKey(conf.ProjectKey),
+		client.WithEnvName(conf.EnvName),
 	)
 
 	if err != nil {
@@ -556,6 +564,8 @@ func runGetKv(args []string) error {
 		client.WithBizID(conf.Biz),
 		client.WithToken(conf.Token),
 		client.WithDialTimeoutMS(conf.DialTimeoutMS),
+		client.WithProjectKey(conf.ProjectKey),
+		client.WithEnvName(conf.EnvName),
 	)
 
 	if err != nil {

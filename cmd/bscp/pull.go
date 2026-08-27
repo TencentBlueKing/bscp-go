@@ -84,7 +84,10 @@ func Pull(cmd *cobra.Command, args []string) {
 			ThresholdGB: conf.FileCache.ThresholdGB,
 		}),
 		client.WithTextLineBreak(conf.TextLineBreak),
+		client.WithProjectKey(conf.ProjectKey),
+		client.WithEnvName(conf.EnvName),
 	)
+
 	if err != nil {
 		logger.Error("init client", logger.ErrAttr(err))
 		os.Exit(1)
@@ -210,6 +213,11 @@ func init() {
 	mustBindPFlag(pullViper, "enable_resource", PullCmd.Flags().Lookup("enable-resource"))
 	PullCmd.Flags().StringP("text-line-break", "", "", "text file line break, default as LF")
 	mustBindPFlag(pullViper, "text_line_break", PullCmd.Flags().Lookup("text-line-break"))
+	// TODO: set project name and env name
+	PullCmd.Flags().StringP("project-key", "", "", "project key")
+	mustBindPFlag(pullViper, "project_key", PullCmd.Flags().Lookup("project-key"))
+	PullCmd.Flags().StringP("env-name", "", "", "env name")
+	mustBindPFlag(pullViper, "env_name", PullCmd.Flags().Lookup("env-name"))
 
 	for key, envName := range commonEnvs {
 		// bind env variable with viper

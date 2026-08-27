@@ -166,6 +166,8 @@ func newWatchClient(labels map[string]string) (client.Client, error) {
 		}),
 		client.WithEnableMonitorResourceUsage(conf.EnableMonitorResourceUsage),
 		client.WithTextLineBreak(conf.TextLineBreak),
+		client.WithProjectKey(conf.ProjectKey),
+		client.WithEnvName(conf.EnvName),
 	)
 }
 
@@ -309,6 +311,11 @@ func init() {
 	mustBindPFlag(watchViper, "enable_resource", WatchCmd.Flags().Lookup("enable-resource"))
 	WatchCmd.Flags().StringP("text-line-break", "", "", "text line break, default as LF")
 	mustBindPFlag(watchViper, "text_line_break", WatchCmd.Flags().Lookup("text-line-break"))
+	// TODO: set project name and env name
+	WatchCmd.Flags().StringP("project-key", "", "", "project key")
+	mustBindPFlag(watchViper, "project_key", WatchCmd.Flags().Lookup("project-key"))
+	WatchCmd.Flags().StringP("env-name", "", "", "env name")
+	mustBindPFlag(watchViper, "env_name", WatchCmd.Flags().Lookup("env-name"))
 
 	envs := map[string]string{}
 	for key, envName := range commonEnvs {
