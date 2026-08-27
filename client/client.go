@@ -64,6 +64,7 @@ type Client interface {
 	Close() error
 }
 
+// ErrNotFoundKvMD5 is returned when the kv md5 is not found.
 var ErrNotFoundKvMD5 = errors.New("not found kv md5")
 
 // Client is the bscp client

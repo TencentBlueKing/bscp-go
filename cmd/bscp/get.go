@@ -495,10 +495,7 @@ func runGetKvValues(bscp client.Client, app string, keys []string) error {
 		return err
 	}
 	kvTypeMap := make(map[string]string)
-	isAll := false
-	if len(keys) == 0 {
-		isAll = true
-	}
+	isAll := len(keys) == 0
 	for _, k := range release.KvItems {
 		kvTypeMap[k.Key] = k.KvType
 		if isAll {
