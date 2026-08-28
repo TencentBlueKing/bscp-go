@@ -1,6 +1,7 @@
 build/initContainer/bscp
 build/sidecar/bscp
 build/nodemanPlugin/bkbscp*
+/.toolchain
 build_local.sh
 /bscp
 /bscp.exe
