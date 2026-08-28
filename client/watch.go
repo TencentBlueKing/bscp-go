@@ -85,7 +85,10 @@ func newWatcher(u upstream.Upstream, opts *options) (*watcher, error) {
 
 	mh := sfs.SidecarMetaHeader{
 		BizID:       w.opts.bizID,
+		Token:       w.opts.token,
 		Fingerprint: w.opts.fingerprint,
+		ProjectKey:  w.opts.projectKey,
+		EnvName:     w.opts.envName,
 	}
 	mhBytes, err := json.Marshal(mh)
 	if err != nil {

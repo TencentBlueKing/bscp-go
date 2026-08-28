@@ -64,7 +64,7 @@ type Client interface {
 	Close() error
 }
 
-// ErrNotFoundKvMD5 is err not found kv md5
+// ErrNotFoundKvMD5 is returned when the kv md5 is not found
 var ErrNotFoundKvMD5 = errors.New("not found kv md5")
 
 // Client is the bscp client
@@ -99,8 +99,12 @@ func New(opts ...Option) (Client, error) {
 	// add finger printer
 	mh := sfs.SidecarMetaHeader{
 		BizID:       clientOpt.bizID,
+		Token:       clientOpt.token,
 		Fingerprint: clientOpt.fingerprint,
+		ProjectKey:  clientOpt.projectKey,
+		EnvName:     clientOpt.envName,
 	}
+
 	mhBytes, err := json.Marshal(mh)
 	if err != nil {
 		return nil, fmt.Errorf("encode sidecar meta header failed, err: %s", err.Error())
@@ -288,11 +292,13 @@ func (c *client) GetFile(app string, filePath string, opts ...AppOption) (*FileS
 }
 
 // PullFiles pull files from remote
-func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { // nolint
+// nolint
+func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) {
 	option := &AppOptions{}
 	for _, opt := range opts {
 		opt(option)
 	}
+
 	vas, _ := c.buildVas()
 	req := &pbfs.PullAppFileMetaReq{
 		ApiVersion: sfs.CurrentAPIVersion,
@@ -305,6 +311,7 @@ func (c *client) PullFiles(app string, opts ...AppOption) (*Release, error) { //
 		Token: c.opts.token,
 		Match: option.Match,
 	}
+
 	// compatible with the old version of bscp server which can only recognize param req.Key
 	if len(option.Match) > 0 {
 		req.Key = option.Match[0]

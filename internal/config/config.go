@@ -78,6 +78,10 @@ type ClientConfig struct {
 	EnableMonitorResourceUsage bool `json:"enable_resource" mapstructure:"enable_resource"`
 	// TextLineBreak 文本文件换行符
 	TextLineBreak string `json:"text_line_break" mapstructure:"text_line_break"`
+	// ProjectKey 项目key
+	ProjectKey string `json:"project_key" mapstructure:"project_key"`
+	// EnvName 环境名称
+	EnvName string `json:"env_name" mapstructure:"env_name"`
 }
 
 // String get config string
